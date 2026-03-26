@@ -1,0 +1,139 @@
+/* Publish Itt - Global App Styles */
+
+/* Sidebar transitions */
+.sidebar-transition {
+  transition: width 0.3s ease-out;
+}
+
+/* Card hover effects */
+.card-hover {
+  transition:
+    transform 0.2s ease-out,
+    box-shadow 0.2s ease-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Button transitions */
+.btn-transition {
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.btn-transition:active {
+  transform: scale(0.98);
+}
+
+/* Progress bar animation */
+.progress-animate {
+  transition: width 0.5s ease-out;
+}
+
+/* Pipeline step connector */
+.pipeline-connector {
+  position: relative;
+}
+
+.pipeline-connector::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -1rem;
+  width: 2rem;
+  height: 2px;
+  background-color: hsl(var(--border));
+  transform: translateY(-50%);
+}
+
+.pipeline-connector:last-child::after {
+  display: none;
+}
+
+/* Status badges */
+.status-concept {
+  @apply bg-slate-100 text-slate-700;
+}
+.status-outline {
+  @apply bg-blue-100 text-blue-700;
+}
+.status-draft {
+  @apply bg-yellow-100 text-yellow-700;
+}
+.status-revisions {
+  @apply bg-orange-100 text-orange-700;
+}
+.status-editing {
+  @apply bg-purple-100 text-purple-700;
+}
+.status-layout {
+  @apply bg-indigo-100 text-indigo-700;
+}
+.status-art {
+  @apply bg-pink-100 text-pink-700;
+}
+.status-proofing {
+  @apply bg-cyan-100 text-cyan-700;
+}
+.status-final {
+  @apply bg-emerald-100 text-emerald-700;
+}
+.status-published {
+  @apply bg-green-100 text-green-700;
+}
+
+/* AI Response formatting */
+.ai-response h1,
+.ai-response h2,
+.ai-response h3 {
+  @apply font-serif font-medium mt-4 mb-2;
+}
+
+.ai-response h1 {
+  @apply text-xl;
+}
+.ai-response h2 {
+  @apply text-lg;
+}
+.ai-response h3 {
+  @apply text-base font-semibold;
+}
+
+.ai-response ul {
+  @apply list-disc pl-5 my-2 space-y-1;
+}
+
+.ai-response ol {
+  @apply list-decimal pl-5 my-2 space-y-1;
+}
+
+.ai-response p {
+  @apply my-2 leading-relaxed;
+}
+
+.ai-response strong {
+  @apply font-semibold;
+}
+
+/* Loading pulse */
+.loading-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Focus visible styles */
+.focus-ring:focus-visible {
+  @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+}

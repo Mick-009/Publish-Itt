@@ -1,0 +1,157 @@
+{
+  "identity": {
+    "name": "Publish Itt",
+    "persona": "The Digital Atelier",
+    "vibe": "Editorial, Focused, Intellectual, Organized",
+    "metaphor": "A clean, well-lit desk with a typewriter and a stack of organized notes."
+  },
+  "typography": {
+    "primary_font": "Inter",
+    "secondary_font": "Playfair Display",
+    "mono_font": "JetBrains Mono",
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-serif font-medium tracking-tight",
+      "h2": "text-3xl md:text-4xl font-serif font-medium tracking-tight",
+      "h3": "text-2xl md:text-3xl font-serif font-medium",
+      "body": "text-base md:text-lg leading-relaxed text-muted-foreground",
+      "small": "text-sm font-medium tracking-wide uppercase text-muted-foreground"
+    },
+    "instructions": "Use Playfair Display for all major headings (h1, h2, h3) to give an editorial feel. Use Inter for UI elements, buttons, and long-form writing (for readability). Use JetBrains Mono for word counts, stats, and technical labels."
+  },
+  "colors": {
+    "palette_name": "The Literary Palette",
+    "mode": "light",
+    "light_theme": {
+      "background": "#F9F8F6",
+      "foreground": "#2D2A26",
+      "card": "#FFFFFF",
+      "card_foreground": "#2D2A26",
+      "popover": "#FFFFFF",
+      "popover_foreground": "#2D2A26",
+      "primary": "#2D2A26",
+      "primary_foreground": "#F9F8F6",
+      "secondary": "#E8E6E1",
+      "secondary_foreground": "#2D2A26",
+      "muted": "#E8E6E1",
+      "muted_foreground": "#6B665E",
+      "accent": "#C05621",
+      "accent_foreground": "#FFFFFF",
+      "destructive": "#D9534F",
+      "destructive_foreground": "#FFFFFF",
+      "border": "#E2E0DD",
+      "input": "#E2E0DD",
+      "ring": "#2D2A26"
+    },
+    "dark_theme": {
+      "background": "#121212",
+      "foreground": "#E5E5E5",
+      "card": "#1E1E1E",
+      "card_foreground": "#E5E5E5",
+      "popover": "#1E1E1E",
+      "popover_foreground": "#E5E5E5",
+      "primary": "#E5E5E5",
+      "primary_foreground": "#121212",
+      "secondary": "#2A2A2A",
+      "secondary_foreground": "#E5E5E5",
+      "muted": "#2A2A2A",
+      "muted_foreground": "#A1A1AA",
+      "accent": "#D97706",
+      "accent_foreground": "#FFFFFF",
+      "destructive": "#7F1D1D",
+      "destructive_foreground": "#FFFFFF",
+      "border": "#2A2A2A",
+      "input": "#2A2A2A",
+      "ring": "#E5E5E5"
+    },
+    "usage": "The background should feel like warm paper (#F9F8F6). Text should be a deep ink color (#2D2A26), never pure black. Use the Accent color (Terracotta/Amber) sparingly for active states, progress bars, or 'New Idea' highlights."
+  },
+  "visual_enhancers": {
+    "radius": "rounded-sm",
+    "shadows": "shadow-sm",
+    "borders": "border border-border",
+    "glassmorphism": "bg-background/80 backdrop-blur-md border-b border-border/50",
+    "textures": "Use a subtle grain overlay on the background if possible, or keep it clean matte.",
+    "animations": "transition-all duration-300 ease-out hover:-translate-y-0.5"
+  },
+  "layout_strategy": {
+    "dashboard": "Bento Grid (Mode A). Use a mix of wide cards (Project Overview) and tall cards (Recent Activity).",
+    "manuscript": "Distraction-free. Center column (max-w-3xl) for the editor. Collapsible sidebars for chapters and AI tools.",
+    "workflow": "Horizontal pipeline. Use 'Step' indicators connected by lines. Status pills should be elegant (outline style).",
+    "spacing": "Generous. Use p-8 or p-12 for main containers. Gap-6 or Gap-8 for grids."
+  },
+  "components": {
+    "buttons": "Sharp edges (rounded-sm). Primary: Solid Ink (Black/Dark Grey). Secondary: Outline with subtle border.",
+    "cards": "Minimalist. White background (in light mode), 1px subtle border. No heavy shadows. Content is king.",
+    "inputs": "Clean, standard borders. Focus state should be a solid ring of the Primary color.",
+    "navigation": "Sidebar navigation for the 'OS' feel. Collapsible to icons only.",
+    "progress_bars": "Thin, elegant lines. Use the Accent color for the fill."
+  },
+  "image_urls": {
+    "book_covers": [
+      {
+        "url": "https://images.unsplash.com/photo-1538981457319-5e459479f9d0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwYm9vayUyMGNvdmVyJTIwYXJ0JTIwYWJzdHJhY3R8ZW58MHx8fHwxNzY2NTQ4Nzk4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Minimalist Architecture Book Cover",
+        "category": "cover_art"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1621944190310-e3cca1564bd7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwyfHxtaW5pbWFsaXN0JTIwYm9vayUyMGNvdmVyJTIwYXJ0JTIwYWJzdHJhY3R8ZW58MHx8fHwxNzY2NTQ4Nzk4fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Blank White Hardcover Mockup",
+        "category": "cover_art"
+      }
+    ],
+    "author_avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1692291051778-014c9b193830?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHNlYXJjaHwxfHx3cml0ZXIlMjBwb3J0cmFpdCUyMGNyZWF0aXZlJTIwd29ya3NwYWNlfGVufDB8fHx8MTc2NjU0ODgwMHww&ixlib=rb-4.1.0&q=85",
+        "description": "Open Suitcase/Travel Writer Vibe",
+        "category": "avatar"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1600447766334-36a93f35a21d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHNlYXJjaHwzfHx3cml0ZXIlMjBwb3J0cmFpdCUyMGNyZWF0aXZlJTIwd29ya3NwYWNlfGVufDB8fHx8MTc2NjU0ODgwMHww&ixlib=rb-4.1.0&q=85",
+        "description": "Creative Atelier Workspace",
+        "category": "workspace_bg"
+      }
+    ],
+    "art_prompts": [
+      {
+        "url": "https://images.unsplash.com/photo-1766430032829-7690d470b2ba?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwxfHxzdXJyZWFsJTIwZGlnaXRhbCUyMGFydCUyMGlsbHVzdHJhdGlvbnxlbnwwfHx8fDE3NjY1NDg4MDR8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract Digital Art Purple/Teal",
+        "category": "art_prompt_example"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1758472712764-4b746ea18d9b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwyfHxzdXJyZWFsJTIwZGlnaXRhbCUyMGFydCUyMGlsbHVzdHJhdGlvbnxlbnwwfHx8fDE3NjY1NDg4MDR8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Surreal Red Portal",
+        "category": "art_prompt_example"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "1. UPDATE TAILWIND CONFIG: Extend the theme with the 'Literary Palette' colors. Add 'Playfair Display' to the font family.",
+    "2. INSTALL FONTS: Add @import for Playfair Display and Inter/Manrope in index.css.",
+    "3. LAYOUT: Create a Sidebar Layout (Left Nav, Main Content). The Sidebar should be collapsible.",
+    "4. DASHBOARD: Implement the Bento Grid. Use the 'book_covers' images for the Project cards.",
+    "5. MANUSCRIPT: This is the core. Make the editor beautiful. Use a max-width container (prose-lg) centered on the screen. Typography is everything here.",
+    "6. WORKFLOW: Use a horizontal stepper. Statuses: Concept -> Outline -> Drafting -> Editing -> Published.",
+    "7. ART STUDIO: Use the 'art_prompts' images as examples of what the AI generated. Display them in a masonry grid.",
+    "8. COMPONENTS: Customize Shadcn components to match the 'rounded-sm' and 'border-border' aesthetic. No default blue focus rings - use the 'ring' color defined in the palette."
+  ],
+  "universal_guidelines": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use sonner for toasts. Sonner component are located in /app/src/components/ui/sonner.tsx"
+  ]
+}

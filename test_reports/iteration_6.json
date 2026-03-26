@@ -1,0 +1,95 @@
+{
+  "summary": "Completed testing of Export (DOCX/PDF), Image Generation, and Deprecated Endpoints. All 20 backend tests passed. Frontend Export Dialog and Art Studio UI verified working correctly.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "test_report_links": [
+    "/app/tests/test_export_image_deprecated.py",
+    "/app/test_reports/pytest/export_image_deprecated_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Export DOCX endpoint correctly generates valid DOCX files with PK (ZIP) signature",
+    "Export PDF endpoint correctly generates valid PDF files with %PDF signature",
+    "Both export endpoints properly handle include_title_page and include_chapter_numbers options",
+    "Image generation endpoint validates prompt length (min 10 chars) and returns proper response structure",
+    "Deprecated manuscripts_collection endpoints return 200 and correctly log warnings to backend logs",
+    "Frontend Export Dialog has proper data-testid attributes for testing",
+    "Art Studio UI shows saved assets including generated images"
+  ],
+  
+  "updated_files": [
+    "/app/tests/test_export_image_deprecated.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (20/20 tests passed)",
+    "frontend": "100% (Export Dialog and Art Studio UI verified)"
+  },
+  
+  "test_credentials": "No authentication required. Used project ID: b7bb3190-8ab4-4918-873c-df8991746b7d",
+  
+  "seed_data_creation": "Test manuscripts created during deprecated endpoint tests were cleaned up automatically",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": true,
+  
+  "context_for_next_testing_agent": "All three features tested and working: 1) Export DOCX/PDF - POST /api/export/docx and /api/export/pdf return valid binary files with correct headers and signatures, 2) Image Generation - POST /api/ai/generate-image returns image_base64 string (tested with simple prompt, took ~10 seconds), 3) Deprecated Endpoints - All CRUD operations on /api/manuscripts-collection return 200 and log 'Deprecated endpoint /manuscripts-collection called. Use /projects instead.' to backend logs. Frontend Export Dialog opens from ManuscriptWorkspace with format selection (DOCX/PDF), title page toggle, chapter numbers toggle, and shows chapter count/word count. Art Studio shows Generate Art Prompts form and Saved Assets section.",
+  
+  "features_tested": {
+    "backend_apis": [
+      "POST /api/export/docx - Returns valid DOCX file (PK signature)",
+      "POST /api/export/pdf - Returns valid PDF file (%PDF signature)",
+      "POST /api/ai/generate-image - Returns image_base64 on success",
+      "GET /api/manuscripts-collection - Returns 200 with deprecation warning",
+      "POST /api/manuscripts-collection - Creates record with deprecation warning",
+      "GET /api/manuscripts-collection/{id} - Returns record with deprecation warning",
+      "PUT /api/manuscripts-collection/{id} - Updates record with deprecation warning",
+      "DELETE /api/manuscripts-collection/{id} - Deletes record with deprecation warning"
+    ],
+    "frontend_ui": [
+      "Export Dialog opens from ManuscriptWorkspace",
+      "Export Format dropdown (DOCX/PDF) works",
+      "Include title page toggle works",
+      "Include chapter numbers toggle works",
+      "Export button shows correct format (Export DOCX/Export PDF)",
+      "Art Studio page loads with Generate Art Prompts form",
+      "Saved Assets section shows previously generated images"
+    ],
+    "test_scenarios": [
+      "Export DOCX with all options enabled",
+      "Export DOCX without title page",
+      "Export DOCX without chapter numbers",
+      "Export DOCX with invalid project returns 404",
+      "Export PDF with all options enabled",
+      "Export PDF without title page",
+      "Export PDF without chapter numbers",
+      "Export PDF with invalid project returns 404",
+      "Image generation with valid prompt returns base64",
+      "Image generation with short prompt (<10 chars) returns 400",
+      "Image generation with empty prompt returns 400",
+      "Deprecated GET manuscripts returns 200",
+      "Deprecated POST manuscript creates record",
+      "Deprecated GET single manuscript returns record",
+      "Deprecated PUT manuscript updates record",
+      "Deprecated DELETE manuscript removes record",
+      "Deprecated GET nonexistent manuscript returns 404"
+    ]
+  },
+  
+  "deprecation_warnings_verified": "Backend logs show 'WARNING - Deprecated endpoint /manuscripts-collection called. Use /projects instead.' for all deprecated endpoint calls",
+  
+  "mocked_apis": "None - all APIs use real implementations including OpenAI image generation via emergentintegrations"
+}
