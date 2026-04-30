@@ -20,6 +20,8 @@ import {
   calculateProgress,
 } from "@/lib/utils";
 import { toast } from "sonner";
+import EmptyState from "@/components/EmptyState";
+import { WorkflowEmptyArt } from "@/components/EmptyStateArt";
 import {
   Loader2,
   Check,
@@ -27,6 +29,8 @@ import {
   ArrowRight,
   Sparkles,
   GitBranch,
+  Plus,
+  Upload,
 } from "lucide-react";
 
 const stageDescriptions = {
@@ -133,16 +137,27 @@ export default function WorkflowWorkspace() {
 
   if (projects.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8">
-        <GitBranch className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="font-serif text-2xl mb-2">No Projects Yet</h2>
-        <p className="text-muted-foreground mb-4">
-          Create a project to track its workflow
-        </p>
-        <Button onClick={() => navigate("/")} className="rounded-sm">
-          Go to Dashboard
-        </Button>
-      </div>
+      <EmptyState
+        size="page"
+        art={<WorkflowEmptyArt size={96} />}
+        eyebrow="The pipeline is clear"
+        title="No manuscript on the rails yet."
+        body="Once a project exists, this is where we'll watch it move — concept to outline to draft to bound book. Pick something to start."
+        primaryAction={{
+          label: "Start a new project",
+          icon: Plus,
+          onClick: () => navigate("/?action=new_project"),
+          showArrow: true,
+          testId: "empty-workflow-new-project",
+        }}
+        secondaryAction={{
+          label: "Import a manuscript",
+          icon: Upload,
+          onClick: () => navigate("/?action=import"),
+          testId: "empty-workflow-import",
+        }}
+        testId="empty-workflow-no-projects"
+      />
     );
   }
 

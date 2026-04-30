@@ -31,6 +31,11 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import EmptyState from "@/components/EmptyState";
+import {
+  QuillMarkArt,
+  PinnedNoteArt,
+} from "@/components/EmptyStateArt";
 import {
   Loader2,
   Sparkles,
@@ -54,6 +59,8 @@ import {
   RotateCcw,
   ImagePlus,
   Download,
+  Plus,
+  Upload,
 } from "lucide-react";
 
 // Genre options
@@ -570,16 +577,27 @@ export default function ArtStudio() {
 
   if (projects.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8">
-        <ImageIcon className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="font-serif text-2xl mb-2">No Projects Yet</h2>
-        <p className="text-muted-foreground mb-4">
-          Create a project to generate art prompts
-        </p>
-        <Button onClick={() => navigate("/")} className="rounded-sm">
-          Go to Dashboard
-        </Button>
-      </div>
+      <EmptyState
+        size="page"
+        art={<QuillMarkArt size={96} />}
+        eyebrow="Cover & art"
+        title="Every cover starts with the book underneath."
+        body="Once you have a project, I can pull a scene from a chapter and shape an art prompt around it — voice, mood, and all. Bring me the words first."
+        primaryAction={{
+          label: "Start a new project",
+          icon: Plus,
+          onClick: () => navigate("/?action=new_project"),
+          showArrow: true,
+          testId: "empty-artstudio-new-project",
+        }}
+        secondaryAction={{
+          label: "Import a manuscript",
+          icon: Upload,
+          onClick: () => navigate("/?action=import"),
+          testId: "empty-artstudio-import",
+        }}
+        testId="empty-artstudio-no-projects"
+      />
     );
   }
 
@@ -1045,7 +1063,7 @@ export default function ArtStudio() {
                           ))
                         ) : (
                           <SelectItem value="default" disabled>
-                            No presets - create one in Settings
+                            No saved presets — build one in Settings
                           </SelectItem>
                         )}
                         <SelectItem value="Epic Fantasy">
@@ -1082,7 +1100,9 @@ export default function ArtStudio() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">
-                          No chapter selected
+                          {chapters.length === 0
+                            ? "No chapters yet — standalone art"
+                            : "Standalone — no chapter"}
                         </SelectItem>
                         {chapters.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
@@ -1157,8 +1177,8 @@ export default function ArtStudio() {
                         </p>
                       ) : (
                         <p className="text-sm text-muted-foreground italic">
-                          No scene extracted yet. Click refresh to analyze the
-                          chapter.
+                          Nothing pulled from this chapter yet — hit refresh and
+                          I'll find a moment worth painting.
                         </p>
                       )}
                     </CardContent>
@@ -1477,13 +1497,13 @@ export default function ArtStudio() {
               <CardContent>
                 <ScrollArea className="h-[500px]">
                   {artAssets.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
-                      <ImageIcon className="h-12 w-12 mb-4 opacity-50" />
-                      <p className="text-sm text-center">
-                        No saved art assets yet. Generate prompts and save them
-                        here.
-                      </p>
-                    </div>
+                    <EmptyState
+                      size="panel"
+                      art={<PinnedNoteArt size={64} />}
+                      title="The corkboard is empty."
+                      body="Generate a prompt you like and pin it here — keep the keepers, toss the rest."
+                      testId="empty-art-saved-assets"
+                    />
                   ) : (
                     <div className="space-y-3">
                       {artAssets.map((asset) => (

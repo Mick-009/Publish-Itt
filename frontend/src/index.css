@@ -1,15 +1,15 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ============================================
-   THADDAEUS GLOBAL STYLE SYSTEM
+   PUBLISH ITT — GLOBAL STYLE SYSTEM
    ============================================ */
 
 @layer base {
-  /* Default Theme - Current */
+  /* Default Theme */
   :root {
     --background: 40 20% 97%;
     --foreground: 30 10% 15%;
@@ -37,12 +37,21 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
 
-    /* THADDAEUS spacing system */
+    /* Spacing system */
     --panel-padding: 16px;
     --element-gap: 12px;
+
+    /* Typography */
+    --font-serif: 'Lora', Georgia, serif;
+    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Shadows */
+    --shadow-card: 0 1px 3px 0 hsl(30 10% 15% / 0.06), 0 1px 2px -1px hsl(30 10% 15% / 0.06);
+    --shadow-card-hover: 0 4px 16px -2px hsl(30 10% 15% / 0.10), 0 2px 6px -2px hsl(30 10% 15% / 0.08);
+    --shadow-elevated: 0 8px 32px -4px hsl(30 10% 15% / 0.12), 0 4px 12px -4px hsl(30 10% 15% / 0.08);
   }
 
-  /* Theme: Evergreen Forest - Deep greens with nature-inspired tones */
   [data-theme="evergreen"] {
     --background: 150 15% 96%;
     --foreground: 150 20% 12%;
@@ -63,9 +72,10 @@
     --border: 150 12% 85%;
     --input: 150 12% 85%;
     --ring: 150 30% 25%;
+    --shadow-card: 0 1px 3px 0 hsl(150 20% 12% / 0.06), 0 1px 2px -1px hsl(150 20% 12% / 0.06);
+    --shadow-card-hover: 0 4px 16px -2px hsl(150 20% 12% / 0.10), 0 2px 6px -2px hsl(150 20% 12% / 0.08);
   }
 
-  /* Theme: Lantern Glow - Warm amber highlights */
   [data-theme="lantern"] {
     --background: 40 30% 96%;
     --foreground: 30 25% 12%;
@@ -86,9 +96,10 @@
     --border: 40 20% 85%;
     --input: 40 20% 85%;
     --ring: 35 40% 25%;
+    --shadow-card: 0 1px 3px 0 hsl(30 25% 12% / 0.07), 0 1px 2px -1px hsl(30 25% 12% / 0.07);
+    --shadow-card-hover: 0 4px 16px -2px hsl(35 85% 50% / 0.12), 0 2px 6px -2px hsl(30 25% 12% / 0.08);
   }
 
-  /* Theme: Misty Morning - Soft grays with cool undertones */
   [data-theme="misty"] {
     --background: 210 15% 97%;
     --foreground: 210 15% 15%;
@@ -109,9 +120,10 @@
     --border: 210 10% 88%;
     --input: 210 10% 88%;
     --ring: 210 20% 25%;
+    --shadow-card: 0 1px 3px 0 hsl(210 15% 15% / 0.06), 0 1px 2px -1px hsl(210 15% 15% / 0.06);
+    --shadow-card-hover: 0 4px 16px -2px hsl(210 50% 50% / 0.12), 0 2px 6px -2px hsl(210 15% 15% / 0.08);
   }
 
-  /* Theme: Campfire Warmth - Rich oranges and warm earth tones */
   [data-theme="campfire"] {
     --background: 25 25% 96%;
     --foreground: 20 30% 12%;
@@ -132,6 +144,8 @@
     --border: 25 18% 85%;
     --input: 25 18% 85%;
     --ring: 20 35% 22%;
+    --shadow-card: 0 1px 3px 0 hsl(20 30% 12% / 0.07), 0 1px 2px -1px hsl(20 30% 12% / 0.07);
+    --shadow-card-hover: 0 4px 16px -2px hsl(20 90% 48% / 0.14), 0 2px 6px -2px hsl(20 30% 12% / 0.08);
   }
 
   .dark {
@@ -154,6 +168,8 @@
     --border: 0 0% 16%;
     --input: 0 0% 16%;
     --ring: 0 0% 90%;
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.3), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
+    --shadow-card-hover: 0 4px 16px -2px hsl(0 0% 0% / 0.5), 0 2px 6px -2px hsl(0 0% 0% / 0.3);
   }
 }
 
@@ -163,188 +179,212 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-serif tracking-tight;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    @apply tracking-tight;
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/30; }
+
+/* ── Card elevation system ────────────────────────────────────────────────── */
+.card-base {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-muted/30;
+.card-hover {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.22s ease, transform 0.22s ease;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full;
+/* ── Sidebar transition ───────────────────────────────────────────────────── */
+.sidebar-transition {
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/40;
-}
-
-/* TipTap Editor Styles */
+/* ── TipTap / writing editor ──────────────────────────────────────────────── */
 .ProseMirror {
   @apply outline-none min-h-[500px];
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-serif);
   font-size: 18px;
-  line-height: 1.9;
+  line-height: 1.95;
+  color: hsl(var(--foreground));
+  caret-color: hsl(var(--accent));
 }
 
-.ProseMirror p {
-  @apply mb-4;
-}
+.ProseMirror p { @apply mb-5; }
 
 .ProseMirror h1 {
-  @apply text-3xl font-serif font-medium mb-4 mt-6;
-  line-height: 1.3;
+  font-family: var(--font-serif);
+  @apply text-3xl font-semibold mb-5 mt-8;
+  line-height: 1.25;
 }
-
 .ProseMirror h2 {
-  @apply text-2xl font-serif font-medium mb-3 mt-5;
+  font-family: var(--font-serif);
+  @apply text-2xl font-semibold mb-4 mt-6;
   line-height: 1.3;
 }
-
 .ProseMirror h3 {
-  @apply text-xl font-serif font-medium mb-2 mt-4;
+  font-family: var(--font-serif);
+  @apply text-xl font-medium mb-3 mt-5;
   line-height: 1.3;
 }
 
-.ProseMirror ul {
-  @apply list-disc pl-6 mb-4;
-}
-
-.ProseMirror ol {
-  @apply list-decimal pl-6 mb-4;
-}
-
-.ProseMirror li {
-  @apply mb-1;
-}
+.ProseMirror ul  { @apply list-disc pl-6 mb-5 space-y-1; }
+.ProseMirror ol  { @apply list-decimal pl-6 mb-5 space-y-1; }
+.ProseMirror li  { @apply leading-relaxed; }
 
 .ProseMirror blockquote {
-  @apply border-l-4 border-accent pl-4 italic my-4 text-muted-foreground;
+  @apply border-l-[3px] border-accent/60 pl-5 italic my-6 text-muted-foreground;
+  font-size: 1.05em;
 }
 
 .ProseMirror code {
-  @apply bg-muted px-1.5 py-0.5 rounded font-mono text-sm;
+  @apply bg-muted px-1.5 py-0.5 rounded text-sm;
+  font-family: var(--font-mono);
 }
 
 .ProseMirror pre {
-  @apply bg-muted p-4 rounded-sm font-mono text-sm my-4 overflow-x-auto;
+  @apply bg-muted p-4 rounded-sm my-5 overflow-x-auto;
+  font-family: var(--font-mono);
+  font-size: 0.875em;
 }
 
 .ProseMirror hr {
-  @apply border-border my-6;
+  @apply border-0 my-8;
+  border-top: 1px solid hsl(var(--border));
+}
+
+/* Chapter scene-break style (***) */
+.ProseMirror hr::before {
+  content: '· · ·';
+  display: block;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  font-size: 1.1em;
+  letter-spacing: 0.5em;
+  margin-top: -0.75em;
+  background: hsl(var(--background));
+  width: fit-content;
+  margin-inline: auto;
+  padding: 0 1rem;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
-  @apply text-muted-foreground pointer-events-none float-left h-0;
+  @apply text-muted-foreground/50 pointer-events-none float-left h-0;
   content: attr(data-placeholder);
+  font-style: italic;
 }
 
-.ProseMirror:focus {
-  outline: none;
+.ProseMirror:focus { outline: none; }
+
+/* Selected text highlight */
+.ProseMirror ::selection {
+  background: hsl(var(--accent) / 0.18);
 }
 
-/* Animation utilities */
+/* ── Focus mode ───────────────────────────────────────────────────────────── */
+.focus-mode .ProseMirror {
+  max-width: 680px;
+  margin: 0 auto;
+  font-size: 19px;
+}
+
+/* ── Stat badges ──────────────────────────────────────────────────────────── */
+.stat-badge {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium;
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+/* ── Animations ───────────────────────────────────────────────────────────── */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
-.animate-slide-in {
-  animation: slideIn 0.4s ease-out;
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-.animate-slide-in-left {
-  animation: slideInLeft 0.3s ease-out;
+.animate-fade-in     { animation: fadeIn 0.3s ease-out both; }
+.animate-slide-in    { animation: slideIn 0.35s ease-out both; }
+.animate-slide-in-left { animation: slideInLeft 0.3s ease-out both; }
+.animate-scale-in    { animation: scaleIn 0.25s ease-out both; }
+
+/* Stagger helpers */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--border)) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius);
 }
 
-/* Staggered animations */
-.stagger-1 {
-  animation-delay: 0.1s;
-}
-.stagger-2 {
-  animation-delay: 0.2s;
-}
-.stagger-3 {
-  animation-delay: 0.3s;
-}
-.stagger-4 {
-  animation-delay: 0.4s;
+/* ── Misc utility ─────────────────────────────────────────────────────────── */
+.font-serif { font-family: var(--font-serif); }
+.font-mono  { font-family: var(--font-mono); }
+
+/* Nav active indicator dot */
+.nav-active-dot::before {
+  content: '';
+  @apply absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-accent rounded-r-full;
 }
 
 @layer base {
-  [data-debug-wrapper="true"] {
-    display: contents !important;
-  }
-
+  [data-debug-wrapper="true"] { display: contents !important; }
   [data-debug-wrapper="true"] > * {
-    margin-left: inherit;
-    margin-right: inherit;
-    margin-top: inherit;
-    margin-bottom: inherit;
-    padding-left: inherit;
-    padding-right: inherit;
-    padding-top: inherit;
-    padding-bottom: inherit;
-    column-gap: inherit;
-    row-gap: inherit;
-    gap: inherit;
-    border-left-width: inherit;
-    border-right-width: inherit;
-    border-top-width: inherit;
-    border-bottom-width: inherit;
-    border-left-style: inherit;
-    border-right-style: inherit;
-    border-top-style: inherit;
-    border-bottom-style: inherit;
-    border-left-color: inherit;
-    border-right-color: inherit;
-    border-top-color: inherit;
-    border-bottom-color: inherit;
+    margin-left: inherit; margin-right: inherit; margin-top: inherit; margin-bottom: inherit;
+    padding-left: inherit; padding-right: inherit; padding-top: inherit; padding-bottom: inherit;
+    column-gap: inherit; row-gap: inherit; gap: inherit;
+    border-left-width: inherit; border-right-width: inherit;
+    border-top-width: inherit; border-bottom-width: inherit;
+    border-left-style: inherit; border-right-style: inherit;
+    border-top-style: inherit; border-bottom-style: inherit;
+    border-left-color: inherit; border-right-color: inherit;
+    border-top-color: inherit; border-bottom-color: inherit;
   }
 }
