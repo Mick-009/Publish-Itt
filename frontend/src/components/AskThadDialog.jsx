@@ -23,7 +23,7 @@ export default function AskThadDialog({ open, onOpenChange }) {
 
     setLoading(true);
     setResponse("");
-    
+
     try {
       const res = await aiApi.askThad(query);
       setResponse(res.data.response);
@@ -43,7 +43,10 @@ export default function AskThadDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh]" data-testid="ask-thad-dialog">
+      <DialogContent
+        className="sm:max-w-2xl max-h-[80vh]"
+        data-testid="ask-thad-dialog"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-serif text-2xl">
             <Sparkles className="h-6 w-6 text-accent" />
@@ -59,7 +62,7 @@ export default function AskThadDialog({ open, onOpenChange }) {
             className="min-h-[100px] resize-none rounded-sm"
             data-testid="ask-thad-input"
           />
-          
+
           <Button
             type="submit"
             disabled={loading || !query.trim()}
@@ -82,7 +85,7 @@ export default function AskThadDialog({ open, onOpenChange }) {
 
         {response && (
           <ScrollArea className="mt-4 max-h-[300px]">
-            <div 
+            <div
               className="p-4 bg-muted rounded-sm ai-response prose prose-sm max-w-none"
               data-testid="ask-thad-response"
             >

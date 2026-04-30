@@ -34,6 +34,8 @@ import { Badge } from "@/components/ui/badge";
 import { notesApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import EmptyState from "@/components/EmptyState";
+import { PinnedNoteArt } from "@/components/EmptyStateArt";
 import { 
   Plus, 
   StickyNote, 
@@ -203,15 +205,19 @@ export default function NotesPanel({ parentType, parentId }) {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : notes.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-            <StickyNote className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
-            <p className="text-sm text-muted-foreground mb-1">No notes yet</p>
-            <p className="text-xs text-muted-foreground">
-              Add notes, comments, and reminders for your work
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          size="panel"
+          art={<PinnedNoteArt size={72} />}
+          title="A clean corkboard."
+          body="Pin reminders, questions, and revision flags to this chapter as you go."
+          primaryAction={{
+            label: "Add first note",
+            icon: Plus,
+            onClick: () => setCreateDialogOpen(true),
+            testId: "empty-notes-add-btn",
+          }}
+          testId="empty-notes-panel"
+        />
       ) : (
         <ScrollArea className="h-[300px]">
           <div className="space-y-2 pr-2">

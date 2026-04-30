@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -52,6 +52,13 @@ import NotesPanel from "@/components/NotesPanel";
 import WritingStatsPanel from "@/components/WritingStatsPanel";
 import AnalyzerPanel from "@/components/AnalyzerPanel";
 import WorkflowPanel from "@/components/WorkflowPanel";
+import ThadChatPanel from "@/components/ThadChatPanel";
+import EmptyState from "@/components/EmptyState";
+import {
+  BlankPageArt,
+  ChapterStackArt,
+  QuillMarkArt,
+} from "@/components/EmptyStateArt";
 import {
   Plus,
   Save,
@@ -89,10 +96,12 @@ import {
   Workflow,
   Download,
   FileDown,
+  MessageSquare,
 } from "lucide-react";
 
 // Auto-save interval in milliseconds (10 minutes)
 const AUTO_VERSION_INTERVAL = 10 * 60 * 1000;
+const CHAPTER_AUTO_SAVE_DELAY = 2000;
 
 export default function ManuscriptWorkspace() {
   const { projectId } = useParams();
@@ -105,6 +114,8 @@ export default function ManuscriptWorkspace() {
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState("saved");
+  const [lastSavedAt, setLastSavedAt] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem("manuscriptSidebarCollapsed");
     return saved !== null ? JSON.parse(saved) : true;
@@ -143,12 +154,36 @@ export default function ManuscriptWorkspace() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (!selectedChapter?.id) return;
+
+    setSelectedText("");
+    setSelectedRange(null);
+
+    if (aiResponse) {
+      setAiResponse("");
+      setAiResponseType(null);
+      toast.info("AI response cleared on chapter change");
+    }
+
+    if (editor) {
+      const pos = editor.state.selection.to;
+      editor.commands.setTextSelection(pos);
+    }
+
+    if (typeof window !== "undefined") {
+      window.getSelection()?.removeAllRanges();
+    }
+  }, [selectedChapter?.id]);
+
   // AI state
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
+  const [aiOriginalText, setAiOriginalText] = useState("");
   const [aiResponseType, setAiResponseType] = useState(null); // 'rewrite', 'summarize', 'outline', etc.
   const [selectedText, setSelectedText] = useState("");
   const [selectedRange, setSelectedRange] = useState(null);
+  const [applyingAi, setApplyingAi] = useState(false);
 
   const getAiTarget = () => {
     const hasSelection =
@@ -235,7 +270,13 @@ export default function ManuscriptWorkspace() {
   const [editingStartTime, setEditingStartTime] = useState(null);
   const [autoVersionSaving, setAutoVersionSaving] = useState(false);
   const lastContentRef = useRef("");
+  const lastSavedContentRef = useRef("");
+  const currentContentRef = useRef("");
+  const selectedChapterRef = useRef(null);
+  const saveInFlightRef = useRef(false);
+  const queuedSaveRef = useRef(null);
   const versionsPanelRef = useRef(null);
+  const [refreshVersionsTrigger, setRefreshVersionsTrigger] = useState(0);
 
   // Writing stats tracking state
   const [sessionStartTime, setSessionStartTime] = useState(null);
@@ -252,6 +293,10 @@ export default function ManuscriptWorkspace() {
   const [exportIncludeChapterNumbers, setExportIncludeChapterNumbers] =
     useState(true);
 
+  useEffect(() => {
+    selectedChapterRef.current = selectedChapter;
+  }, [selectedChapter]);
+
   // Editor setup
   const editor = useEditor({
     extensions: [
@@ -263,10 +308,20 @@ export default function ManuscriptWorkspace() {
     ],
     content: "",
     onUpdate: ({ editor }) => {
-      // Auto-save after 2 seconds of inactivity
-      if (selectedChapter) {
-        debouncedSave(editor.getHTML());
+      const content = editor.getHTML();
+      currentContentRef.current = content;
+
+      if (!selectedChapterRef.current) {
+        return;
       }
+
+      if (content === lastSavedContentRef.current) {
+        setSaveState((prev) => (prev === "error" ? prev : "saved"));
+        return;
+      }
+
+      setSaveState((prev) => (prev === "dirty" ? prev : "dirty"));
+      debouncedSave(content);
     },
     onSelectionUpdate: ({ editor }) => {
       const { from, to, empty } = editor.state.selection;
@@ -277,25 +332,121 @@ export default function ManuscriptWorkspace() {
         return;
       }
 
+      const text = editor.state.doc.textBetween(from, to, "\n").trim();
+
+      if (!text) {
+        setSelectedText("");
+        setSelectedRange(null);
+        return;
+      }
+
       setSelectedText(editor.state.doc.textBetween(from, to, "\n").trim());
       setSelectedRange({ from, to });
     },
   });
 
-  // Debounced save function
-  const debouncedSave = useCallback(
-    debounce(async (content) => {
-      if (!selectedChapter) return;
-      setSaving(true);
-      try {
-        await chapterApi.update(selectedChapter.id, { content });
-      } catch (error) {
-        console.error("Auto-save failed:", error);
-      } finally {
+  const syncSavedChapterState = useCallback(
+    (chapterId, savedChapter, content) => {
+      setChapters((prev) =>
+        prev.map((chapter) =>
+          chapter.id === chapterId
+            ? { ...chapter, ...savedChapter, content }
+            : chapter,
+        ),
+      );
+      setSelectedChapter((prev) =>
+        prev?.id === chapterId ? { ...prev, ...savedChapter, content } : prev,
+      );
+    },
+    [],
+  );
+
+  const persistChapterContent = useCallback(
+    async (
+      content,
+      { showSuccessToast = false, showErrorToast = false } = {},
+    ) => {
+      const activeChapter = selectedChapterRef.current;
+      if (!activeChapter) return;
+
+      if (content === lastSavedContentRef.current && !saveInFlightRef.current) {
         setSaving(false);
+        setSaveState("saved");
+        return;
       }
-    }, 2000),
-    [selectedChapter],
+
+      if (saveInFlightRef.current) {
+        queuedSaveRef.current = {
+          content,
+          showSuccessToast:
+            queuedSaveRef.current?.showSuccessToast || showSuccessToast,
+          showErrorToast:
+            queuedSaveRef.current?.showErrorToast || showErrorToast,
+        };
+        return;
+      }
+
+      const chapterId = activeChapter.id;
+      saveInFlightRef.current = true;
+      setSaving(true);
+      setSaveState("saving");
+
+      try {
+        const response = await chapterApi.update(chapterId, { content });
+        const savedChapter = response.data || {
+          ...activeChapter,
+          content,
+          updated_at: new Date().toISOString(),
+        };
+
+        lastSavedContentRef.current = content;
+        syncSavedChapterState(chapterId, savedChapter, content);
+
+        if (selectedChapterRef.current?.id === chapterId) {
+          setLastSavedAt(savedChapter.updated_at || new Date().toISOString());
+          setSaveState(
+            currentContentRef.current === content ? "saved" : "dirty",
+          );
+        }
+
+        if (showSuccessToast) {
+          toast.success("Chapter saved!");
+        }
+      } catch (error) {
+        console.error("Chapter save failed:", error);
+
+        if (selectedChapterRef.current?.id === chapterId) {
+          setSaveState("error");
+        }
+
+        if (showErrorToast) {
+          toast.error("Failed to save chapter");
+        }
+      } finally {
+        saveInFlightRef.current = false;
+        setSaving(false);
+
+        const queuedSave = queuedSaveRef.current;
+        queuedSaveRef.current = null;
+
+        if (queuedSave) {
+          void persistChapterContent(queuedSave.content, {
+            showSuccessToast: queuedSave.showSuccessToast,
+            showErrorToast: queuedSave.showErrorToast,
+          });
+        }
+      }
+    },
+    [syncSavedChapterState],
+  );
+
+  // Debounced save function
+  const debouncedSave = useMemo(
+    () =>
+      debounce((content) => {
+        void persistChapterContent(content);
+      }, CHAPTER_AUTO_SAVE_DELAY),
+    [persistChapterContent],
   );
 
   useEffect(() => {
@@ -312,15 +463,48 @@ export default function ManuscriptWorkspace() {
     }
   }, [projectId, projects]);
 
+  const loadedChapterIdRef = useRef(null);
+
   useEffect(() => {
-    if (selectedChapter && editor) {
+    if (!selectedChapter || !editor) return;
+
+    const isDifferentChapter =
+      loadedChapterIdRef.current !== selectedChapter.id;
+
+    if (isDifferentChapter) {
+      debouncedSave.cancel?.();
+      queuedSaveRef.current = null;
+
       editor.commands.setContent(selectedChapter.content || "");
-      // Reset auto-version tracking when chapter changes
+
+      loadedChapterIdRef.current = selectedChapter.id;
+
+      currentContentRef.current = selectedChapter.content || "";
       lastContentRef.current = selectedChapter.content || "";
+      lastSavedContentRef.current = selectedChapter.content || "";
       setEditingStartTime(null);
       setLastVersionTime(null);
+      setLastSavedAt(selectedChapter.updated_at || selectedChapter.created_at);
+      setSaveState("saved");
+      return;
     }
-  }, [selectedChapter, editor]);
+
+    // Same chapter: update metadata only, do not reset editor content/history
+    lastSavedContentRef.current =
+      selectedChapter.content || lastSavedContentRef.current;
+    setLastSavedAt(selectedChapter.updated_at || selectedChapter.created_at);
+    setSaveState(
+      currentContentRef.current === (selectedChapter.content || "")
+        ? "saved"
+        : "dirty",
+    );
+  }, [selectedChapter, editor, debouncedSave]);
+
+  useEffect(() => {
+    return () => {
+      debouncedSave.cancel?.();
+    };
+  }, [debouncedSave]);
 
   // Auto-version logic: Save a version snapshot after 10 minutes of editing
   useEffect(() => {
@@ -367,7 +551,7 @@ export default function ManuscriptWorkspace() {
             parent_type: "chapter",
             parent_id: selectedChapter.id,
             content_snapshot: currentContent,
-            label: `Auto-save (${timestamp})`,
+            label: `Auto snapshot - ${timestamp}`,
             created_by: "auto",
           });
 
@@ -537,17 +721,38 @@ export default function ManuscriptWorkspace() {
 
   const handleSaveChapter = async () => {
     if (!selectedChapter || !editor) return;
-    setSaving(true);
-    try {
-      await chapterApi.update(selectedChapter.id, {
-        content: editor.getHTML(),
-      });
-      toast.success("Chapter saved!");
-    } catch (error) {
-      toast.error("Failed to save chapter");
-    } finally {
-      setSaving(false);
+    debouncedSave.cancel?.();
+    await persistChapterContent(editor.getHTML(), {
+      showSuccessToast: true,
+      showErrorToast: true,
+    });
+  };
+
+  const getSaveStatusLabel = () => {
+    if (!selectedChapter) {
+      return "No chapter selected";
     }
+
+    if (saveState === "saving") {
+      return "Saving...";
+    }
+
+    if (saveState === "dirty") {
+      return "Unsaved changes";
+    }
+
+    if (saveState === "error") {
+      return "Save failed";
+    }
+
+    if (lastSavedAt) {
+      return `Saved ${new Date(lastSavedAt).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      })}`;
+    }
+
+    return "All changes saved";
   };
 
   const handleDeleteChapter = async () => {
@@ -712,6 +917,7 @@ export default function ManuscriptWorkspace() {
     }
 
     setAiLoading(true);
+    setAiOriginalText(target.text);
     setAiResponseType(null);
 
     try {
@@ -786,6 +992,7 @@ export default function ManuscriptWorkspace() {
       return;
     }
     setAiLoading(true);
+    setAiOriginalText("");
     setAiResponseType(null);
     try {
       const res = await aiApi.summarize(editor.getText());
@@ -805,9 +1012,11 @@ export default function ManuscriptWorkspace() {
     }
     setAiLoading(true);
     setOutlineOpen(false);
+    setAiOriginalText("");
     setAiResponseType(null);
     try {
       const res = await aiApi.generateOutline(
+        selectedProject.title,
         selectedProject.summary,
         outlineCount,
       );
@@ -821,59 +1030,164 @@ export default function ManuscriptWorkspace() {
   };
 
   // Apply rewritten content to editor
-  const handleApplyRewrite = async () => {
-    if (!editor || !aiResponse?.trim()) return;
+  const hasStoredSelection =
+    !!selectedText?.trim() &&
+    selectedRange &&
+    typeof selectedRange.from === "number" &&
+    typeof selectedRange.to === "number" &&
+    selectedRange.from !== selectedRange.to;
 
-    if (selectedChapter?.id) {
-      try {
-        await versionsApi.create({
-          parent_type: "chapter",
-          parent_id: selectedChapter.id,
-          content_snapshot: editor.getHTML(),
-          label: "Before Tone Rewrite",
-          created_by: "user",
-        });
-      } catch (e) {
-        console.error("Failed to save version:", e);
-      }
-    }
+  const escapeHtml = (text = "") =>
+    text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
-    const hasSelection =
-      !!selectedText?.trim() &&
-      selectedRange &&
-      typeof selectedRange.from === "number" &&
-      typeof selectedRange.to === "number" &&
-      selectedRange.from !== selectedRange.to;
+  const aiTextToHtml = (text = "") => {
+    const trimmed = text.trim();
+    if (!trimmed) return "";
 
-    if (hasSelection) {
-      editor
-        .chain()
-        .focus()
-        .insertContentAt(
-          { from: selectedRange.from, to: selectedRange.to },
-          aiResponse,
-        )
-        .run();
+    return trimmed
+      .split(/\n{2,}/)
+      .map(
+        (paragraph) =>
+          `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`,
+      )
+      .join("");
+  };
 
-      setSelectedText("");
-      setSelectedRange(null);
-      toast.success("Rewrite applied to selection");
-    } else {
-      editor.commands.setContent(
-        `<p>${aiResponse.replace(/\n/g, "</p><p>")}</p>`,
-      );
-      toast.success("Rewrite applied to chapter");
-    }
-
+  const clearAiResponse = () => {
     setAiResponse("");
     setAiResponseType(null);
   };
 
+  const createAiSafetySnapshot = async (actionLabel) => {
+    if (!selectedChapter?.id || !editor) {
+      toast.error("Could not create version snapshot");
+      return false;
+    }
+
+    try {
+      const currentContent = editor.getHTML();
+
+      const timestamp = new Date().toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const label = `AI Snapshot - ${actionLabel} - ${timestamp}`;
+
+      await versionsApi.create({
+        parent_type: "chapter",
+        parent_id: selectedChapter.id,
+        content_snapshot: currentContent,
+        label,
+        created_by: "ai",
+      });
+
+      setRefreshVersionsTrigger((prev) => prev + 1);
+      return true;
+    } catch (error) {
+      console.error("AI snapshot failed:", error);
+      toast.error("Version snapshot failed. AI content was not applied.");
+      return false;
+    }
+  };
+
+  const handleInsertIntoEditor = async () => {
+    if (!editor || !aiResponse?.trim()) return;
+    if (applyingAi) return;
+
+    setApplyingAi(true);
+
+    try {
+      const snapshotCreated = await createAiSafetySnapshot("Insert");
+      if (!snapshotCreated) return;
+
+      const html = aiTextToHtml(aiResponse);
+      if (!html) return;
+
+      editor.chain().focus().insertContent(html).run();
+
+      const updatedContent = editor.getHTML();
+      await persistChapterContent(updatedContent, {
+        showSuccessToast: false,
+        showErrorToast: true,
+      });
+
+      toast.success("Inserted into editor");
+    } catch (error) {
+      console.error("Insert into editor failed:", error);
+      toast.error("Could not insert AI response");
+    } finally {
+      setApplyingAi(false);
+    }
+  };
+
+  const handleReplaceSelection = async () => {
+    if (!editor || !aiResponse?.trim()) return;
+    if (applyingAi) return;
+
+    if (!hasStoredSelection) {
+      toast.error("Select text in the editor first");
+      return;
+    }
+
+    setApplyingAi(true);
+
+    try {
+      const snapshotCreated = await createAiSafetySnapshot("Replace");
+      if (!snapshotCreated) return;
+
+      const html = aiTextToHtml(aiResponse);
+      if (!html) return;
+
+      editor
+        .chain()
+        .focus()
+        .setTextSelection({ from: selectedRange.from, to: selectedRange.to })
+        .deleteSelection()
+        .insertContent(html)
+        .run();
+
+      setSelectedText("");
+      setSelectedRange(null);
+
+      const updatedContent = editor.getHTML();
+      await persistChapterContent(updatedContent, {
+        showSuccessToast: false,
+        showErrorToast: true,
+      });
+
+      toast.success("Selection replaced");
+    } catch (error) {
+      console.error("Replace selection failed:", error);
+      toast.error("Could not replace selection");
+    } finally {
+      setApplyingAi(false);
+    }
+  };
+
+  const handleCopyAiResponse = async () => {
+    if (!aiResponse?.trim()) return;
+
+    try {
+      await navigator.clipboard.writeText(aiResponse);
+      toast.success("AI response copied");
+    } catch (error) {
+      console.error("Failed to copy AI response:", error);
+      toast.error("Could not copy response");
+    }
+  };
+
   // Deny/dismiss the rewrite suggestion
   const handleDenyRewrite = () => {
-    setAiResponse("");
-    setAiResponseType(null);
-    toast.info("Rewrite dismissed");
+    clearAiResponse();
+    toast.info("Rewrite was dismissed");
   };
 
   // Upload Functions
@@ -998,16 +1312,27 @@ export default function ManuscriptWorkspace() {
 
   if (projects.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8">
-        <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="font-serif text-2xl mb-2">No Projects Yet</h2>
-        <p className="text-muted-foreground mb-4">
-          Create a project to start writing
-        </p>
-        <Button onClick={() => navigate("/")} className="rounded-sm">
-          Go to Dashboard
-        </Button>
-      </div>
+      <EmptyState
+        size="page"
+        art={<BlankPageArt size={96} />}
+        eyebrow="The workshop is quiet"
+        title="A blank page is a beginning."
+        body="Start a new project, or bring in a manuscript you’ve been carrying around. Either way, this is where it begins."
+        primaryAction={{
+          label: "Start a new project",
+          icon: Plus,
+          onClick: () => navigate("/?action=new_project"),
+          testId: "empty-workspace-new-project",
+          showArrow: true,
+        }}
+        secondaryAction={{
+          label: "Import a manuscript",
+          icon: Upload,
+          onClick: () => navigate("/?action=import"),
+          testId: "empty-workspace-import",
+        }}
+        testId="empty-workspace-no-projects"
+      />
     );
   }
 
@@ -1015,6 +1340,7 @@ export default function ManuscriptWorkspace() {
     if (!text) return;
 
     setAiLoading(true);
+    setAiOriginalText(text);
 
     try {
       const response = await aiApi.rewrite(text, "warm and engaging");
@@ -1039,7 +1365,7 @@ export default function ManuscriptWorkspace() {
       <aside
         className={cn(
           "flex flex-col bg-card border-r border-border sidebar-transition overflow-hidden",
-          sidebarCollapsed ? "w-12" : "w-72",
+          sidebarCollapsed ? "w-12" : "w-80",
         )}
       >
         <div className="flex items-center justify-between p-3 border-b border-border shrink-0 gap-2">
@@ -1133,6 +1459,14 @@ export default function ManuscriptWorkspace() {
                     <Zap className="h-3.5 w-3.5 mr-1" />
                     Insight
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="thad"
+                    className="whitespace-nowrap"
+                    data-testid="thad-tab"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 mr-1" />
+                    THAD
+                  </TabsTrigger>
                 </TabsList>
               </div>
               {/* Chapters Tab */}
@@ -1144,9 +1478,19 @@ export default function ManuscriptWorkspace() {
                 <ScrollArea className="flex-1 min-h-0">
                   <div className="p-4 space-y-1">
                     {chapters.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No Chapters to Browse Yet
-                      </p>
+                      <EmptyState
+                        size="inline"
+                        art={<ChapterStackArt size={56} />}
+                        title="No chapters yet"
+                        body="Add your first chapter to start writing."
+                        primaryAction={{
+                          label: "New chapter",
+                          icon: Plus,
+                          onClick: () => setNewChapterOpen(true),
+                          testId: "empty-chapters-new-btn",
+                        }}
+                        testId="empty-chapters-list"
+                      />
                     ) : (
                       chapters.map((chapter) => (
                         <button
@@ -1298,23 +1642,22 @@ export default function ManuscriptWorkspace() {
               {/* Versions Tab */}
               <TabsContent
                 value="versions"
-                className="flex-1 mt-0 overflow-hidden"
+                className="mt-0 h-full min-w-0 overflow-hidden"
               >
-                <ScrollArea className="h-full">
-                  <div className="p-4">
-                    <VersionsPanel
-                      parentType="chapter"
-                      parentId={selectedChapter?.id}
-                      currentContent={editor?.getHTML() || ""}
-                      onRestoreVersion={(content) => {
-                        if (editor) {
-                          editor.commands.setContent(content);
-                          toast.success("Version restored");
-                        }
-                      }}
-                    />
-                  </div>
-                </ScrollArea>
+                <div className="h-full min-h-0 w-full min-w-0">
+                  <VersionsPanel
+                    parentType="chapter"
+                    parentId={selectedChapter?.id}
+                    refreshTrigger={refreshVersionsTrigger}
+                    getCurrentContent={() => editor?.getHTML() || ""}
+                    onRestoreVersion={(content) => {
+                      if (editor) {
+                        editor.commands.setContent(content);
+                        toast.success("Version restored");
+                      }
+                    }}
+                  />
+                </div>
               </TabsContent>
 
               {/* Notes Tab */}
@@ -1370,6 +1713,23 @@ export default function ManuscriptWorkspace() {
                     />
                   </div>
                 </ScrollArea>
+              </TabsContent>
+
+              <TabsContent
+                value="thad"
+                className="mt-0 h-full min-w-0 overflow-hidden"
+              >
+                <div className="h-full min-h-0 w-full min-w-0 p-4">
+                  <ThadChatPanel
+                    projectId={selectedProject?.id}
+                    chapterId={selectedChapter?.id}
+                    chapterTitle={selectedChapter?.title}
+                    currentChapterContent={
+                      editor?.getHTML() || selectedChapter?.content || ""
+                    }
+                    selectedText={selectedText}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
           </div>
@@ -1502,9 +1862,16 @@ export default function ManuscriptWorkspace() {
 
               <div className="w-px h-6 bg-border" />
 
-              {saving && (
-                <span className="text-xs text-muted-foreground">Saving...</span>
-              )}
+              <span
+                className={cn(
+                  "text-xs",
+                  saveState === "error"
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+                )}
+              >
+                {getSaveStatusLabel()}
+              </span>
               <span className="text-xs text-muted-foreground font-mono">
                 {editor?.storage.characterCount?.words() || 0} words
               </span>
@@ -1556,13 +1923,12 @@ export default function ManuscriptWorkspace() {
                 />
               </div>
             ) : (
-              /* Empty state with drag-and-drop zone */
+              /* Empty state — warm, state-aware, drag-and-drop preserved */
               <div
                 className={cn(
-                  "flex flex-col items-center justify-center h-full transition-colors",
-                  isDragging
-                    ? "bg-accent/10 border-2 border-dashed border-accent"
-                    : "text-muted-foreground",
+                  "flex flex-col items-center justify-center h-full transition-colors p-6",
+                  isDragging &&
+                    "bg-accent/10 border-2 border-dashed border-accent",
                 )}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -1570,41 +1936,58 @@ export default function ManuscriptWorkspace() {
                 data-testid="drop-zone"
               >
                 {isDragging ? (
-                  <>
-                    <FileUp className="h-16 w-16 mb-4 text-accent animate-bounce" />
-                    <p className="text-lg font-medium text-accent">
-                      Drop your manuscript here
+                  <div className="flex flex-col items-center text-center animate-fade-in">
+                    <FileUp className="h-14 w-14 mb-4 text-accent animate-bounce" />
+                    <p className="font-serif text-2xl text-accent mb-1">
+                      Drop it anywhere here
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Supported: .txt, .docx, .pdf, .md
+                    <p className="text-sm text-muted-foreground">
+                      .txt, .docx, .pdf, or .md
                     </p>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <FileText className="h-12 w-12 mb-4" />
-                    <p className="mb-4">
-                      Select or create a chapter to start writing
-                    </p>
-                    <div className="flex flex-col items-center gap-2 p-6 border-2 border-dashed border-border rounded-lg">
-                      <Upload className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-sm font-medium">
-                        Drag & drop a manuscript file here
-                      </p>
-                      <p className="text-xs text-muted-foreground">or</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="rounded-sm"
-                        data-testid="browse-files-btn"
-                      >
-                        Browse Files
-                      </Button>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Supports .txt, .docx, .pdf, .md
-                      </p>
-                    </div>
-                  </>
+                  <EmptyState
+                    size="page"
+                    art={
+                      chapters.length === 0 ? (
+                        <BlankPageArt size={96} />
+                      ) : (
+                        <QuillMarkArt size={96} />
+                      )
+                    }
+                    eyebrow={
+                      chapters.length === 0
+                        ? "Nothing on the page yet"
+                        : "Choose a chapter"
+                    }
+                    title={
+                      chapters.length === 0
+                        ? "Where would you like to begin?"
+                        : "Pick up where you left off."
+                    }
+                    body={
+                      chapters.length === 0
+                        ? "Start a fresh chapter, or drop in a manuscript file you already have."
+                        : "Open a chapter from the list on the left, or bring in something new."
+                    }
+                    primaryAction={
+                      chapters.length === 0
+                        ? {
+                            label: "New chapter",
+                            icon: Plus,
+                            onClick: () => setNewChapterOpen(true),
+                            testId: "empty-editor-new-chapter-btn",
+                          }
+                        : undefined
+                    }
+                    secondaryAction={{
+                      label: "Browse files to import",
+                      icon: Upload,
+                      onClick: () => fileInputRef.current?.click(),
+                      testId: "empty-editor-browse-btn",
+                    }}
+                    testId="empty-editor"
+                  />
                 )}
               </div>
             )}
@@ -1764,59 +2147,117 @@ export default function ManuscriptWorkspace() {
                             {aiResponseType === "rewrite" && (
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Wand2 className="h-3 w-3" />
-                                <span>Here's A Suggested Rewrite</span>
+                                <span>Preview The Suggested Rewrite</span>
                               </div>
                             )}
 
                             {/* AI Response Content */}
-                            <div
-                              className="ai-response text-sm whitespace-pre-wrap p-3 bg-muted/30 rounded-sm border"
-                              data-testid="ai-response"
-                            >
-                              {aiResponse}
-                            </div>
+                            {aiResponseType === "rewrite" ? (
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    <span>Original Text</span>
+                                  </div>
+                                  <div
+                                    className="text-sm whitespace-pre-wrap p-3 bg-background rounded-sm border max-h-[260px] overflow-y-auto"
+                                    data-testid="ai-original-preview"
+                                  >
+                                    {aiOriginalText}
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    <span>Rewritten Text</span>
+                                  </div>
+                                  <div
+                                    className="ai-response text-sm whitespace-pre-wrap p-3 bg-muted/30 rounded-sm border max-h-[260px] overflow-y-auto"
+                                    data-testid="ai-response"
+                                  >
+                                    {aiResponse}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div
+                                className="ai-response text-sm whitespace-pre-wrap p-3 bg-muted/30 rounded-sm border"
+                                data-testid="ai-response"
+                              >
+                                {aiResponse}
+                              </div>
+                            )}
 
-                            {/* Apply/Deny Buttons for Rewrite */}
-                            {aiResponseType === "rewrite" && (
-                              <div className="flex gap-2 pt-2">
+                            {/* Insert / Replace actions */}
+                            <div className="space-y-2 pt-2">
+                              {/* Primary Actions */}
+                              <div className="flex gap-2">
                                 <Button
                                   size="sm"
-                                  className="flex-1 rounded-sm bg-green-600 hover:bg-green-700"
-                                  onClick={handleApplyRewrite}
-                                  data-testid="apply-rewrite-btn"
+                                  className="flex-1 rounded-sm"
+                                  onClick={handleInsertIntoEditor}
+                                  disabled={applyingAi}
+                                  data-testid="insert-into-editor-btn"
                                 >
                                   <Check className="h-4 w-4 mr-2" />
-                                  Yay
+                                  {applyingAi
+                                    ? "Applying..."
+                                    : "Insert into Editor"}
                                 </Button>
+
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="flex-1 rounded-sm"
+                                  onClick={handleReplaceSelection}
+                                  disabled={!hasStoredSelection || applyingAi}
+                                  data-testid="replace-selection-btn"
+                                >
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  {applyingAi
+                                    ? "Applying..."
+                                    : "Replace Selection"}
+                                </Button>
+                              </div>
+                              {/* Secondary Actions */}
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="w-full rounded-sm"
+                                onClick={handleCopyAiResponse}
+                                data-testid="copy-ai-response-btn"
+                              >
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copy The Response
+                              </Button>
+
+                              {/* Deny / Clear Action */}
+                              {aiResponseType === "rewrite" ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full rounded-sm"
                                   onClick={handleDenyRewrite}
                                   data-testid="deny-rewrite-btn"
                                 >
                                   <X className="h-4 w-4 mr-2" />
-                                  Nay
+                                  Clear The Response
                                 </Button>
-                              </div>
-                            )}
-
-                            {/* Dismiss button for non-rewrite responses */}
-                            {aiResponseType && aiResponseType !== "rewrite" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="w-full rounded-sm text-muted-foreground"
-                                onClick={() => {
-                                  setAiResponse("");
-                                  setAiResponseType(null);
-                                }}
-                                data-testid="dismiss-ai-btn"
-                              >
-                                <X className="h-4 w-4 mr-2" />
-                                Clear The Response
-                              </Button>
-                            )}
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="w-full rounded-sm text-muted-foreground"
+                                  onClick={clearAiResponse}
+                                  data-testid="dismiss-ai-btn"
+                                >
+                                  <X className="h-4 w-4 mr-2" />
+                                  Clear The Response
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Insert is non-destructive. Replace uses your
+                              selected text.
+                            </p>
                           </div>
                         ) : (
                           <p className="text-sm text-muted-foreground text-center py-8">

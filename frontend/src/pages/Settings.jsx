@@ -14,8 +14,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { stylePresetApi } from "@/lib/api";
+import { stylePresetApi, userApi } from "@/lib/api";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { 
@@ -33,7 +34,8 @@ import {
   Check,
   Map,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  Target
 } from "lucide-react";
 import ThadTour from "@/components/ThadTour";
 
@@ -56,6 +58,7 @@ const THEME_COLORS = {
 export default function Settings() {
   const navigate = useNavigate();
   const { theme, setTheme, themes } = useTheme();
+  const { user, updateUser } = useAuth();
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -69,6 +72,38 @@ export default function Settings() {
   });
   const [saving, setSaving] = useState(false);
   const [showTour, setShowTour] = useState(false);
+
+  // Daily writing goal
+  const [goalDraft, setGoalDraft] = useState(user?.daily_word_goal ?? 500);
+  const [savingGoal, setSavingGoal] = useState(false);
+
+  // Keep draft in sync when user loads / changes
+  useEffect(() => {
+    if (user?.daily_word_goal != null) setGoalDraft(user.daily_word_goal);
+  }, [user?.daily_word_goal]);
+
+  const goalDirty = goalDraft !== (user?.daily_word_goal ?? 500);
+
+  const handleSaveGoal = async () => {
+    if (goalDraft < 0 || goalDraft > 100000) {
+      toast.error("Please enter a number between 0 and 100,000");
+      return;
+    }
+    setSavingGoal(true);
+    try {
+      const res = await userApi.updatePreferences({ daily_word_goal: goalDraft });
+      updateUser({ daily_word_goal: res.data.daily_word_goal });
+      toast.success(
+        goalDraft === 0
+          ? "Daily goal turned off"
+          : `Daily goal set to ${goalDraft.toLocaleString()} words`,
+      );
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Could not update goal");
+    } finally {
+      setSavingGoal(false);
+    }
+  };
 
   // Get user context from localStorage (set during onboarding)
   const userName = localStorage.getItem("thad_user_name") || "Writer";
@@ -260,6 +295,92 @@ export default function Settings() {
                 Reset
               </Button>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Daily Writing Goal */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="font-serif flex items-center gap-2">
+            <Target className="h-5 w-5 text-accent" />
+            Daily Writing Goal
+          </CardTitle>
+          <CardDescription>
+            A daily word target shown on your dashboard. Set to 0 to turn it off.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-5">
+            {/* Preset chips */}
+            <div className="flex flex-wrap gap-2">
+              {[250, 500, 1000, 2000].map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setGoalDraft(g)}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-full text-sm border transition-colors",
+                    goalDraft === g
+                      ? "bg-accent text-accent-foreground border-accent"
+                      : "border-border hover:border-accent/50 hover:bg-accent/5",
+                  )}
+                  data-testid={`daily-goal-preset-${g}`}
+                >
+                  {g.toLocaleString()}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setGoalDraft(0)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-sm border transition-colors",
+                  goalDraft === 0
+                    ? "bg-muted text-muted-foreground border-border"
+                    : "border-border hover:border-accent/50 hover:bg-accent/5",
+                )}
+                data-testid="daily-goal-preset-off"
+              >
+                Off
+              </button>
+            </div>
+
+            {/* Custom input + save */}
+            <div className="flex items-end gap-3">
+              <div className="flex-1 max-w-xs space-y-1.5">
+                <Label htmlFor="daily-goal-input" className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Custom amount
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="daily-goal-input"
+                    type="number"
+                    min={0}
+                    max={100000}
+                    step={50}
+                    value={goalDraft}
+                    onChange={(e) => setGoalDraft(parseInt(e.target.value, 10) || 0)}
+                    className="pr-16"
+                    data-testid="daily-goal-input"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                    words
+                  </span>
+                </div>
+              </div>
+              <Button
+                onClick={handleSaveGoal}
+                disabled={!goalDirty || savingGoal}
+                className="rounded-sm shrink-0"
+                data-testid="save-daily-goal-btn"
+              >
+                {savingGoal ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground italic">
+              Stephen King writes ~2,000 words a day. Hemingway aimed for 500. Pick something sustainable.
+            </p>
           </div>
         </CardContent>
       </Card>

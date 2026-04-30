@@ -6,79 +6,272 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  SelectGroup, SelectLabel,
 } from "@/components/ui/select";
 import { projectApi, uploadApi } from "@/lib/api";
-import {
-  GENRES,
-  AGE_GROUPS,
-  WRITING_STYLES,
-  getGenresByCategory,
-} from "@/lib/constants";
-import {
-  cn,
-  statusColors,
-  formatDate,
-  formatWordCount,
-  calculateProgress,
-} from "@/lib/utils";
+import { GENRES, AGE_GROUPS, WRITING_STYLES, getGenresByCategory } from "@/lib/constants";
+import { cn, statusColors, formatDate, formatWordCount, calculateProgress } from "@/lib/utils";
 import { toast } from "sonner";
 import ImportAnalysisDialog from "@/components/ImportAnalysisDialog";
 import ThadOnboarding from "@/components/ThadOnboarding";
+import MomentumStrip from "@/components/MomentumStrip";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  Plus,
-  FileText,
-  GitBranch,
-  Palette,
-  ImageIcon,
-  BookOpen,
-  Loader2,
-  Upload,
-  FileUp,
-  X,
-  Sparkles,
-  Pencil,
+  Plus, FileText, GitBranch, Palette, ImageIcon, BookOpen, Loader2,
+  Upload, FileUp, X, Sparkles, Pencil, MoreHorizontal, Trash2,
+  Clock, BookMarked, ArrowRight, TrendingUp, Feather,
 } from "lucide-react";
 
+// ── Status config ──────────────────────────────────────────────────────────
+const STATUS_META = {
+  concept:    { label: "Concept",    color: "bg-slate-100 text-slate-600 border-slate-200" },
+  outline:    { label: "Outline",    color: "bg-blue-50 text-blue-600 border-blue-200" },
+  draft:      { label: "Draft",      color: "bg-amber-50 text-amber-700 border-amber-200" },
+  revisions:  { label: "Revisions",  color: "bg-orange-50 text-orange-700 border-orange-200" },
+  editing:    { label: "Editing",    color: "bg-violet-50 text-violet-700 border-violet-200" },
+  complete:   { label: "Complete",   color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  published:  { label: "Published",  color: "bg-green-50 text-green-700 border-green-200" },
+};
+
+function getStatusMeta(status) {
+  return STATUS_META[status] || STATUS_META.concept;
+}
+
+// ── Skeleton card ─────────────────────────────────────────────────────────
+function ProjectSkeleton() {
+  return (
+    <div className="rounded-sm border border-border bg-card p-5 space-y-4 animate-pulse">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2 flex-1">
+          <div className="skeleton h-5 w-2/3 rounded" />
+          <div className="skeleton h-3.5 w-1/3 rounded" />
+        </div>
+        <div className="skeleton h-5 w-16 rounded-full" />
+      </div>
+      <div className="skeleton h-3 w-full rounded" />
+      <div className="skeleton h-1.5 w-full rounded" />
+      <div className="flex gap-2 pt-1">
+        <div className="skeleton h-7 w-24 rounded" />
+        <div className="skeleton h-7 w-20 rounded" />
+      </div>
+    </div>
+  );
+}
+
+// ── Empty state ────────────────────────────────────────────────────────────
+function EmptyState({ onNew, onImport, uploading, isDragging, onDragOver, onDragLeave, onDrop }) {
+  return (
+    <div
+      className={cn(
+        "transition-all duration-200 rounded-sm border-2 border-dashed border-border",
+        isDragging && "border-accent bg-accent/5 scale-[1.01]",
+      )}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
+        {isDragging ? (
+          <>
+            <div className="w-16 h-16 rounded-full bg-accent/15 flex items-center justify-center mb-5 animate-bounce">
+              <FileUp className="h-8 w-8 text-accent" />
+            </div>
+            <h3 className="font-serif text-2xl mb-2 text-accent">Drop it here</h3>
+            <p className="text-muted-foreground text-sm">Supports .txt, .docx, .pdf, .md</p>
+          </>
+        ) : (
+          <>
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6">
+              <Feather className="h-7 w-7 text-muted-foreground" />
+            </div>
+            <h3 className="font-serif text-2xl font-medium mb-2">Your story starts here</h3>
+            <p className="text-muted-foreground text-sm mb-8 max-w-xs">
+              Create a new project from scratch or import an existing manuscript to get started.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Button onClick={onNew} className="rounded-sm px-6" size="lg">
+                <Plus className="h-4 w-4 mr-2" />
+                New Project
+              </Button>
+              <Button variant="outline" onClick={onImport} disabled={uploading} className="rounded-sm px-6" size="lg">
+                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                Import Manuscript
+              </Button>
+            </div>
+            <p className="mt-8 text-xs text-muted-foreground">
+              or drag & drop a .txt, .docx, .pdf, or .md file anywhere on this area
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Project card ──────────────────────────────────────────────────────────
+function ProjectCard({ project, index, onOpen, onEdit }) {
+  const statusMeta = getStatusMeta(project.status);
+  const progress = calculateProgress(project.status);
+
+  return (
+    <Card
+      className="card-hover cursor-pointer animate-slide-in overflow-hidden group relative"
+      style={{ animationDelay: `${index * 0.06}s` }}
+      onClick={() => onOpen(project.id)}
+      data-testid={`project-card-${project.id}`}
+    >
+      {/* Accent bar on hover */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-t" />
+
+      <CardHeader className="pb-2 pt-5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-serif text-lg font-semibold leading-snug truncate group-hover:text-accent transition-colors duration-150">
+              {project.title}
+            </h3>
+            {project.series_name && (
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{project.series_name}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <Badge
+              variant="outline"
+              className={`text-xs font-medium capitalize border ${statusMeta.color}`}
+            >
+              {statusMeta.label}
+            </Badge>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(e, project); }}>
+                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit Project
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0 pb-5 space-y-4">
+        {/* Summary */}
+        {project.summary && (
+          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+            {project.summary}
+          </p>
+        )}
+
+        {/* Metadata row */}
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {project.genre && (
+            <span className="capitalize">{project.genre.replace(/-/g, " ")}</span>
+          )}
+          {project.genre && project.word_count > 0 && (
+            <span className="w-px h-3 bg-border" />
+          )}
+          {project.word_count > 0 && (
+            <span className="font-mono">{formatWordCount(project.word_count)} words</span>
+          )}
+          {project.universe && (
+            <>
+              <span className="w-px h-3 bg-border" />
+              <span className="truncate max-w-[120px]">{project.universe}</span>
+            </>
+          )}
+        </div>
+
+        {/* Progress bar */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Progress</span>
+            <span className="font-mono text-muted-foreground">{progress}%</span>
+          </div>
+          <div className="h-1 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-accent rounded-full transition-all duration-700"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Quick actions */}
+        <div
+          className="flex items-center gap-1 pt-2 border-t border-border"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {[
+            { icon: FileText,  label: "Write",  path: `/manuscript/${project.id}` },
+            { icon: GitBranch, label: "Stage",  path: `/workflow/${project.id}` },
+            { icon: Palette,   label: "Style",  path: `/tone/${project.id}` },
+            { icon: ImageIcon, label: "Art",    path: `/art/${project.id}` },
+          ].map(({ icon: Icon, label, path }) => (
+            <QuickAction key={label} icon={Icon} label={label} path={path} />
+          ))}
+          <div className="ml-auto">
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {formatDate(project.updated_at)}
+            </span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function QuickAction({ icon: Icon, label, path }) {
+  const navigate = useNavigate();
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={(e) => { e.stopPropagation(); navigate(path); }}
+      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-sm gap-1"
+    >
+      <Icon className="h-3 w-3" />
+      {label}
+    </Button>
+  );
+}
+
+// ── Main dashboard ─────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
+
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({
-    title: "",
-    series_name: "",
-    universe: "",
-    type: "",
-    genre: "",
-    age_group: "",
-    writing_style: "",
-    summary: "",
+    title: "", series_name: "", universe: "", type: "novel",
+    genre: "", age_group: "", writing_style: "", voice_style: "",
+    tone_style: "", target_audience: "", pacing_preference: "",
+    style_notes: "", summary: "",
   });
   const [creating, setCreating] = useState(false);
-
-  // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Upload state
+  // Upload
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -87,12 +280,15 @@ export default function Dashboard() {
   const [importProjectTitle, setImportProjectTitle] = useState("");
   const [importChapterTitle, setImportChapterTitle] = useState("");
 
-  // Rename state
+  // Edit project
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [projectToRename, setProjectToRename] = useState(null);
-  const [newTitle, setNewTitle] = useState("");
+  const [editFields, setEditFields] = useState({
+    title: "", summary: "", voice_style: "", tone_style: "",
+    target_audience: "", pacing_preference: "", style_notes: "",
+  });
 
-  // Import Analysis state
+  // Import analysis
   const [importAnalysisOpen, setImportAnalysisOpen] = useState(false);
   const [importedContent, setImportedContent] = useState("");
   const [importedFilename, setImportedFilename] = useState("");
@@ -100,276 +296,131 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadProjects();
-
-    // Check if onboarding should be shown
     const onboardingComplete = localStorage.getItem("thad_onboarding_complete");
-    if (!onboardingComplete) {
-      setShowOnboarding(true);
-    }
+    if (!onboardingComplete) setShowOnboarding(true);
 
-    // Handle URL action params (from onboarding)
     const params = new URLSearchParams(window.location.search);
     const action = params.get("action");
-    if (action === "new_project") {
-      setDialogOpen(true);
-      // Clean up URL
-      window.history.replaceState({}, "", window.location.pathname);
-    } else if (action === "import") {
-      fileInputRef.current?.click();
-      window.history.replaceState({}, "", window.location.pathname);
-    }
+    if (action === "new_project") { setDialogOpen(true); window.history.replaceState({}, "", window.location.pathname); }
+    else if (action === "import") { fileInputRef.current?.click(); window.history.replaceState({}, "", window.location.pathname); }
   }, []);
-
-  const handleOnboardingComplete = () => {
-    setShowOnboarding(false);
-  };
 
   const loadProjects = async () => {
     try {
       const res = await projectApi.getAll();
       setProjects(Array.isArray(res.data) ? res.data : []);
-    } catch (error) {
-      console.error("Failed to load projects", error);
-      setProjects([]);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setProjects([]); }
+    finally { setLoading(false); }
   };
 
   // Upload handlers
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
+  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
   const handleDrop = async (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const files = e.dataTransfer?.files;
-    if (files && files.length > 0) {
-      await handleFileSelect(files[0]);
-    }
+    e.preventDefault(); setIsDragging(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) await handleFileSelect(f);
   };
-
   const handleFileInputChange = async (e) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      await handleFileSelect(files[0]);
-    }
+    const f = e.target.files?.[0];
+    if (f) await handleFileSelect(f);
   };
-
   const handleFileSelect = async (file) => {
-    const allowedTypes = [".txt", ".docx", ".pdf", ".md"];
+    const allowed = [".txt", ".docx", ".pdf", ".md"];
     const ext = "." + file.name.split(".").pop().toLowerCase();
-
-    if (!allowedTypes.includes(ext)) {
-      toast.error(`Unsupported file type. Allowed: ${allowedTypes.join(", ")}`);
-      return;
-    }
-
+    if (!allowed.includes(ext)) { toast.error(`Unsupported file. Allowed: ${allowed.join(", ")}`); return; }
     setUploadedFile(file);
-    const baseName = file.name.replace(/\.[^/.]+$/, "");
-    setImportProjectTitle(baseName);
-    setImportChapterTitle(baseName);
-    setUploading(true);
-
+    const base = file.name.replace(/\.[^/.]+$/, "");
+    setImportProjectTitle(base); setImportChapterTitle(base); setUploading(true);
     try {
       const res = await uploadApi.previewManuscript(file);
-      setUploadPreview(res.data);
-      setUploadDialogOpen(true);
-    } catch (error) {
-      toast.error(
-        "Failed to preview file: " +
-          (error.response?.data?.detail || error.message),
-      );
+      setUploadPreview(res.data); setUploadDialogOpen(true);
+    } catch (err) {
+      toast.error("Failed to preview: " + (err.response?.data?.detail || err.message));
       setUploadedFile(null);
-    } finally {
-      setUploading(false);
-    }
+    } finally { setUploading(false); }
   };
 
   const handleUploadConfirm = async () => {
-    if (!uploadedFile || !importProjectTitle.trim()) {
-      toast.error("Please enter a project title");
-      return;
-    }
-
+    if (!uploadedFile || !importProjectTitle.trim()) { toast.error("Please enter a project title"); return; }
     setUploading(true);
     try {
-      // First create a new project
-      const projectRes = await projectApi.create({
-        title: importProjectTitle,
-        type: "novel",
-        status: "draft",
-        summary: `Imported from ${uploadedFile.name}`,
-      });
-
-      const projectId = projectRes.data.id;
-      setNewProjectId(projectId);
-
-      // Then upload the manuscript as a chapter
-      const uploadRes = await uploadApi.uploadManuscript(
-        uploadedFile,
-        projectId,
-        importChapterTitle || importProjectTitle,
-      );
-
-      // Reload projects
+      const projRes = await projectApi.create({ title: importProjectTitle, type: "novel", status: "draft", summary: `Imported from ${uploadedFile.name}` });
+      const projId = projRes.data.id; setNewProjectId(projId);
+      const upRes = await uploadApi.uploadManuscript(uploadedFile, projId, importChapterTitle || importProjectTitle);
       await loadProjects();
-
-      toast.success(
-        `Created project and imported "${importChapterTitle}" (${uploadRes.data.word_count.toLocaleString()} words)`,
-      );
-
-      // Trigger Import Analysis
-      setImportedContent(uploadPreview?.full_content || uploadRes.data.content);
+      toast.success(`Imported "${importChapterTitle}" (${upRes.data.word_count?.toLocaleString()} words)`);
+      setImportedContent(uploadPreview?.full_content || upRes.data.content);
       setImportedFilename(uploadedFile.name);
-      handleUploadClose();
-      setImportAnalysisOpen(true);
-    } catch (error) {
-      toast.error(
-        "Failed to import: " + (error.response?.data?.detail || error.message),
-      );
-    } finally {
-      setUploading(false);
-    }
+      handleUploadClose(); setImportAnalysisOpen(true);
+    } catch (err) {
+      toast.error("Failed to import: " + (err.response?.data?.detail || err.message));
+    } finally { setUploading(false); }
   };
 
   const handleUploadClose = () => {
-    setUploadDialogOpen(false);
-    setUploadedFile(null);
-    setUploadPreview(null);
-    setImportProjectTitle("");
-    setImportChapterTitle("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleImportActionComplete = (actionId, result) => {
-    // Navigate to the manuscript workspace after analysis
-    if (newProjectId) {
-      navigate(`/manuscript/${newProjectId}`);
-    }
+    setUploadDialogOpen(false); setUploadedFile(null); setUploadPreview(null);
+    setImportProjectTitle(""); setImportChapterTitle("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleCreateProject = async (e) => {
-    e.preventDefault();
-    if (!newProject.title.trim()) {
-      toast.error("Please enter a title");
-      return;
-    }
-
+    e?.preventDefault();
+    if (!newProject.title.trim()) { toast.error("Please enter a title"); return; }
     setCreating(true);
     try {
       const res = await projectApi.create(newProject);
       setProjects([...projects, res.data]);
       setDialogOpen(false);
-      setNewProject({
-        title: "",
-        series_name: "",
-        universe: "",
-        type: "novel",
-        genre: "",
-        age_group: "",
-        writing_style: "",
-        summary: "",
-      });
-      toast.success("Project created successfully!");
-    } catch (error) {
-      toast.error("Failed to create project");
-    } finally {
-      setCreating(false);
-    }
+      resetNewProject();
+      toast.success("Project created!");
+      navigate(`/manuscript/${res.data.id}`);
+    } catch { toast.error("Failed to create project"); }
+    finally { setCreating(false); }
   };
 
-  const handleOpenRename = (e, project) => {
+  const resetNewProject = () => setNewProject({
+    title: "", series_name: "", universe: "", type: "novel",
+    genre: "", age_group: "", writing_style: "", voice_style: "",
+    tone_style: "", target_audience: "", pacing_preference: "",
+    style_notes: "", summary: "",
+  });
+
+  const handleOpenEdit = (e, project) => {
     e.stopPropagation();
     setProjectToRename(project);
-    setNewTitle(project.title);
+    setEditFields({
+      title: project.title, summary: project.summary || "",
+      voice_style: project.voice_style || "", tone_style: project.tone_style || "",
+      target_audience: project.target_audience || "", pacing_preference: project.pacing_preference || "",
+      style_notes: project.style_notes || "",
+    });
     setRenameDialogOpen(true);
   };
 
-  const handleRenameProject = async () => {
-    if (!newTitle.trim()) {
-      toast.error("Please enter a title");
-      return;
-    }
-
-    if (!projectToRename) return;
-
+  const handleSaveEdit = async () => {
+    if (!editFields.title.trim()) { toast.error("Title is required"); return; }
     try {
-      await projectApi.update(projectToRename.id, { title: newTitle.trim() });
-      setProjects(
-        projects.map((p) =>
-          p.id === projectToRename.id ? { ...p, title: newTitle.trim() } : p,
-        ),
-      );
-      setRenameDialogOpen(false);
-      setProjectToRename(null);
-      setNewTitle("");
-      toast.success("Project renamed successfully!");
-    } catch (error) {
-      toast.error("Failed to rename project");
-    }
+      await projectApi.update(projectToRename.id, editFields);
+      setProjects(projects.map((p) => p.id === projectToRename.id ? { ...p, ...editFields } : p));
+      setRenameDialogOpen(false); setProjectToRename(null);
+      toast.success("Project updated!");
+    } catch { toast.error("Failed to update project"); }
   };
 
-  const QuickAction = ({ icon: Icon, label, onClick }) => (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={onClick}
-      className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground rounded-sm"
-    >
-      <Icon className="h-3.5 w-3.5 mr-1" />
-      {label}
-    </Button>
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
-    );
-  }
+  // Greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const displayName = user?.display_name || user?.email?.split("@")[0] || "Writer";
 
   return (
     <div
       className="p-8 lg:p-12 max-w-7xl mx-auto animate-fade-in"
       data-testid="dashboard"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-10">
-        <div>
-          <p className="text-sm font-medium text-accent mb-1">PUBLISH ITT</p>
-          <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">
-            Your Projects
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            {projects.length === 0
-              ? "Start your first project."
-              : `${projects.length} ${projects.length === 1 ? "project" : "projects"} ready to continue`}
-          </p>
-        </div>
-        <Button
-          onClick={() => setDialogOpen(true)}
-          className="rounded-sm shadow-sm"
-          size="lg"
-          data-testid="new-project-btn"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Start New Project
-        </Button>
-      </div>
-
-      {/* Hidden file input - always rendered */}
       <input
         ref={fileInputRef}
         type="file"
@@ -379,202 +430,95 @@ export default function Dashboard() {
         data-testid="dashboard-file-input"
       />
 
-      {/* Projects Grid */}
-      {projects.length === 0 ? (
-        <div
-          className={cn("transition-colors", isDragging && "bg-accent/5")}
+      {/* ── Header ── */}
+      <div className="flex items-end justify-between mb-10 gap-4">
+        <div>
+          <p className="text-sm font-medium text-accent mb-1 tracking-widest uppercase">
+            {greeting}, {displayName}
+          </p>
+          <h1 className="text-4xl md:text-5xl font-serif font-semibold tracking-tight">
+            Your Projects
+          </h1>
+          {!loading && (
+            <p className="mt-2 text-muted-foreground">
+              {projects.length === 0
+                ? "Start your first project below."
+                : `${projects.length} ${projects.length === 1 ? "project" : "projects"} in progress`}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="rounded-sm hidden sm:flex"
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            Import
+          </Button>
+          <Button onClick={() => setDialogOpen(true)} className="rounded-sm shadow-sm" size="default" data-testid="new-project-btn">
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Momentum strip ── */}
+      <MomentumStrip />
+
+      {/* ── Content ── */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((n) => <ProjectSkeleton key={n} />)}
+        </div>
+      ) : projects.length === 0 ? (
+        <EmptyState
+          onNew={() => setDialogOpen(true)}
+          onImport={() => fileInputRef.current?.click()}
+          uploading={uploading}
+          isDragging={isDragging}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-        >
-          <Card
-            className={cn(
-              "border-dashed border-2",
-              isDragging && "border-accent bg-accent/5",
-            )}
-          >
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              {isDragging ? (
-                <>
-                  <FileUp className="h-16 w-16 text-accent mb-4 animate-bounce" />
-                  <h3 className="font-serif text-xl mb-2 text-accent">
-                    Drop your manuscript here
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Supported: .txt, .docx, .pdf, .md
-                  </p>
-                </>
-              ) : (
-                <>
-                  <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-serif text-xl mb-2">No projects yet</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Start your first book to begin your writing journey
-                  </p>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
-                    <Button
-                      onClick={() => setDialogOpen(true)}
-                      className="rounded-sm"
-                      data-testid="create-first-project-btn"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Your First Project
-                    </Button>
-                    <span className="text-muted-foreground text-sm">or</span>
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="rounded-sm"
-                      data-testid="import-first-project-btn"
-                    >
-                      {uploading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Upload className="h-4 w-4 mr-2" />
-                      )}
-                      Import Existing Manuscript
-                    </Button>
-                  </div>
-
-                  {/* Drag & Drop Zone */}
-                  <div className="w-full max-w-md p-6 border-2 border-dashed border-border rounded-lg text-center">
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-sm font-medium mb-1">
-                      Drag & drop a manuscript file here
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Supports .txt, .docx, .pdf, .md
-                    </p>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project, index) => (
-            <Card
+          {projects.map((project, i) => (
+            <ProjectCard
               key={project.id}
-              className="card-hover cursor-pointer animate-slide-in overflow-hidden"
-              style={{ animationDelay: `${index * 0.1}s` }}
-              onClick={() => navigate(`/manuscript/${project.id}`)}
-              data-testid={`project-card-${project.id}`}
-            >
-              {/* Project Card Content - All children contained within */}
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 group">
-                      <h3 className="font-serif text-xl font-medium truncate">
-                        {project.title}
-                      </h3>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                        onClick={(e) => handleOpenRename(e, project)}
-                        data-testid={`rename-project-${project.id}`}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    {project.series_name && (
-                      <p className="text-sm text-muted-foreground truncate">
-                        {project.series_name}
-                      </p>
-                    )}
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`ml-2 shrink-0 capitalize text-xs ${statusColors[project.status] || statusColors.concept}`}
-                  >
-                    {project.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                {/* Project Info */}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    {project.universe || "No Story World Set Yet"}
-                  </span>
-                  <span className="font-mono text-xs">
-                    {formatWordCount(project.word_count)} words
-                  </span>
-                </div>
-
-                {/* Progress Section */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-mono">
-                      {calculateProgress(project.status)}%
-                    </span>
-                  </div>
-                  <Progress
-                    value={calculateProgress(project.status)}
-                    className="h-1.5"
-                  />
-                </div>
-
-                {/* Quick Actions Panel - Child of Card, contained within bounds */}
-                <div
-                  className="flex flex-wrap items-center gap-1 pt-3 border-t border-border w-full"
-                  onClick={(e) => e.stopPropagation()}
-                  data-testid={`project-actions-${project.id}`}
-                >
-                  <QuickAction
-                    icon={FileText}
-                    label="Manuscript"
-                    onClick={() => navigate(`/manuscript/${project.id}`)}
-                  />
-                  <QuickAction
-                    icon={GitBranch}
-                    label="Writing Stage"
-                    onClick={() => navigate(`/workflow/${project.id}`)}
-                  />
-                  <QuickAction
-                    icon={Palette}
-                    label="Style"
-                    onClick={() => navigate(`/tone/${project.id}`)}
-                  />
-                  <QuickAction
-                    icon={ImageIcon}
-                    label="Cover & Art"
-                    onClick={() => navigate(`/art/${project.id}`)}
-                  />
-                </div>
-
-                {/* Updated timestamp */}
-                <p className="text-xs text-muted-foreground">
-                  Updated {formatDate(project.updated_at)}
-                </p>
-              </CardContent>
-            </Card>
+              project={project}
+              index={i}
+              onOpen={(id) => navigate(`/manuscript/${id}`)}
+              onEdit={handleOpenEdit}
+            />
           ))}
+          {/* "New project" tile */}
+          <button
+            onClick={() => setDialogOpen(true)}
+            className="animate-slide-in rounded-sm border-2 border-dashed border-border hover:border-accent/50 hover:bg-accent/5 transition-all duration-200 flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground hover:text-accent group min-h-[180px]"
+            style={{ animationDelay: `${projects.length * 0.06}s` }}
+          >
+            <div className="w-10 h-10 rounded-full border-2 border-current flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Plus className="h-4 w-4" />
+            </div>
+            <span className="text-sm font-medium">New Project</span>
+          </button>
         </div>
       )}
 
-      {/* New Project Dialog */}
+      {/* ── New Project Dialog ── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent
-          className="sm:max-w-lg max-h-[90vh]"
-          data-testid="new-project-dialog"
-        >
+        <DialogContent className="sm:max-w-lg max-h-[90vh]" data-testid="new-project-dialog">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-accent" />
               Start New Book
             </DialogTitle>
-            <DialogDescription>
-              Create a new project or import an existing manuscript
-            </DialogDescription>
+            <DialogDescription>Create a new project or import an existing manuscript.</DialogDescription>
           </DialogHeader>
 
-          {/* Import Manuscript Section */}
+          {/* Import strip */}
           <div className="border-2 border-dashed border-border rounded-lg p-4 hover:border-accent/50 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -583,43 +527,19 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h4 className="font-medium text-sm">Import Manuscript</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Upload .txt, .docx, .pdf, or .md file
-                  </p>
+                  <p className="text-xs text-muted-foreground">.txt, .docx, .pdf, or .md</p>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  fileInputRef.current?.click();
-                  setDialogOpen(false);
-                }}
-                disabled={uploading}
-                className="rounded-sm"
-                data-testid="import-manuscript-btn"
-              >
-                {uploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <FileUp className="h-4 w-4 mr-2" />
-                    Browse Files
-                  </>
-                )}
+              <Button type="button" variant="outline" size="sm" onClick={() => { fileInputRef.current?.click(); setDialogOpen(false); }} disabled={uploading} className="rounded-sm" data-testid="import-manuscript-btn">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileUp className="h-4 w-4 mr-2" />Browse</>}
               </Button>
             </div>
           </div>
 
           <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                Or create from scratch
-              </span>
+              <span className="bg-background px-2 text-muted-foreground">Or create from scratch</span>
             </div>
           </div>
 
@@ -628,404 +548,196 @@ export default function Dashboard() {
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    placeholder="Enter book title"
-                    value={newProject.title}
-                    onChange={(e) =>
-                      setNewProject({ ...newProject, title: e.target.value })
-                    }
-                    className="rounded-sm"
-                    data-testid="new-project-title"
-                  />
+                  <Input id="title" placeholder="Enter book title" value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })} className="rounded-sm" data-testid="new-project-title" autoFocus />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="series">Series Name</Label>
-                    <Input
-                      id="series"
-                      placeholder="e.g., The Dragon Chronicles"
-                      value={newProject.series_name}
-                      onChange={(e) =>
-                        setNewProject({
-                          ...newProject,
-                          series_name: e.target.value,
-                        })
-                      }
-                      className="rounded-sm"
-                      data-testid="new-project-series"
-                    />
+                    <Input id="series" placeholder="e.g., The Dragon Chronicles" value={newProject.series_name} onChange={(e) => setNewProject({ ...newProject, series_name: e.target.value })} className="rounded-sm" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="universe">Universe</Label>
-                    <Input
-                      id="universe"
-                      placeholder="e.g., Evergreen Forest"
-                      value={newProject.universe}
-                      onChange={(e) =>
-                        setNewProject({
-                          ...newProject,
-                          universe: e.target.value,
-                        })
-                      }
-                      className="rounded-sm"
-                      data-testid="new-project-universe"
-                    />
+                    <Input id="universe" placeholder="e.g., Evergreen Forest" value={newProject.universe} onChange={(e) => setNewProject({ ...newProject, universe: e.target.value })} className="rounded-sm" />
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="type">Type</Label>
-                    <Select
-                      value={newProject.type}
-                      onValueChange={(value) =>
-                        setNewProject({ ...newProject, type: value })
-                      }
-                    >
-                      <SelectTrigger
-                        className="rounded-sm"
-                        data-testid="new-project-type"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Label>Type</Label>
+                    <Select value={newProject.type} onValueChange={(v) => setNewProject({ ...newProject, type: v })}>
+                      <SelectTrigger className="rounded-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="novel">Novel</SelectItem>
-                        <SelectItem value="novella">Novella</SelectItem>
-                        <SelectItem value="short-story">Short Story</SelectItem>
-                        <SelectItem value="anthology">Anthology</SelectItem>
-                        <SelectItem value="childrens">
-                          Children's Book
-                        </SelectItem>
-                        <SelectItem value="picture-book">
-                          Picture Book
-                        </SelectItem>
-                        <SelectItem value="non-fiction">Non-Fiction</SelectItem>
-                        <SelectItem value="memoir">Memoir</SelectItem>
-                        <SelectItem value="poetry">
-                          Poetry Collection
-                        </SelectItem>
-                        <SelectItem value="screenplay">Screenplay</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="age_group">Target Age Group</Label>
-                    <Select
-                      value={newProject.age_group}
-                      onValueChange={(value) =>
-                        setNewProject({ ...newProject, age_group: value })
-                      }
-                    >
-                      <SelectTrigger
-                        className="rounded-sm"
-                        data-testid="new-project-age-group"
-                      >
-                        <SelectValue placeholder="Select age group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AGE_GROUPS.map((age) => (
-                          <SelectItem key={age.value} value={age.value}>
-                            {age.label}
-                          </SelectItem>
+                        {["novel","novella","short-story","anthology","childrens","picture-book","non-fiction","memoir","poetry","screenplay"].map((t) => (
+                          <SelectItem key={t} value={t}>{t.replace(/-/g," ").replace(/\b\w/g,(c)=>c.toUpperCase())}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Age Group</Label>
+                    <Select value={newProject.age_group} onValueChange={(v) => setNewProject({ ...newProject, age_group: v })}>
+                      <SelectTrigger className="rounded-sm"><SelectValue placeholder="Select…" /></SelectTrigger>
+                      <SelectContent>
+                        {AGE_GROUPS.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="genre">Genre</Label>
-                  <Select
-                    value={newProject.genre}
-                    onValueChange={(value) =>
-                      setNewProject({ ...newProject, genre: value })
-                    }
-                  >
-                    <SelectTrigger
-                      className="rounded-sm"
-                      data-testid="new-project-genre"
-                    >
-                      <SelectValue placeholder="Select genre" />
-                    </SelectTrigger>
+                  <Label>Genre</Label>
+                  <Select value={newProject.genre} onValueChange={(v) => setNewProject({ ...newProject, genre: v })}>
+                    <SelectTrigger className="rounded-sm"><SelectValue placeholder="Select genre" /></SelectTrigger>
                     <SelectContent className="max-h-[300px]">
-                      {Object.entries(getGenresByCategory()).map(
-                        ([category, genres]) => (
-                          <SelectGroup key={category}>
-                            <SelectLabel className="text-xs font-semibold text-muted-foreground">
-                              {category}
-                            </SelectLabel>
-                            {genres.map((genre) => (
-                              <SelectItem key={genre.value} value={genre.value}>
-                                {genre.label}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        ),
-                      )}
+                      {Object.entries(getGenresByCategory()).map(([cat, genres]) => (
+                        <SelectGroup key={cat}>
+                          <SelectLabel className="text-xs font-semibold text-muted-foreground">{cat}</SelectLabel>
+                          {genres.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
+                        </SelectGroup>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="writing_style">Writing Style</Label>
-                  <Select
-                    value={newProject.writing_style}
-                    onValueChange={(value) =>
-                      setNewProject({ ...newProject, writing_style: value })
-                    }
-                  >
-                    <SelectTrigger
-                      className="rounded-sm"
-                      data-testid="new-project-style"
-                    >
-                      <SelectValue placeholder="Select writing style" />
-                    </SelectTrigger>
+                  <Label>Writing Style</Label>
+                  <Select value={newProject.writing_style} onValueChange={(v) => setNewProject({ ...newProject, writing_style: v })}>
+                    <SelectTrigger className="rounded-sm"><SelectValue placeholder="Select style" /></SelectTrigger>
                     <SelectContent>
-                      {WRITING_STYLES.map((style) => (
-                        <SelectItem key={style.value} value={style.value}>
-                          <div className="flex flex-col">
-                            <span>{style.label}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {style.description}
-                            </span>
-                          </div>
+                      {WRITING_STYLES.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          <div className="flex flex-col"><span>{s.label}</span><span className="text-xs text-muted-foreground">{s.description}</span></div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="summary">Summary</Label>
-                  <Textarea
-                    id="summary"
-                    placeholder="Brief description of your book..."
-                    value={newProject.summary}
-                    onChange={(e) =>
-                      setNewProject({ ...newProject, summary: e.target.value })
-                    }
-                    className="rounded-sm resize-none"
-                    rows={3}
-                    data-testid="new-project-summary"
-                  />
+                  <Textarea id="summary" placeholder="Brief description of your book…" value={newProject.summary} onChange={(e) => setNewProject({ ...newProject, summary: e.target.value })} className="rounded-sm resize-none" rows={3} />
+                </div>
+                <div className="space-y-4 rounded-lg border border-border p-4">
+                  <div>
+                    <h4 className="text-sm font-medium">Voice & Tone Profile</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Optional — Thad will use these when helping you write.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2"><Label>Voice Style</Label><Input placeholder="e.g., lyrical" value={newProject.voice_style} onChange={(e) => setNewProject({ ...newProject, voice_style: e.target.value })} className="rounded-sm" /></div>
+                    <div className="space-y-2"><Label>Tone Style</Label><Input placeholder="e.g., warm, adventurous" value={newProject.tone_style} onChange={(e) => setNewProject({ ...newProject, tone_style: e.target.value })} className="rounded-sm" /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2"><Label>Target Audience</Label><Input placeholder="e.g., middle grade readers" value={newProject.target_audience} onChange={(e) => setNewProject({ ...newProject, target_audience: e.target.value })} className="rounded-sm" /></div>
+                    <div className="space-y-2"><Label>Pacing</Label><Input placeholder="e.g., fast, reflective" value={newProject.pacing_preference} onChange={(e) => setNewProject({ ...newProject, pacing_preference: e.target.value })} className="rounded-sm" /></div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Style Notes</Label>
+                    <Textarea placeholder="Any author-specific style preferences…" value={newProject.style_notes} onChange={(e) => setNewProject({ ...newProject, style_notes: e.target.value })} className="rounded-sm resize-none" rows={3} />
+                  </div>
                 </div>
               </div>
             </form>
           </ScrollArea>
+
           <DialogFooter className="mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              className="rounded-sm"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateProject}
-              disabled={creating || !newProject.title}
-              className="rounded-sm"
-              data-testid="create-project-submit"
-            >
-              {creating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Project
-                </>
-              )}
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetNewProject(); }} className="rounded-sm">Cancel</Button>
+            <Button onClick={handleCreateProject} disabled={creating || !newProject.title} className="rounded-sm" data-testid="create-project-submit">
+              {creating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating…</> : <><Plus className="h-4 w-4 mr-2" />Create Project</>}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Import Manuscript Dialog */}
+      {/* ── Import Preview Dialog ── */}
       <Dialog open={uploadDialogOpen} onOpenChange={handleUploadClose}>
-        <DialogContent
-          className="sm:max-w-2xl"
-          data-testid="import-project-dialog"
-        >
+        <DialogContent className="sm:max-w-2xl" data-testid="import-project-dialog">
           <DialogHeader>
             <DialogTitle className="font-serif flex items-center gap-2 text-2xl">
-              <FileUp className="h-6 w-6" />
-              Import Manuscript
+              <FileUp className="h-6 w-6" />Import Manuscript
             </DialogTitle>
-            <DialogDescription>
-              Create a new project from your imported manuscript.
-            </DialogDescription>
+            <DialogDescription>Create a new project from your imported manuscript.</DialogDescription>
           </DialogHeader>
-
           {uploadPreview && (
             <div className="space-y-4 py-4">
-              {/* File Info */}
               <div className="flex items-center justify-between p-3 bg-muted rounded-sm">
                 <div className="flex items-center gap-3">
                   <FileText className="h-8 w-8 text-muted-foreground" />
                   <div>
-                    <p className="font-medium text-sm">
-                      {uploadPreview.filename}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {uploadPreview.file_type.toUpperCase()} •{" "}
-                      {uploadPreview.word_count.toLocaleString()} words
-                    </p>
+                    <p className="font-medium text-sm">{uploadPreview.filename}</p>
+                    <p className="text-xs text-muted-foreground">{uploadPreview.file_type?.toUpperCase()} · {uploadPreview.word_count?.toLocaleString()} words</p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleUploadClose}
-                  className="h-8 w-8"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                <Button variant="ghost" size="icon" onClick={handleUploadClose} className="h-8 w-8"><X className="h-4 w-4" /></Button>
               </div>
-
-              {/* Project Title Input */}
               <div className="space-y-2">
                 <Label htmlFor="importProjectTitle">Project Title *</Label>
-                <Input
-                  id="importProjectTitle"
-                  value={importProjectTitle}
-                  onChange={(e) => setImportProjectTitle(e.target.value)}
-                  placeholder="Enter project title"
-                  className="rounded-sm"
-                  data-testid="import-project-title-input"
-                />
+                <Input id="importProjectTitle" value={importProjectTitle} onChange={(e) => setImportProjectTitle(e.target.value)} placeholder="Enter project title" className="rounded-sm" data-testid="import-project-title-input" />
               </div>
-
-              {/* Chapter Title Input */}
               <div className="space-y-2">
                 <Label htmlFor="importChapterTitle">Chapter Title</Label>
-                <Input
-                  id="importChapterTitle"
-                  value={importChapterTitle}
-                  onChange={(e) => setImportChapterTitle(e.target.value)}
-                  placeholder="Enter chapter title"
-                  className="rounded-sm"
-                  data-testid="import-chapter-title-input"
-                />
+                <Input id="importChapterTitle" value={importChapterTitle} onChange={(e) => setImportChapterTitle(e.target.value)} placeholder="Enter chapter title" className="rounded-sm" data-testid="import-chapter-title-input" />
               </div>
-
-              {/* Preview */}
               <div className="space-y-2">
                 <Label>Content Preview</Label>
                 <ScrollArea className="h-[150px] border border-border rounded-sm p-3">
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {uploadPreview.preview}
-                  </p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{uploadPreview.preview}</p>
                 </ScrollArea>
               </div>
             </div>
           )}
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={handleUploadClose}
-              className="rounded-sm"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUploadConfirm}
-              disabled={uploading || !importProjectTitle.trim()}
-              className="rounded-sm"
-              data-testid="confirm-import-project-btn"
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Create Project & Import
-                </>
-              )}
+            <Button variant="outline" onClick={handleUploadClose} className="rounded-sm">Cancel</Button>
+            <Button onClick={handleUploadConfirm} disabled={uploading || !importProjectTitle.trim()} className="rounded-sm" data-testid="confirm-import-project-btn">
+              {uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating…</> : <><Upload className="h-4 w-4 mr-2" />Create Project & Import</>}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Import Analysis Dialog */}
+      {/* ── Edit Project Dialog ── */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent className="sm:max-w-md" data-testid="rename-project-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl flex items-center gap-2">
+              <Pencil className="h-4 w-4 text-accent" />Edit Project
+            </DialogTitle>
+            <DialogDescription>Update your project details and voice profile.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title *</Label>
+              <Input value={editFields.title} onChange={(e) => setEditFields({ ...editFields, title: e.target.value })} className="rounded-sm" autoFocus onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveEdit(); } }} />
+            </div>
+            <div className="space-y-2">
+              <Label>Summary</Label>
+              <Textarea value={editFields.summary} onChange={(e) => setEditFields({ ...editFields, summary: e.target.value })} placeholder="Brief description…" className="rounded-sm resize-none" rows={3} />
+            </div>
+            <div className="space-y-3 rounded-lg border border-border p-4">
+              <h4 className="text-sm font-medium">Voice & Tone Profile</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label className="text-xs">Voice Style</Label><Input value={editFields.voice_style} onChange={(e) => setEditFields({ ...editFields, voice_style: e.target.value })} placeholder="e.g., lyrical" className="rounded-sm h-8 text-sm" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Tone Style</Label><Input value={editFields.tone_style} onChange={(e) => setEditFields({ ...editFields, tone_style: e.target.value })} placeholder="e.g., warm" className="rounded-sm h-8 text-sm" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Target Audience</Label><Input value={editFields.target_audience} onChange={(e) => setEditFields({ ...editFields, target_audience: e.target.value })} placeholder="e.g., MG readers" className="rounded-sm h-8 text-sm" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Pacing</Label><Input value={editFields.pacing_preference} onChange={(e) => setEditFields({ ...editFields, pacing_preference: e.target.value })} placeholder="e.g., balanced" className="rounded-sm h-8 text-sm" /></div>
+              </div>
+              <div className="space-y-1.5"><Label className="text-xs">Style Notes</Label><Textarea value={editFields.style_notes} onChange={(e) => setEditFields({ ...editFields, style_notes: e.target.value })} placeholder="Author-specific preferences…" className="rounded-sm resize-none text-sm" rows={3} /></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRenameDialogOpen(false); setProjectToRename(null); }} className="rounded-sm">Cancel</Button>
+            <Button onClick={handleSaveEdit} disabled={!editFields.title.trim()} className="rounded-sm" data-testid="confirm-rename-btn">Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Import Analysis Dialog ── */}
       <ImportAnalysisDialog
         open={importAnalysisOpen}
         onOpenChange={setImportAnalysisOpen}
         content={importedContent}
         filename={importedFilename}
         projectId={newProjectId}
-        onActionComplete={handleImportActionComplete}
+        onActionComplete={() => { if (newProjectId) navigate(`/manuscript/${newProjectId}`); }}
       />
 
-      {/* Rename Project Dialog */}
-      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent
-          className="sm:max-w-md"
-          data-testid="rename-project-dialog"
-        >
-          <DialogHeader>
-            <DialogTitle className="font-serif text-xl flex items-center gap-2">
-              <Pencil className="h-4 w-4 text-accent" />
-              Rename Project
-            </DialogTitle>
-            <DialogDescription>
-              Enter a new title for your project
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="newTitle">New Title</Label>
-              <Input
-                id="newTitle"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Enter new title"
-                className="rounded-sm"
-                data-testid="rename-project-input"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleRenameProject();
-                  }
-                }}
-                autoFocus
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRenameDialogOpen(false)}
-              className="rounded-sm"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleRenameProject}
-              disabled={!newTitle.trim()}
-              className="rounded-sm"
-              data-testid="confirm-rename-btn"
-            >
-              Rename
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Thad Onboarding */}
-      <ThadOnboarding
-        open={showOnboarding}
-        onComplete={handleOnboardingComplete}
-      />
+      {/* ── Onboarding ── */}
+      <ThadOnboarding open={showOnboarding} onComplete={() => setShowOnboarding(false)} />
     </div>
   );
 }

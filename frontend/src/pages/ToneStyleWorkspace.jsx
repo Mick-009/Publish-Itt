@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/select";
 import { projectApi, chapterApi, aiApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Palette, FileText } from "lucide-react";
+import { Loader2, Sparkles, Palette, FileText, Plus, Upload } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import { AnalyzeLoopArt } from "@/components/EmptyStateArt";
 
 export default function ToneStyleWorkspace() {
   const { projectId } = useParams();
@@ -86,7 +88,8 @@ export default function ToneStyleWorkspace() {
   };
 
   const handleAnalyzeTone = async () => {
-    const textToAnalyze = customText.trim() || selectedChapter?.content;
+    const strippedChapterText = stripHtml(selectedChapter?.content || "");
+    const textToAnalyze = customText.trim() || strippedChapterText;
 
     if (!textToAnalyze) {
       toast.error(
@@ -99,11 +102,21 @@ export default function ToneStyleWorkspace() {
     try {
       const res = await aiApi.analyzeTone(
         textToAnalyze,
-        selectedProject.id,
+        selectedProject?.id,
         selectedChapter?.id,
       );
-      setAiResponse(res.data.response);
+      console.log("Tone analysis response:", res.data);
+      const output =
+        res.data?.response || res.data?.analysis || res.data?.result || "";
+
+      if (!output) {
+        toast.error("Tone analysis returned no content");
+        return;
+      }
+
+      setAiResponse(output);
     } catch (error) {
+      console.error("Tone analysis failed:", error);
       toast.error("Failed to analyze tone");
     } finally {
       setAiLoading(false);
@@ -126,16 +139,27 @@ export default function ToneStyleWorkspace() {
 
   if (projects.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8">
-        <Palette className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="font-serif text-2xl mb-2">No Projects Yet</h2>
-        <p className="text-muted-foreground mb-4">
-          Create a project to analyze its tone
-        </p>
-        <Button onClick={() => navigate("/")} className="rounded-sm">
-          Go to Dashboard
-        </Button>
-      </div>
+      <EmptyState
+        size="page"
+        art={<AnalyzeLoopArt size={96} />}
+        eyebrow="Tone & style studio"
+        title="Bring me something to read."
+        body="Once you have a project with a draft, I'll analyze its voice — pacing, tone, sentence shape, the kind of feedback an editor gives at three in the morning."
+        primaryAction={{
+          label: "Start a new project",
+          icon: Plus,
+          onClick: () => navigate("/?action=new_project"),
+          showArrow: true,
+          testId: "empty-tonestyle-new-project",
+        }}
+        secondaryAction={{
+          label: "Import a manuscript",
+          icon: Upload,
+          onClick: () => navigate("/?action=import"),
+          testId: "empty-tonestyle-import",
+        }}
+        testId="empty-tonestyle-no-projects"
+      />
     );
   }
 
@@ -232,7 +256,7 @@ export default function ToneStyleWorkspace() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground mb-4">
-                No chapters found. Enter custom text to analyze.
+                No chapters in this project yet — paste any text below and I'll work with that.
               </p>
             )}
 
