@@ -21,6 +21,7 @@ import {
 } from "@/lib/utils";
 import { toast } from "sonner";
 import EmptyState from "@/components/EmptyState";
+import LoadingState from "@/components/LoadingState";
 import { WorkflowEmptyArt } from "@/components/EmptyStateArt";
 import {
   Loader2,
@@ -129,9 +130,13 @@ export default function WorkflowWorkspace() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
+      <LoadingState
+        size="page"
+        eyebrow="The pipeline"
+        title="Walking the line."
+        body="One moment — checking where each manuscript stands."
+        testId="loading-workflow-workspace"
+      />
     );
   }
 

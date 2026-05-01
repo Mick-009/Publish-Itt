@@ -144,3 +144,5 @@ backend/
 - `node_modules/`, `build/`, `__pycache__/`, `venv/` — generated/dependency
 - `mock_images/` — test fixtures
 - `.env` and any credentials — never commit, never modify
+
+---

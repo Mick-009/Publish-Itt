@@ -18,6 +18,7 @@ import {
   notesApi,
 } from "@/lib/api";
 import { toast } from "sonner";
+import LoadingState from "@/components/LoadingState";
 import {
   Loader2,
   FileText,
@@ -561,15 +562,12 @@ export default function ImportAnalysisDialog({
             )}
 
             {analyzing && (
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <Loader2 className="h-12 w-12 animate-spin text-accent mb-4" />
-                <p className="text-muted-foreground">
-                  THADDAEUS is analyzing your manuscript...
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Detecting structure, notes, and formatting issues
-                </p>
-              </div>
+              <LoadingState
+                size="panel"
+                title="Reading what you brought in."
+                body="Looking for structure, notes, and anything worth flagging before we get to work."
+                testId="loading-import-analysis"
+              />
             )}
 
             {fixingEverything && (

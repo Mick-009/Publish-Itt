@@ -15,6 +15,7 @@ import { projectApi, chapterApi, aiApi } from "@/lib/api";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Palette, FileText, Plus, Upload } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
+import LoadingState from "@/components/LoadingState";
 import { AnalyzeLoopArt } from "@/components/EmptyStateArt";
 
 export default function ToneStyleWorkspace() {
@@ -131,9 +132,13 @@ export default function ToneStyleWorkspace() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
+      <LoadingState
+        size="page"
+        eyebrow="Voice & style"
+        title="Settling in to read."
+        body="One moment — pulling your projects and chapters together."
+        testId="loading-tonestyle-workspace"
+      />
     );
   }
 

@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import EmptyState from "@/components/EmptyState";
+import LoadingState from "@/components/LoadingState";
 import {
   QuillMarkArt,
   PinnedNoteArt,
@@ -569,9 +570,13 @@ export default function ArtStudio() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
+      <LoadingState
+        size="page"
+        eyebrow="Cover & art"
+        title="Pulling your project up from the workbench."
+        body="One moment — gathering chapters, presets, and the visual identity you've set so far."
+        testId="loading-artstudio"
+      />
     );
   }
 
@@ -1450,13 +1455,12 @@ export default function ArtStudio() {
                         )}
 
                         {imageGenerating && (
-                          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                            <Loader2 className="h-12 w-12 animate-spin text-accent mb-4" />
-                            <p className="text-sm">Creating your artwork...</p>
-                            <p className="text-xs mt-1">
-                              This may take up to a minute
-                            </p>
-                          </div>
+                          <LoadingState
+                            size="panel"
+                            title="Painting from the prompt."
+                            body="This usually takes about a minute — Thad is working from your scene."
+                            testId="loading-image-gen"
+                          />
                         )}
 
                         {!generatedImage && !imageGenerating && (

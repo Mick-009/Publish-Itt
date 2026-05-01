@@ -38,6 +38,7 @@ import {
   Target
 } from "lucide-react";
 import ThadTour from "@/components/ThadTour";
+import LoadingState from "@/components/LoadingState";
 
 const THEME_ICONS = {
   default: Sun,
@@ -213,9 +214,13 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
+      <LoadingState
+        size="page"
+        eyebrow="Settings"
+        title="Pulling your preferences together."
+        body="One moment — themes, presets, and the way you like things just so."
+        testId="loading-settings"
+      />
     );
   }
 
