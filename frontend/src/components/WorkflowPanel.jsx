@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { aiApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import LoadingState from "@/components/LoadingState";
 import {
   Sparkles,
   RefreshCw,
@@ -181,12 +182,12 @@ export default function WorkflowPanel({
 
       {/* Loading State */}
       {loading && !analysisData && (
-        <div className="flex flex-col items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 text-accent animate-spin mb-3" />
-          <p className="text-sm text-muted-foreground">
-            Analyzing your manuscript...
-          </p>
-        </div>
+        <LoadingState
+          size="panel"
+          title="Reading the lay of the land."
+          body="Mapping where the manuscript sits — and what to reach for next."
+          testId="loading-workflow-stage"
+        />
       )}
 
       {/* Error State */}

@@ -54,6 +54,7 @@ import AnalyzerPanel from "@/components/AnalyzerPanel";
 import WorkflowPanel from "@/components/WorkflowPanel";
 import ThadChatPanel from "@/components/ThadChatPanel";
 import EmptyState from "@/components/EmptyState";
+import LoadingState from "@/components/LoadingState";
 import {
   BlankPageArt,
   ChapterStackArt,
@@ -1304,9 +1305,13 @@ export default function ManuscriptWorkspace() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
+      <LoadingState
+        size="page"
+        eyebrow="The workshop"
+        title="Pulling your work off the shelves."
+        body="One moment — gathering projects, chapters, and where you left off."
+        testId="loading-manuscript-workspace"
+      />
     );
   }
 

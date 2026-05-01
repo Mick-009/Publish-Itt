@@ -13,6 +13,7 @@ import { aiApi, notesApi, importAnalysisApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EmptyState from "@/components/EmptyState";
+import LoadingState from "@/components/LoadingState";
 import { AnalyzeLoopArt } from "@/components/EmptyStateArt";
 import {
   Loader2,
@@ -395,12 +396,12 @@ export default function AnalyzerPanel({
 
       {/* Loading State */}
       {toneStyleLoading && !toneStyleData && (
-        <div className="flex flex-col items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 text-accent animate-spin mb-3" />
-          <p className="text-sm text-muted-foreground">
-            Analyzing tone & style...
-          </p>
-        </div>
+        <LoadingState
+          size="panel"
+          title="Reading closely."
+          body="Looking at tone, pacing, and the shape of your sentences."
+          testId="loading-analyzer-tone"
+        />
       )}
 
       {/* Tone & Style Analysis Results */}

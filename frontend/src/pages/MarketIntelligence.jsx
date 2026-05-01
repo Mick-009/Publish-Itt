@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { marketApi } from "@/lib/api";
 import { toast } from "sonner";
+import LoadingState from "@/components/LoadingState";
 import {
   Loader2,
   Lightbulb,
@@ -557,12 +558,12 @@ export default function MarketIntelligence() {
           <CardContent>
             <ScrollArea className="h-[600px]">
               {loading ? (
-                <div className="flex flex-col items-center justify-center h-[400px]">
-                  <Loader2 className="h-8 w-8 animate-spin text-accent mb-4" />
-                  <p className="text-sm text-muted-foreground">
-                    Generating insights...
-                  </p>
-                </div>
+                <LoadingState
+                  size="panel"
+                  title="Reading the market."
+                  body="Cross-checking what's selling, what's missing, and where you'd fit."
+                  testId="loading-market-results"
+                />
               ) : response ? (
                 <div
                   className="ai-response prose prose-sm max-w-none whitespace-pre-wrap"

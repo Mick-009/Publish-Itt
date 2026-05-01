@@ -7,10 +7,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { aiApi } from "@/lib/api";
+import LoadingState from "@/components/LoadingState";
 import { 
   Sparkles, 
   ArrowRight, 
-  Loader2,
   LayoutDashboard,
   FileText,
   List,
@@ -154,10 +154,11 @@ export default function ThadTour({
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 text-accent animate-spin" />
-              <p className="text-sm text-muted-foreground mt-3">Loading...</p>
-            </div>
+            <LoadingState
+              size="inline"
+              title="One moment."
+              testId="loading-tour-step"
+            />
           ) : tourData && (
             <>
               {/* Step Header */}
