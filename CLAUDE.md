@@ -11,7 +11,7 @@ An editorial book-writing app. The product persona is **Thad** — an experience
 ## Stack
 
 - **Frontend:** React (Create React App + Craco), Tailwind, shadcn/ui primitives, lucide-react icons, sonner for toasts
-- **Backend:** Python, FastAPI, [CONFIRM: MongoDB? PostgreSQL?]
+- **Backend:** Python, FastAPI, MongoDB
 - **Path alias:** `@/` resolves to `frontend/src/`
 - **Routing:** React Router (top-level routes in `App.js`)
 - **Auth:** in progress — see `contexts/AuthContext.jsx`, `components/ProtectedRoute.jsx`, `pages/AuthPage.jsx`, `backend/routers/auth.py`
