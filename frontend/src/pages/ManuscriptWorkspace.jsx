@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -60,6 +60,7 @@ import {
   ChapterStackArt,
   QuillMarkArt,
 } from "@/components/EmptyStateArt";
+import { useChapterAutosave } from "@/hooks/useChapterAutosave";
 import {
   Plus,
   Save,
@@ -100,23 +101,19 @@ import {
   MessageSquare,
 } from "lucide-react";
 
-// Auto-save interval in milliseconds (10 minutes)
-const AUTO_VERSION_INTERVAL = 10 * 60 * 1000;
-const CHAPTER_AUTO_SAVE_DELAY = 2000;
-
 export default function ManuscriptWorkspace() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
+  // ── Project / chapter state ──────────────────────────────────────────────
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveState, setSaveState] = useState("saved");
-  const [lastSavedAt, setLastSavedAt] = useState(null);
+
+  // ── Layout state ─────────────────────────────────────────────────────────
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem("manuscriptSidebarCollapsed");
     return saved !== null ? JSON.parse(saved) : true;
@@ -155,6 +152,119 @@ export default function ManuscriptWorkspace() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // ── AI state ─────────────────────────────────────────────────────────────
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResponse, setAiResponse] = useState("");
+  const [aiOriginalText, setAiOriginalText] = useState("");
+  const [aiResponseType, setAiResponseType] = useState(null); // 'rewrite', 'summarize', 'outline', etc.
+  const [selectedText, setSelectedText] = useState("");
+  const [selectedRange, setSelectedRange] = useState(null);
+  const [applyingAi, setApplyingAi] = useState(false);
+
+  // ── Dialog state ─────────────────────────────────────────────────────────
+  const [newChapterOpen, setNewChapterOpen] = useState(false);
+  const [newChapterTitle, setNewChapterTitle] = useState("");
+  const [outlineOpen, setOutlineOpen] = useState(false);
+  const [outlineCount, setOutlineCount] = useState(10);
+  const [renameChapterOpen, setRenameChapterOpen] = useState(false);
+  const [renameChapterTitle, setRenameChapterTitle] = useState("");
+  const [deleteManuscriptOpen, setDeleteManuscriptOpen] = useState(false);
+  const [deleteChapterOpen, setDeleteChapterOpen] = useState(false);
+
+  // ── Upload state ─────────────────────────────────────────────────────────
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadPreview, setUploadPreview] = useState(null);
+  const [uploadChapterTitle, setUploadChapterTitle] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // ── Import Analysis state ────────────────────────────────────────────────
+  const [importAnalysisOpen, setImportAnalysisOpen] = useState(false);
+  const [importedContent, setImportedContent] = useState("");
+  const [importedFilename, setImportedFilename] = useState("");
+
+  // ── Writing stats tracking ───────────────────────────────────────────────
+  // Logs sessions every 5 min via statsApi. Separate concern from autosave —
+  // the autosave hook does NOT cover this.
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [sessionWordCount, setSessionWordCount] = useState(0);
+  const [showStatsPanel, setShowStatsPanel] = useState(true);
+  const lastWordCountRef = useRef(0);
+  const statsIntervalRef = useRef(null);
+
+  // ── Export state ─────────────────────────────────────────────────────────
+  const [exporting, setExporting] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState("docx");
+  const [exportIncludeTitlePage, setExportIncludeTitlePage] = useState(true);
+  const [exportIncludeChapterNumbers, setExportIncludeChapterNumbers] =
+    useState(true);
+
+  // ── Autosave hook ────────────────────────────────────────────────────────
+  // The hook is the sole owner of: saving / saveState / lastSavedAt /
+  // autoVersionEnabled / autoVersionSaving / refreshVersionsTrigger, plus all
+  // chapter-load detection, debounced persistence, in-flight queueing, and
+  // the 10-minute auto-version snapshot loop.
+  //
+  // We need an editor instance to pass in, but useEditor's onUpdate also
+  // needs to call back into the hook — so we stash the hook value in a ref
+  // and the onUpdate closure reads through it.
+  const autosaveRef = useRef(null);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({
+        placeholder: "Start writing your chapter...",
+      }),
+      CharacterCount,
+    ],
+    content: "",
+    onUpdate: ({ editor }) => {
+      autosaveRef.current?.handleEditorUpdate(editor.getHTML());
+    },
+    onSelectionUpdate: ({ editor }) => {
+      const { from, to, empty } = editor.state.selection;
+
+      if (empty || from === to) {
+        setSelectedText("");
+        setSelectedRange(null);
+        return;
+      }
+
+      const text = editor.state.doc.textBetween(from, to, "\n").trim();
+
+      if (!text) {
+        setSelectedText("");
+        setSelectedRange(null);
+        return;
+      }
+
+      setSelectedText(editor.state.doc.textBetween(from, to, "\n").trim());
+      setSelectedRange({ from, to });
+    },
+  });
+
+  const autosave = useChapterAutosave({
+    editor,
+    selectedChapter,
+    selectedProject,
+  });
+
+  // Keep the ref in sync each render so onUpdate sees the latest hook value.
+  useEffect(() => {
+    autosaveRef.current = autosave;
+  });
+
+  // One-time bridge: hand the hook our setState fns so it can reflect saved
+  // chapters back into our local state after each persist.
+  useEffect(() => {
+    autosave.setExternalState(setChapters, setSelectedChapter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Selection / AI scratch reset on chapter change ───────────────────────
   useEffect(() => {
     if (!selectedChapter?.id) return;
 
@@ -175,17 +285,10 @@ export default function ManuscriptWorkspace() {
     if (typeof window !== "undefined") {
       window.getSelection()?.removeAllRanges();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChapter?.id]);
 
-  // AI state
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResponse, setAiResponse] = useState("");
-  const [aiOriginalText, setAiOriginalText] = useState("");
-  const [aiResponseType, setAiResponseType] = useState(null); // 'rewrite', 'summarize', 'outline', etc.
-  const [selectedText, setSelectedText] = useState("");
-  const [selectedRange, setSelectedRange] = useState(null);
-  const [applyingAi, setApplyingAi] = useState(false);
-
+  // ── AI target helpers ────────────────────────────────────────────────────
   const getAiTarget = () => {
     const hasSelection =
       !!selectedText?.trim() &&
@@ -242,214 +345,7 @@ export default function ManuscriptWorkspace() {
     return chunks;
   };
 
-  // Dialog state
-  const [newChapterOpen, setNewChapterOpen] = useState(false);
-  const [newChapterTitle, setNewChapterTitle] = useState("");
-  const [outlineOpen, setOutlineOpen] = useState(false);
-  const [outlineCount, setOutlineCount] = useState(10);
-  const [renameChapterOpen, setRenameChapterOpen] = useState(false);
-  const [renameChapterTitle, setRenameChapterTitle] = useState("");
-  const [deleteManuscriptOpen, setDeleteManuscriptOpen] = useState(false);
-  const [deleteChapterOpen, setDeleteChapterOpen] = useState(false);
-
-  // Upload state
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [uploadPreview, setUploadPreview] = useState(null);
-  const [uploadChapterTitle, setUploadChapterTitle] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Import Analysis state
-  const [importAnalysisOpen, setImportAnalysisOpen] = useState(false);
-  const [importedContent, setImportedContent] = useState("");
-  const [importedFilename, setImportedFilename] = useState("");
-
-  // Auto-version state
-  const [autoVersionEnabled, setAutoVersionEnabled] = useState(true);
-  const [lastVersionTime, setLastVersionTime] = useState(null);
-  const [editingStartTime, setEditingStartTime] = useState(null);
-  const [autoVersionSaving, setAutoVersionSaving] = useState(false);
-  const lastContentRef = useRef("");
-  const lastSavedContentRef = useRef("");
-  const currentContentRef = useRef("");
-  const selectedChapterRef = useRef(null);
-  const saveInFlightRef = useRef(false);
-  const queuedSaveRef = useRef(null);
-  const versionsPanelRef = useRef(null);
-  const [refreshVersionsTrigger, setRefreshVersionsTrigger] = useState(0);
-
-  // Writing stats tracking state
-  const [sessionStartTime, setSessionStartTime] = useState(null);
-  const [sessionWordCount, setSessionWordCount] = useState(0);
-  const [showStatsPanel, setShowStatsPanel] = useState(true);
-  const lastWordCountRef = useRef(0);
-  const statsIntervalRef = useRef(null);
-
-  // Export state
-  const [exporting, setExporting] = useState(false);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState("docx");
-  const [exportIncludeTitlePage, setExportIncludeTitlePage] = useState(true);
-  const [exportIncludeChapterNumbers, setExportIncludeChapterNumbers] =
-    useState(true);
-
-  useEffect(() => {
-    selectedChapterRef.current = selectedChapter;
-  }, [selectedChapter]);
-
-  // Editor setup
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder: "Start writing your chapter...",
-      }),
-      CharacterCount,
-    ],
-    content: "",
-    onUpdate: ({ editor }) => {
-      const content = editor.getHTML();
-      currentContentRef.current = content;
-
-      if (!selectedChapterRef.current) {
-        return;
-      }
-
-      if (content === lastSavedContentRef.current) {
-        setSaveState((prev) => (prev === "error" ? prev : "saved"));
-        return;
-      }
-
-      setSaveState((prev) => (prev === "dirty" ? prev : "dirty"));
-      debouncedSave(content);
-    },
-    onSelectionUpdate: ({ editor }) => {
-      const { from, to, empty } = editor.state.selection;
-
-      if (empty || from === to) {
-        setSelectedText("");
-        setSelectedRange(null);
-        return;
-      }
-
-      const text = editor.state.doc.textBetween(from, to, "\n").trim();
-
-      if (!text) {
-        setSelectedText("");
-        setSelectedRange(null);
-        return;
-      }
-
-      setSelectedText(editor.state.doc.textBetween(from, to, "\n").trim());
-      setSelectedRange({ from, to });
-    },
-  });
-
-  const syncSavedChapterState = useCallback(
-    (chapterId, savedChapter, content) => {
-      setChapters((prev) =>
-        prev.map((chapter) =>
-          chapter.id === chapterId
-            ? { ...chapter, ...savedChapter, content }
-            : chapter,
-        ),
-      );
-      setSelectedChapter((prev) =>
-        prev?.id === chapterId ? { ...prev, ...savedChapter, content } : prev,
-      );
-    },
-    [],
-  );
-
-  const persistChapterContent = useCallback(
-    async (
-      content,
-      { showSuccessToast = false, showErrorToast = false } = {},
-    ) => {
-      const activeChapter = selectedChapterRef.current;
-      if (!activeChapter) return;
-
-      if (content === lastSavedContentRef.current && !saveInFlightRef.current) {
-        setSaving(false);
-        setSaveState("saved");
-        return;
-      }
-
-      if (saveInFlightRef.current) {
-        queuedSaveRef.current = {
-          content,
-          showSuccessToast:
-            queuedSaveRef.current?.showSuccessToast || showSuccessToast,
-          showErrorToast:
-            queuedSaveRef.current?.showErrorToast || showErrorToast,
-        };
-        return;
-      }
-
-      const chapterId = activeChapter.id;
-      saveInFlightRef.current = true;
-      setSaving(true);
-      setSaveState("saving");
-
-      try {
-        const response = await chapterApi.update(chapterId, { content });
-        const savedChapter = response.data || {
-          ...activeChapter,
-          content,
-          updated_at: new Date().toISOString(),
-        };
-
-        lastSavedContentRef.current = content;
-        syncSavedChapterState(chapterId, savedChapter, content);
-
-        if (selectedChapterRef.current?.id === chapterId) {
-          setLastSavedAt(savedChapter.updated_at || new Date().toISOString());
-          setSaveState(
-            currentContentRef.current === content ? "saved" : "dirty",
-          );
-        }
-
-        if (showSuccessToast) {
-          toast.success("Chapter saved!");
-        }
-      } catch (error) {
-        console.error("Chapter save failed:", error);
-
-        if (selectedChapterRef.current?.id === chapterId) {
-          setSaveState("error");
-        }
-
-        if (showErrorToast) {
-          toast.error("Failed to save chapter");
-        }
-      } finally {
-        saveInFlightRef.current = false;
-        setSaving(false);
-
-        const queuedSave = queuedSaveRef.current;
-        queuedSaveRef.current = null;
-
-        if (queuedSave) {
-          void persistChapterContent(queuedSave.content, {
-            showSuccessToast: queuedSave.showSuccessToast,
-            showErrorToast: queuedSave.showErrorToast,
-          });
-        }
-      }
-    },
-    [syncSavedChapterState],
-  );
-
-  // Debounced save function
-  const debouncedSave = useMemo(
-    () =>
-      debounce((content) => {
-        void persistChapterContent(content);
-      }, CHAPTER_AUTO_SAVE_DELAY),
-    [persistChapterContent],
-  );
-
+  // ── Initial load ─────────────────────────────────────────────────────────
   useEffect(() => {
     loadProjects();
   }, []);
@@ -464,143 +360,7 @@ export default function ManuscriptWorkspace() {
     }
   }, [projectId, projects]);
 
-  const loadedChapterIdRef = useRef(null);
-
-  useEffect(() => {
-    if (!selectedChapter || !editor) return;
-
-    const isDifferentChapter =
-      loadedChapterIdRef.current !== selectedChapter.id;
-
-    if (isDifferentChapter) {
-      debouncedSave.cancel?.();
-      queuedSaveRef.current = null;
-
-      editor.commands.setContent(selectedChapter.content || "");
-
-      loadedChapterIdRef.current = selectedChapter.id;
-
-      currentContentRef.current = selectedChapter.content || "";
-      lastContentRef.current = selectedChapter.content || "";
-      lastSavedContentRef.current = selectedChapter.content || "";
-      setEditingStartTime(null);
-      setLastVersionTime(null);
-      setLastSavedAt(selectedChapter.updated_at || selectedChapter.created_at);
-      setSaveState("saved");
-      return;
-    }
-
-    // Same chapter: update metadata only, do not reset editor content/history
-    lastSavedContentRef.current =
-      selectedChapter.content || lastSavedContentRef.current;
-    setLastSavedAt(selectedChapter.updated_at || selectedChapter.created_at);
-    setSaveState(
-      currentContentRef.current === (selectedChapter.content || "")
-        ? "saved"
-        : "dirty",
-    );
-  }, [selectedChapter, editor, debouncedSave]);
-
-  useEffect(() => {
-    return () => {
-      debouncedSave.cancel?.();
-    };
-  }, [debouncedSave]);
-
-  // Auto-version logic: Save a version snapshot after 10 minutes of editing
-  useEffect(() => {
-    if (!autoVersionEnabled || !selectedChapter || !editor) return;
-
-    const checkAndSaveVersion = async () => {
-      const currentContent = editor.getHTML();
-      const hasContentChanged = currentContent !== lastContentRef.current;
-
-      if (!hasContentChanged) {
-        // No changes, reset editing timer
-        setEditingStartTime(null);
-        return;
-      }
-
-      // Start tracking editing time if not already
-      if (!editingStartTime) {
-        setEditingStartTime(Date.now());
-        return;
-      }
-
-      // Check if 10 minutes have passed since editing started
-      const timeSinceEditStart = Date.now() - editingStartTime;
-      if (timeSinceEditStart >= AUTO_VERSION_INTERVAL) {
-        // Also check if we haven't saved a version recently
-        if (
-          lastVersionTime &&
-          Date.now() - lastVersionTime < AUTO_VERSION_INTERVAL
-        ) {
-          return;
-        }
-
-        // Save auto-version
-        setAutoVersionSaving(true);
-        try {
-          const timestamp = new Date().toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
-          await versionsApi.create({
-            parent_type: "chapter",
-            parent_id: selectedChapter.id,
-            content_snapshot: currentContent,
-            label: `Auto snapshot - ${timestamp}`,
-            created_by: "auto",
-          });
-
-          // Update tracking
-          lastContentRef.current = currentContent;
-          setLastVersionTime(Date.now());
-          setEditingStartTime(null);
-
-          toast.success("Auto-saved version snapshot", {
-            description: "Your work has been preserved",
-            icon: <GitBranch className="h-4 w-4" />,
-          });
-        } catch (error) {
-          console.error("Auto-version save failed:", error);
-        } finally {
-          setAutoVersionSaving(false);
-        }
-      }
-    };
-
-    // Check every minute
-    const interval = setInterval(checkAndSaveVersion, 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [
-    autoVersionEnabled,
-    selectedChapter,
-    editor,
-    editingStartTime,
-    lastVersionTime,
-  ]);
-
-  // Track content changes to detect editing
-  useEffect(() => {
-    if (!editor || !selectedChapter || !autoVersionEnabled) return;
-
-    const handleUpdate = () => {
-      const currentContent = editor.getHTML();
-      if (currentContent !== lastContentRef.current && !editingStartTime) {
-        setEditingStartTime(Date.now());
-      }
-    };
-
-    editor.on("update", handleUpdate);
-    return () => editor.off("update", handleUpdate);
-  }, [editor, selectedChapter, autoVersionEnabled, editingStartTime]);
-
-  // Writing stats tracking - log sessions every 5 minutes
+  // ── Writing stats: log sessions every 5 minutes ──────────────────────────
   useEffect(() => {
     if (!editor || !selectedChapter) return;
 
@@ -663,6 +423,7 @@ export default function ManuscriptWorkspace() {
     };
   }, [editor, selectedChapter, selectedProject, sessionStartTime]);
 
+  // ── Data loaders ─────────────────────────────────────────────────────────
   const loadProjects = async () => {
     try {
       const res = await projectApi.getAll();
@@ -720,37 +481,32 @@ export default function ManuscriptWorkspace() {
     }
   };
 
-  const handleSaveChapter = async () => {
-    if (!selectedChapter || !editor) return;
-    debouncedSave.cancel?.();
-    await persistChapterContent(editor.getHTML(), {
-      showSuccessToast: true,
-      showErrorToast: true,
-    });
-  };
-
+  // ── Save status display ──────────────────────────────────────────────────
   const getSaveStatusLabel = () => {
     if (!selectedChapter) {
       return "No chapter selected";
     }
 
-    if (saveState === "saving") {
+    if (autosave.saveState === "saving") {
       return "Saving...";
     }
 
-    if (saveState === "dirty") {
+    if (autosave.saveState === "dirty") {
       return "Unsaved changes";
     }
 
-    if (saveState === "error") {
+    if (autosave.saveState === "error") {
       return "Save failed";
     }
 
-    if (lastSavedAt) {
-      return `Saved ${new Date(lastSavedAt).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      })}`;
+    if (autosave.lastSavedAt) {
+      return `Saved ${new Date(autosave.lastSavedAt).toLocaleTimeString(
+        "en-US",
+        {
+          hour: "numeric",
+          minute: "2-digit",
+        },
+      )}`;
     }
 
     return "All changes saved";
@@ -845,7 +601,7 @@ export default function ManuscriptWorkspace() {
     }
   };
 
-  // Export Functions
+  // ── Export ───────────────────────────────────────────────────────────────
   const handleExport = async () => {
     if (!selectedProject) {
       toast.error("No project selected");
@@ -908,7 +664,7 @@ export default function ManuscriptWorkspace() {
     }
   };
 
-  // AI Functions
+  // ── AI Functions ─────────────────────────────────────────────────────────
   const handleRewriteForTone = async () => {
     const target = getAiTarget();
 
@@ -1090,7 +846,7 @@ export default function ManuscriptWorkspace() {
         created_by: "ai",
       });
 
-      setRefreshVersionsTrigger((prev) => prev + 1);
+      autosave.setRefreshVersionsTrigger((prev) => prev + 1);
       return true;
     } catch (error) {
       console.error("AI snapshot failed:", error);
@@ -1115,7 +871,7 @@ export default function ManuscriptWorkspace() {
       editor.chain().focus().insertContent(html).run();
 
       const updatedContent = editor.getHTML();
-      await persistChapterContent(updatedContent, {
+      await autosave.persistChapterContent(updatedContent, {
         showSuccessToast: false,
         showErrorToast: true,
       });
@@ -1159,7 +915,7 @@ export default function ManuscriptWorkspace() {
       setSelectedRange(null);
 
       const updatedContent = editor.getHTML();
-      await persistChapterContent(updatedContent, {
+      await autosave.persistChapterContent(updatedContent, {
         showSuccessToast: false,
         showErrorToast: true,
       });
@@ -1191,7 +947,7 @@ export default function ManuscriptWorkspace() {
     toast.info("Rewrite was dismissed");
   };
 
-  // Upload Functions
+  // ── Upload Functions ─────────────────────────────────────────────────────
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -1653,7 +1409,7 @@ export default function ManuscriptWorkspace() {
                   <VersionsPanel
                     parentType="chapter"
                     parentId={selectedChapter?.id}
-                    refreshTrigger={refreshVersionsTrigger}
+                    refreshTrigger={autosave.refreshVersionsTrigger}
                     getCurrentContent={() => editor?.getHTML() || ""}
                     onRestoreVersion={(content) => {
                       if (editor) {
@@ -1841,25 +1597,27 @@ export default function ManuscriptWorkspace() {
                 data-testid="auto-version-indicator"
               >
                 <div className="flex items-center gap-1.5">
-                  {autoVersionSaving ? (
+                  {autosave.autoVersionSaving ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />
                   ) : (
                     <Clock
                       className={cn(
                         "h-3.5 w-3.5",
-                        autoVersionEnabled
+                        autosave.autoVersionEnabled
                           ? "text-accent"
                           : "text-muted-foreground",
                       )}
                     />
                   )}
                   <span className="text-xs text-muted-foreground">
-                    {autoVersionSaving ? "Saving version..." : "Auto-version"}
+                    {autosave.autoVersionSaving
+                      ? "Saving version..."
+                      : "Auto-version"}
                   </span>
                 </div>
                 <Switch
-                  checked={autoVersionEnabled}
-                  onCheckedChange={setAutoVersionEnabled}
+                  checked={autosave.autoVersionEnabled}
+                  onCheckedChange={autosave.setAutoVersionEnabled}
                   className="scale-75"
                   data-testid="auto-version-toggle"
                 />
@@ -1870,7 +1628,7 @@ export default function ManuscriptWorkspace() {
               <span
                 className={cn(
                   "text-xs",
-                  saveState === "error"
+                  autosave.saveState === "error"
                     ? "text-destructive"
                     : "text-muted-foreground",
                 )}
@@ -1883,8 +1641,8 @@ export default function ManuscriptWorkspace() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleSaveChapter}
-                disabled={saving || !selectedChapter}
+                onClick={autosave.manualSave}
+                disabled={autosave.saving || !selectedChapter}
                 className="rounded-sm"
                 data-testid="save-chapter-btn"
               >
@@ -2701,17 +2459,4 @@ function ToolbarButton({ icon: Icon, active, onClick }) {
       <Icon className="h-4 w-4" />
     </Button>
   );
-}
-
-// Debounce utility
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
 }
