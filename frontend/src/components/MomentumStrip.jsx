@@ -27,7 +27,14 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Flame, Target, BarChart2, Pencil, ArrowRight, Sparkles } from "lucide-react";
+import {
+  Flame,
+  Target,
+  BarChart2,
+  Pencil,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const formatTime = (seconds) => {
@@ -106,7 +113,10 @@ function WeekSparkline({ data, todayKey }) {
         const isToday = d.date === todayKey;
         const h = Math.max(4, Math.round(((d.words || 0) / max) * 44));
         return (
-          <div key={d.date} className="flex flex-col items-center gap-1.5 group">
+          <div
+            key={d.date}
+            className="flex flex-col items-center gap-1.5 group"
+          >
             <div
               className={cn(
                 "w-2.5 rounded-t-sm transition-all duration-300",
@@ -171,7 +181,9 @@ function DailyGoalDialog({ open, onOpenChange, currentGoal, onSaved }) {
       const res = await userApi.updatePreferences({ daily_word_goal: newGoal });
       updateUser({ daily_word_goal: res.data.daily_word_goal });
       toast.success(
-        newGoal === 0 ? "Daily goal turned off" : `Daily goal set to ${newGoal.toLocaleString()} words`,
+        newGoal === 0
+          ? "Daily goal turned off"
+          : `Daily goal set to ${newGoal.toLocaleString()} words`,
       );
       onSaved?.(res.data.daily_word_goal);
       onOpenChange(false);
@@ -217,7 +229,10 @@ function DailyGoalDialog({ open, onOpenChange, currentGoal, onSaved }) {
 
           {/* Custom input */}
           <div className="space-y-2">
-            <Label htmlFor="goal-input" className="text-xs uppercase tracking-wider text-muted-foreground">
+            <Label
+              htmlFor="goal-input"
+              className="text-xs uppercase tracking-wider text-muted-foreground"
+            >
               Or set a custom amount
             </Label>
             <div className="relative">
@@ -239,12 +254,17 @@ function DailyGoalDialog({ open, onOpenChange, currentGoal, onSaved }) {
           </div>
 
           <p className="text-xs text-muted-foreground italic">
-            Stephen King writes ~2,000 words a day. Hemingway aimed for 500. Whatever feels sustainable for you is the right number.
+            Stephen King writes ~2,000 words a day. Hemingway aimed for 500.
+            Whatever feels sustainable for you is the right number.
           </p>
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
             Cancel
           </Button>
           <Button
@@ -389,16 +409,17 @@ export default function MomentumStrip() {
           {/* ── Cell 2: Streak ── */}
           <div className="bg-card p-6 flex items-center gap-5">
             <div
-              className="shrink-0 w-[72px] h-[72px] rounded-full flex items-center justify-center bg-gradient-to-br from-orange-500/15 to-amber-500/5 border border-orange-500/20"
+              className="shrink-0 w-[72px] h-[72px] rounded-full flex items-center justify-center bg-gradient-to-br from-accent/15 to-accent/5 border border-accent/20"
               style={{
-                transform: streak > 0 ? `scale(${flameScale * 0.9})` : "scale(0.85)",
+                transform:
+                  streak > 0 ? `scale(${flameScale * 0.9})` : "scale(0.85)",
                 transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
               }}
             >
               <Flame
                 className={cn(
                   "transition-colors",
-                  streak > 0 ? "text-orange-500" : "text-muted-foreground/40",
+                  streak > 0 ? "text-accent" : "text-muted-foreground/40",
                 )}
                 style={{
                   width: 32,
@@ -407,7 +428,7 @@ export default function MomentumStrip() {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] uppercase tracking-widest text-orange-500 font-semibold mb-1">
+              <p className="text-[11px] uppercase tracking-widest text-accent font-semibold mb-1">
                 Streak
               </p>
               <p className="font-serif text-3xl tracking-tight leading-none">
@@ -431,17 +452,16 @@ export default function MomentumStrip() {
           {/* ── Cell 3: Week sparkline ── */}
           <div className="bg-card p-6 flex items-center gap-5">
             <div className="shrink-0">
-              <WeekSparkline
-                data={weekly || []}
-                todayKey={today.date}
-              />
+              <WeekSparkline data={weekly || []} todayKey={today.date} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">
                 Last 7 days
               </p>
               <p className="font-serif text-xl tracking-tight">
-                {(weekly || []).reduce((s, d) => s + (d.words || 0), 0).toLocaleString()}
+                {(weekly || [])
+                  .reduce((s, d) => s + (d.words || 0), 0)
+                  .toLocaleString()}
                 <span className="text-sm text-muted-foreground ml-2 font-sans">
                   words
                 </span>
