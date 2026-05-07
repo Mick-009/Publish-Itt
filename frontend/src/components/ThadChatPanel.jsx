@@ -14,14 +14,14 @@ function createAssistantIntro(chapterTitle, hasChapter) {
       id: "assistant-empty",
       role: "assistant",
       content:
-        "Open a chapter and I’ll meet you there. Ask me about pacing, voice, a tricky paragraph, anything you want a second pair of eyes on.",
+        "Open a chapter and I'll meet you there. Ask me about pacing, voice, a tricky paragraph — anything you want a second pair of eyes on.",
     };
   }
 
   return {
     id: "assistant-intro",
     role: "assistant",
-    content: `Reading "${chapterTitle || "this chapter"}" with you. Ask me about a passage, a character, the pacing — or highlight something and I’ll focus there.`,
+    content: `Reading "${chapterTitle || "this chapter"}" with you. Ask me about a passage, a character, the pacing — or highlight something and I'll focus there.`,
   };
 }
 
@@ -82,18 +82,19 @@ export default function ThadChatPanel({
           id: `assistant-${Date.now()}`,
           role: "assistant",
           content:
-            response.data?.response || "THAD couldn't answer that right now.",
+            response.data?.response ||
+            "Couldn't put that together right now. Try again?",
         },
       ]);
     } catch (error) {
-      console.error("THAD chat failed:", error);
-      toast.error("Failed to get a response from THAD");
+      console.error("Thad chat failed:", error);
+      toast.error("Couldn't get through. Try again?");
       setMessages((prev) => [
         ...prev,
         {
           id: `assistant-error-${Date.now()}`,
           role: "assistant",
-          content: "THAD couldn't respond right now. Please try again.",
+          content: "Lost the thread. One more time?",
         },
       ]);
     } finally {
@@ -113,15 +114,15 @@ export default function ThadChatPanel({
       <div className="shrink-0 space-y-2 pb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-accent" />
-          <h3 className="text-sm font-medium">Ask THAD</h3>
+          <h3 className="text-sm font-medium">Ask Thad</h3>
         </div>
         <p className="text-xs leading-5 text-muted-foreground">
-          Ask questions about the current chapter. THAD can use the live chapter
-          draft and any selected text for context.
+          Ask about a passage, a beat, the whole chapter. I'll use what's on
+          the page and anything you've highlighted.
         </p>
         {selectedText?.trim() ? (
           <Badge variant="outline" className="text-xs">
-            Selected text included
+            Reading your selection
           </Badge>
         ) : null}
       </div>
@@ -150,7 +151,7 @@ export default function ThadChatPanel({
                   ) : (
                     <>
                       <Sparkles className="h-3 w-3" />
-                      THAD
+                      Thad
                     </>
                   )}
                 </div>
@@ -164,7 +165,7 @@ export default function ThadChatPanel({
               <div className="mr-6 rounded-lg border bg-background px-3 py-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  THAD is thinking...
+                  Reading.
                 </div>
               </div>
             ) : null}
@@ -180,8 +181,8 @@ export default function ThadChatPanel({
           disabled={!chapterId || loading}
           placeholder={
             chapterId
-              ? "Ask about this chapter..."
-              : "Select a chapter to chat with THAD"
+              ? "Ask about this chapter."
+              : "Open a chapter and I'll meet you there."
           }
           className="min-h-[72px] resize-none rounded-sm"
           data-testid="thad-chat-input"
@@ -195,12 +196,12 @@ export default function ThadChatPanel({
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Thinking...
+              Reading.
             </>
           ) : (
             <>
               <Send className="mr-2 h-4 w-4" />
-              Send To THAD
+              Send
             </>
           )}
         </Button>

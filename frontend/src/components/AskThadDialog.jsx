@@ -28,7 +28,7 @@ export default function AskThadDialog({ open, onOpenChange }) {
       const res = await aiApi.askThad(query);
       setResponse(res.data.response);
     } catch (error) {
-      toast.error("Failed to get response from Thad");
+      toast.error("Couldn't get through just now. Try again?");
       console.error(error);
     } finally {
       setLoading(false);
@@ -56,7 +56,7 @@ export default function AskThadDialog({ open, onOpenChange }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Textarea
-            placeholder="What would you like help with? Thad can assist with manuscripts, workflow, tone analysis, or art prompts..."
+            placeholder="Ask anything about your work — a chapter, a paragraph, the whole shape of it."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="min-h-[100px] resize-none rounded-sm"
@@ -72,12 +72,12 @@ export default function AskThadDialog({ open, onOpenChange }) {
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Thinking...
+                Reading.
               </>
             ) : (
               <>
                 <Send className="h-4 w-4 mr-2" />
-                Ask Thad
+                Send
               </>
             )}
           </Button>
