@@ -45,44 +45,43 @@ import {
 const ACTION_OPTIONS = [
   {
     id: "autoformat",
-    label: "Auto-format Manuscript",
-    description: "Normalize spacing, fix paragraphs, standardize headings",
+    label: "Auto-format manuscript",
+    description: "Clean up spacing, paragraphs, and headings",
     icon: Wand2,
     category: "formatting",
   },
   {
     id: "remove_notes",
-    label: "Remove All Notes",
-    description: "Remove inline notes, comments, and annotations",
+    label: "Remove all notes",
+    description: "Strip inline notes, comments, and annotations",
     icon: Trash2,
     category: "notes",
   },
   {
     id: "store_notes",
-    label: "Store Notes Separately",
-    description: "Extract notes to the Notes Collection",
+    label: "Store notes separately",
+    description: "Pull notes out and pin them to the chapter",
     icon: Archive,
     category: "notes",
   },
   {
     id: "convert_notes",
-    label: "Convert Notes to Metadata",
-    description:
-      "Transform notes into chapter_notes, revision_notes, author_intent",
+    label: "Convert notes to metadata",
+    description: "Sort notes into chapter, revision, and intent fields",
     icon: FileStack,
     category: "notes",
   },
   {
     id: "split_chapters",
-    label: "Split into Chapters",
+    label: "Split into chapters",
     description:
-      "Detect chapter breaks and create separate Chapter records (works best with full manuscript imports)",
+      "Find the chapter breaks and split this into separate chapters (works best with full manuscript imports)",
     icon: BookOpen,
     category: "structure",
   },
   {
     id: "lantern_path",
-    label: "Apply Lantern Path Structure",
+    label: "Apply Lantern Path structure",
     description:
       "Map each chapter to Spark, Exploration, Lantern Moment, Application, Resolution",
     icon: Compass,
@@ -90,36 +89,35 @@ const ACTION_OPTIONS = [
   },
   {
     id: "full_qa",
-    label: "Run Full QA",
-    description:
-      "Check tone, lore, character, pacing, and get a readiness score",
+    label: "Run a full QA read",
+    description: "Read for tone, character, pacing, and continuity",
     icon: ClipboardCheck,
     category: "analysis",
   },
   {
     id: "extract_summaries",
-    label: "Extract Chapter Summaries",
-    description: "Generate 2-3 sentence summary for each chapter",
+    label: "Extract chapter summaries",
+    description: "Write a two-sentence summary for each chapter",
     icon: FileText,
     category: "extraction",
   },
   {
     id: "extract_characters",
-    label: "Extract Character List",
-    description: "Extract all character names, roles, and descriptions",
+    label: "Extract character list",
+    description: "Pull out who's in this — names, roles, and what's known",
     icon: Users,
     category: "extraction",
   },
   {
     id: "extract_glossary",
-    label: "Extract Glossary Terms",
-    description: "Extract unique terms, locations, symbols, and concepts",
+    label: "Extract glossary terms",
+    description: "Catalog the terms, places, and ideas worth tracking",
     icon: BookMarked,
     category: "extraction",
   },
 ];
 
-// Actions to run for "Fix Everything" - now includes split_chapters
+// Actions to run for "Fix everything I can"
 const FIX_EVERYTHING_ACTIONS = [
   "autoformat",
   "store_notes",
@@ -177,22 +175,22 @@ export default function ImportAnalysisDialog({
       );
       setAnalysis(res.data);
 
-      // Create a version snapshot labeled "Imported Raw"
+      // Snapshot the imported content as it arrived
       if (chapterId) {
         try {
           await versionsApi.create({
             parent_type: "chapter",
             parent_id: chapterId,
             content_snapshot: content,
-            label: "Imported Raw",
-            created_by: "thaddaeus",
+            label: "As imported",
+            created_by: "thad",
           });
         } catch (e) {
           console.error("Failed to create import version:", e);
         }
       }
     } catch (error) {
-      toast.error("Failed to analyze manuscript");
+      toast.error("Couldn't read it just now. Try again?");
       console.error(error);
     } finally {
       setAnalyzing(false);
@@ -212,7 +210,7 @@ export default function ImportAnalysisDialog({
       );
       setActionResult({ action: actionId, response: res.data.response });
     } catch (error) {
-      toast.error("Failed to execute action");
+      toast.error("That didn't go through. Try again?");
       console.error(error);
     } finally {
       setExecutingAction(null);
@@ -224,31 +222,31 @@ export default function ImportAnalysisDialog({
     setFixResults([]);
     setFixProgress(0);
 
-    const totalActions = FIX_EVERYTHING_ACTIONS.length + 3; // +3 for version snapshots and chapter splitting
+    const totalActions = FIX_EVERYTHING_ACTIONS.length + 3;
     let completedActions = 0;
     const results = [];
 
     try {
-      // Step 1: Create backup version
+      // Step 1: Snapshot the starting state
       if (chapterId) {
         try {
           await versionsApi.create({
             parent_type: "chapter",
             parent_id: chapterId,
             content_snapshot: content,
-            label: "Pre-FixEverything Backup",
-            created_by: "thaddaeus",
+            label: "Before Thad's read",
+            created_by: "thad",
           });
           results.push({
             action: "backup",
             success: true,
-            message: "Backup version created",
+            message: "Saved a copy of where it started",
           });
         } catch (e) {
           results.push({
             action: "backup",
             success: false,
-            message: "Backup failed",
+            message: "Couldn't save a starting copy",
           });
         }
       }
@@ -258,7 +256,7 @@ export default function ImportAnalysisDialog({
       // Step 2: Run each fix action
       for (const actionId of FIX_EVERYTHING_ACTIONS) {
         try {
-          // Special handling for split_chapters - actually create the chapters
+          // Special handling for split_chapters
           if (actionId === "split_chapters" && projectId) {
             console.log(
               `[FixEverything] Calling splitAndCreateChapters with ${content?.length || 0} characters`,
@@ -276,7 +274,7 @@ export default function ImportAnalysisDialog({
               results.push({
                 action: actionId,
                 success: true,
-                message: `Created ${splitRes.data.chapters_created} chapters`,
+                message: `Split into ${splitRes.data.chapters_created} chapters`,
                 response: `Chapters created: ${splitRes.data.chapters.map((c) => c.title).join(", ")}`,
                 chaptersCreated: splitRes.data.chapters,
               });
@@ -284,16 +282,16 @@ export default function ImportAnalysisDialog({
               results.push({
                 action: actionId,
                 success: true,
-                message: "Content is a single chapter",
+                message: "Reads as one chapter",
                 response:
-                  "No additional chapter breaks detected in this content. If you're analyzing an existing chapter, this is expected.",
+                  "No clear chapter breaks in this content. If this is one chapter already, that's expected.",
               });
             } else {
               results.push({
                 action: actionId,
                 success: true,
-                message: "No chapter breaks detected",
-                response: "Content appears to be a single chapter",
+                message: "No chapter breaks found",
+                response: "Reads as one chapter.",
               });
             }
           } else {
@@ -326,7 +324,7 @@ export default function ImportAnalysisDialog({
                   parent_id: chapterId,
                   note_text: note,
                   note_type: "comment",
-                  location_reference: "Extracted from import",
+                  location_reference: "Pulled from import",
                 });
               } catch (e) {
                 // Continue even if note creation fails
@@ -346,26 +344,26 @@ export default function ImportAnalysisDialog({
         setFixProgress((completedActions / totalActions) * 100);
       }
 
-      // Step 3: Create final version snapshot
+      // Step 3: Snapshot the ending state
       if (chapterId) {
         try {
           await versionsApi.create({
             parent_type: "chapter",
             parent_id: chapterId,
             content_snapshot: content,
-            label: "FixEverything Applied",
-            created_by: "thaddaeus",
+            label: "After Thad's read",
+            created_by: "thad",
           });
           results.push({
             action: "final_version",
             success: true,
-            message: "Final version saved",
+            message: "Saved a copy of where it ended up",
           });
         } catch (e) {
           results.push({
             action: "final_version",
             success: false,
-            message: "Final version failed",
+            message: "Couldn't save the ending copy",
           });
         }
       }
@@ -379,12 +377,10 @@ export default function ImportAnalysisDialog({
         results.find((r) => r.chaptersCreated)?.chaptersCreated?.length || 0;
 
       if (chaptersCreated > 0) {
-        toast.success(
-          `Fix Everything completed! Created ${chaptersCreated} chapters`,
-        );
+        toast.success(`Done. Split into ${chaptersCreated} chapters.`);
       } else {
         toast.success(
-          `Fix Everything completed: ${successCount}/${results.length} actions successful`,
+          `Done. ${successCount} of ${results.length} went through.`,
         );
       }
 
@@ -392,7 +388,7 @@ export default function ImportAnalysisDialog({
         onActionComplete("fix_everything", results, true);
       }
     } catch (error) {
-      toast.error("Fix Everything encountered an error");
+      toast.error("Hit a snag part-way through.");
       console.error(error);
     } finally {
       setFixingEverything(false);
@@ -407,29 +403,24 @@ export default function ImportAnalysisDialog({
     try {
       const actionId = actionResult.action;
 
-      // Create a version snapshot before implementing
       if (chapterId) {
         try {
           await versionsApi.create({
             parent_type: "chapter",
             parent_id: chapterId,
             content_snapshot: content,
-            label: `Before: ${ACTION_OPTIONS.find((a) => a.id === actionId)?.label || actionId}`,
-            created_by: "thaddaeus",
+            label: `Before "${ACTION_OPTIONS.find((a) => a.id === actionId)?.label || actionId}"`,
+            created_by: "thad",
           });
         } catch (e) {
           console.error("Failed to create pre-action version:", e);
         }
       }
 
-      // Actions that modify chapter content directly
       const contentModifyingActions = ["autoformat", "remove_notes"];
-
-      // Actions that create notes
       const notesActions = ["store_notes", "convert_notes"];
 
       if (contentModifyingActions.includes(actionId) && chapterId) {
-        // Call the implement endpoint to apply changes
         const res = await importAnalysisApi.implementAction(
           actionId,
           content,
@@ -439,19 +430,14 @@ export default function ImportAnalysisDialog({
         );
 
         if (res.data.chapter_updated) {
-          toast.success(
-            `${ACTION_OPTIONS.find((a) => a.id === actionId)?.label} applied successfully!`,
-          );
-
-          // Notify parent to refresh content
+          toast.success("Applied.");
           if (onActionComplete) {
             onActionComplete(actionId, res.data, true);
           }
         } else {
-          toast.info("No changes were applied.");
+          toast.info("Nothing changed.");
         }
       } else if (notesActions.includes(actionId) && chapterId) {
-        // For store_notes, pass the detected notes to be saved
         const notesToSave =
           actionId === "store_notes" ? analysis?.notes_detected : null;
 
@@ -464,32 +450,28 @@ export default function ImportAnalysisDialog({
         );
 
         if (res.data.notes_created > 0) {
-          toast.success(
-            `Saved ${res.data.notes_created} notes to Notes Collection`,
-          );
+          toast.success(`Pinned ${res.data.notes_created} notes to this chapter.`);
         } else {
-          toast.info("No notes were saved.");
+          toast.info("Nothing to pin.");
         }
 
         if (onActionComplete) {
           onActionComplete(actionId, res.data, true);
         }
       } else if (actionId === "split_chapters" && projectId) {
-        // Split chapters is handled separately
         toast.success(
-          "Chapter split suggestions saved. Create chapters from the Manuscript workspace.",
+          "Split suggestions saved. Create the chapters from the manuscript view when you're ready.",
         );
         if (onActionComplete) {
           onActionComplete(actionId, actionResult.response, true);
         }
       } else if (actionId === "full_qa") {
-        toast.success("QA report saved for reference.");
+        toast.success("Saved the read for later.");
         if (onActionComplete) {
           onActionComplete(actionId, actionResult.response, true);
         }
       } else {
-        // For other actions, just notify completion
-        toast.success("Changes processed successfully!");
+        toast.success("Done.");
         if (onActionComplete) {
           onActionComplete(actionId, actionResult.response, true);
         }
@@ -498,7 +480,7 @@ export default function ImportAnalysisDialog({
       setActionResult(null);
     } catch (error) {
       toast.error(
-        "Failed to implement changes: " +
+        "Couldn't apply that: " +
           (error.response?.data?.detail || error.message),
       );
       console.error(error);
@@ -508,7 +490,7 @@ export default function ImportAnalysisDialog({
   };
 
   const handleIgnore = () => {
-    toast.info("Changes ignored");
+    toast.info("Set aside.");
 
     if (onActionComplete) {
       onActionComplete(actionResult?.action, actionResult?.response, false);
@@ -533,11 +515,10 @@ export default function ImportAnalysisDialog({
         <DialogHeader>
           <DialogTitle className="font-serif flex items-center gap-2 text-2xl">
             <Sparkles className="h-6 w-6 text-accent" />
-            THADDAEUS Import Wizard
+            Reading what you brought in
           </DialogTitle>
           <DialogDescription>
-            Your manuscript has been analyzed. Choose actions to clean up and
-            structure your content.
+            Here's what I see. Decide what to do with each.
           </DialogDescription>
         </DialogHeader>
 
@@ -548,7 +529,7 @@ export default function ImportAnalysisDialog({
               <div className="flex-1 flex flex-col items-center justify-center">
                 <FileText className="h-16 w-16 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-4">
-                  Ready to analyze your manuscript
+                  Ready when you are.
                 </p>
                 <Button
                   onClick={handleAnalyze}
@@ -556,7 +537,7 @@ export default function ImportAnalysisDialog({
                   data-testid="start-analysis-btn"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Analyze Manuscript
+                  Read it
                 </Button>
               </div>
             )}
@@ -574,7 +555,7 @@ export default function ImportAnalysisDialog({
               <div className="flex-1 flex flex-col items-center justify-center px-8">
                 <Zap className="h-12 w-12 text-accent mb-4 animate-pulse" />
                 <p className="font-medium mb-2">
-                  Fix Everything in Progress...
+                  Working through it.
                 </p>
                 <Progress
                   value={fixProgress}
@@ -582,8 +563,8 @@ export default function ImportAnalysisDialog({
                 />
                 <p className="text-sm text-muted-foreground">
                   {fixProgress < 100
-                    ? "Running automated fixes..."
-                    : "Completing..."}
+                    ? "Working."
+                    : "Almost done."}
                 </p>
               </div>
             )}
@@ -593,7 +574,7 @@ export default function ImportAnalysisDialog({
                 <div className="space-y-4 pr-4">
                   <div className="flex items-center gap-2 mb-4">
                     <Shield className="h-5 w-5 text-green-600" />
-                    <span className="font-medium">Fix Everything Complete</span>
+                    <span className="font-medium">Done</span>
                   </div>
 
                   <div className="space-y-2">
@@ -619,7 +600,7 @@ export default function ImportAnalysisDialog({
                   <Separator className="my-4" />
 
                   <Button onClick={handleClose} className="w-full rounded-sm">
-                    Done
+                    Close
                   </Button>
                 </div>
               </ScrollArea>
@@ -645,13 +626,13 @@ export default function ImportAnalysisDialog({
                           className="text-sm bg-blue-100 text-blue-800"
                         >
                           <BookOpen className="h-3 w-3 mr-1" />
-                          {analysis.detected_chapters_count} chapters detected
+                          {analysis.detected_chapters_count} chapters
                         </Badge>
                       )}
                       {analysis.notes_detected?.length > 0 && (
                         <Badge variant="secondary" className="text-sm">
                           <AlertCircle className="h-3 w-3 mr-1" />
-                          {analysis.notes_detected.length} notes found
+                          {analysis.notes_detected.length} notes spotted
                         </Badge>
                       )}
                     </div>
@@ -661,7 +642,7 @@ export default function ImportAnalysisDialog({
                       <div className="p-3 bg-blue-50 border border-blue-200 rounded-sm">
                         <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
                           <BookOpen className="h-4 w-4 text-blue-600" />
-                          Chapters Detected ({analysis.detected_chapters_count})
+                          Found {analysis.detected_chapters_count} chapters
                         </h4>
                         <div className="flex flex-wrap gap-1">
                           {analysis.detected_chapters_preview
@@ -702,7 +683,7 @@ export default function ImportAnalysisDialog({
                       <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-sm">
                         <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
                           <AlertCircle className="h-4 w-4 text-amber-600" />
-                          Notes Detected
+                          Notes I spotted
                         </h4>
                         <ul className="text-sm space-y-1">
                           {analysis.notes_detected
@@ -730,7 +711,6 @@ export default function ImportAnalysisDialog({
             {actionResult && (
               <ScrollArea className="flex-1 min-h-0">
                 <div className="space-y-4 pr-4">
-                  {/* Action Header */}
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
                     <span className="font-medium">
@@ -741,7 +721,6 @@ export default function ImportAnalysisDialog({
 
                   <Separator />
 
-                  {/* Action Result Content */}
                   <div
                     className="ai-response prose prose-sm max-w-none whitespace-pre-wrap break-words overflow-x-hidden"
                     data-testid="action-result"
@@ -751,10 +730,9 @@ export default function ImportAnalysisDialog({
 
                   <Separator />
 
-                  {/* Implement or Ignore Options */}
                   <div className="sticky bottom-0 bg-background pt-2 pb-1">
                     <p className="text-sm text-muted-foreground mb-3">
-                      Would you like to implement these changes or ignore them?
+                      Apply these, or set them aside?
                     </p>
                     <div className="flex items-center gap-3">
                       <Button
@@ -768,7 +746,7 @@ export default function ImportAnalysisDialog({
                         ) : (
                           <Check className="h-4 w-4 mr-2" />
                         )}
-                        Implement Changes
+                        Apply
                       </Button>
                       <Button
                         variant="outline"
@@ -778,7 +756,7 @@ export default function ImportAnalysisDialog({
                         data-testid="ignore-action-btn"
                       >
                         <XCircle className="h-4 w-4 mr-2" />
-                        Ignore
+                        Set aside
                       </Button>
                     </div>
                     <Button
@@ -788,7 +766,7 @@ export default function ImportAnalysisDialog({
                       disabled={implementing}
                     >
                       <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back to Actions
+                      Back
                     </Button>
                   </div>
                 </div>
@@ -803,9 +781,8 @@ export default function ImportAnalysisDialog({
             fixResults.length === 0 && (
               <div className="w-80 min-w-0 shrink-0 self-stretch border-l border-border pl-4 flex flex-col min-h-0 overflow-hidden">
                 <div className="shrink-0">
-                  <h3 className="font-medium text-sm mb-3">Actions</h3>
+                  <h3 className="font-medium text-sm mb-3">What to do</h3>
 
-                  {/* Fix Everything Button */}
                   <Button
                     onClick={handleFixEverything}
                     disabled={executingAction !== null}
@@ -813,11 +790,11 @@ export default function ImportAnalysisDialog({
                     data-testid="fix-everything-btn"
                   >
                     <Zap className="h-4 w-4 mr-2" />
-                    Fix Everything Automatically
+                    Fix everything I can
                   </Button>
 
                   <p className="text-xs text-muted-foreground mb-3">
-                    Or choose individual actions below:
+                    Or pick what to do, one at a time:
                   </p>
                 </div>
 
@@ -862,7 +839,7 @@ export default function ImportAnalysisDialog({
                                   variant="secondary"
                                   className="mt-1 text-xs"
                                 >
-                                  Recommended
+                                  My pick
                                 </Badge>
                               )}
                             </div>
@@ -871,7 +848,6 @@ export default function ImportAnalysisDialog({
                       );
                     })}
 
-                    {/* Do Nothing Option */}
                     <button
                       onClick={handleClose}
                       className="w-full text-left p-3 rounded-sm border border-border hover:bg-muted"
@@ -880,9 +856,9 @@ export default function ImportAnalysisDialog({
                       <div className="flex items-center gap-2">
                         <X className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium">Do Nothing</p>
+                          <p className="text-sm font-medium">Leave it</p>
                           <p className="text-xs text-muted-foreground">
-                            Close and continue editing
+                            Close this and keep writing
                           </p>
                         </div>
                       </div>
