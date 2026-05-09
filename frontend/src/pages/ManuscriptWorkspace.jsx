@@ -216,7 +216,7 @@ export default function ManuscriptWorkspace() {
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: "Start writing your chapter...",
+        placeholder: "Start here.",
       }),
       CharacterCount,
     ],
@@ -274,7 +274,7 @@ export default function ManuscriptWorkspace() {
     if (aiResponse) {
       setAiResponse("");
       setAiResponseType(null);
-      toast.info("AI response cleared on chapter change");
+      // Silent on chapter change — no toast.
     }
 
     if (editor) {
@@ -433,7 +433,7 @@ export default function ManuscriptWorkspace() {
         loadChapters(res.data[0].id);
       }
     } catch (error) {
-      toast.error("Failed to load projects");
+      toast.error("Couldn't pull up your projects. Try again?");
     } finally {
       setLoading(false);
     }
@@ -449,7 +449,7 @@ export default function ManuscriptWorkspace() {
         setSelectedChapter(null);
       }
     } catch (error) {
-      toast.error("Failed to load chapters");
+      toast.error("Couldn't pull up the chapters. Try again?");
     }
   };
 
@@ -475,28 +475,28 @@ export default function ManuscriptWorkspace() {
       setSelectedChapter(res.data);
       setNewChapterOpen(false);
       setNewChapterTitle("");
-      toast.success("Chapter created!");
+      toast.success("Chapter added.");
     } catch (error) {
-      toast.error("Failed to add a new chapter");
+      toast.error("Couldn't add that chapter. Try again?");
     }
   };
 
   // ── Save status display ──────────────────────────────────────────────────
   const getSaveStatusLabel = () => {
     if (!selectedChapter) {
-      return "No chapter selected";
+      return "No chapter open";
     }
 
     if (autosave.saveState === "saving") {
-      return "Saving...";
+      return "Saving.";
     }
 
     if (autosave.saveState === "dirty") {
-      return "Unsaved changes";
+      return "Unsaved";
     }
 
     if (autosave.saveState === "error") {
-      return "Save failed";
+      return "Save didn't go through";
     }
 
     if (autosave.lastSavedAt) {
@@ -509,7 +509,7 @@ export default function ManuscriptWorkspace() {
       )}`;
     }
 
-    return "All changes saved";
+    return "Saved";
   };
 
   const handleDeleteChapter = async () => {
@@ -521,9 +521,9 @@ export default function ManuscriptWorkspace() {
       setChapters(newChapters);
       setSelectedChapter(newChapters.length > 0 ? newChapters[0] : null);
       setDeleteChapterOpen(false);
-      toast.success("Chapter deleted");
+      toast.success("Deleted.");
     } catch (error) {
-      toast.error("Failed to delete chapter");
+      toast.error("Couldn't delete that chapter. Try again?");
     }
   };
 
@@ -540,9 +540,9 @@ export default function ManuscriptWorkspace() {
       });
       setChapters([...chapters, res.data]);
       setSelectedChapter(res.data);
-      toast.success("Chapter duplicated!");
+      toast.success("Duplicated.");
     } catch (error) {
-      toast.error("Failed to duplicate chapter");
+      toast.error("Couldn't duplicate that chapter. Try again?");
     }
   };
 
@@ -561,9 +561,9 @@ export default function ManuscriptWorkspace() {
       setSelectedChapter({ ...selectedChapter, title: renameChapterTitle });
       setRenameChapterOpen(false);
       setRenameChapterTitle("");
-      toast.success("Chapter renamed!");
+      toast.success("Renamed.");
     } catch (error) {
-      toast.error("Failed to rename chapter");
+      toast.error("Couldn't rename that. Try again?");
     }
   };
 
@@ -588,9 +588,9 @@ export default function ManuscriptWorkspace() {
         navigate("/");
       }
 
-      toast.success("Manuscript deleted successfully.");
+      toast.success("Manuscript deleted.");
     } catch (error) {
-      toast.error("Failed to delete manuscript");
+      toast.error("Couldn't delete that. Try again?");
     }
   };
 
@@ -604,12 +604,12 @@ export default function ManuscriptWorkspace() {
   // ── Export ───────────────────────────────────────────────────────────────
   const handleExport = async () => {
     if (!selectedProject) {
-      toast.error("No project selected");
+      toast.error("Open a project first.");
       return;
     }
 
     if (chapters.length === 0) {
-      toast.error("No chapters to export");
+      toast.error("Nothing to export yet — there are no chapters.");
       return;
     }
 
@@ -652,12 +652,13 @@ export default function ManuscriptWorkspace() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success(`Exported as ${exportFormat.toUpperCase()} successfully!`);
+      toast.success("Exported.");
       setExportDialogOpen(false);
     } catch (error) {
       console.error("Export failed:", error);
       toast.error(
-        "Failed to export: " + (error.response?.data?.detail || error.message),
+        "Couldn't export it: " +
+          (error.response?.data?.detail || error.message),
       );
     } finally {
       setExporting(false);
@@ -669,7 +670,7 @@ export default function ManuscriptWorkspace() {
     const target = getAiTarget();
 
     if (!target.text?.trim()) {
-      toast.error("No content to rewrite");
+      toast.error("Nothing to rewrite yet.");
       return;
     }
 
@@ -711,7 +712,7 @@ export default function ManuscriptWorkspace() {
               error?.response?.data?.detail ||
                 error?.response?.data?.message ||
                 error?.message ||
-                `Chunk ${i + 1} failed`,
+                `Section ${i + 1} didn't go through`,
             );
           }
         }
@@ -736,7 +737,7 @@ export default function ManuscriptWorkspace() {
         error?.response?.data?.detail ||
           error?.response?.data?.message ||
           error?.message ||
-          "Failed to get AI response",
+          "Couldn't put that together. Try again?",
       );
     } finally {
       setAiLoading(false);
@@ -745,7 +746,7 @@ export default function ManuscriptWorkspace() {
 
   const handleSummarize = async () => {
     if (!editor || !editor.getText().trim()) {
-      toast.error("No content to summarize");
+      toast.error("Nothing to summarize yet.");
       return;
     }
     setAiLoading(true);
@@ -756,7 +757,7 @@ export default function ManuscriptWorkspace() {
       setAiResponse(res.data.response);
       setAiResponseType("summary");
     } catch (error) {
-      toast.error("Failed to get AI response");
+      toast.error("Couldn't put that together. Try again?");
     } finally {
       setAiLoading(false);
     }
@@ -764,7 +765,9 @@ export default function ManuscriptWorkspace() {
 
   const handleGenerateOutline = async () => {
     if (!selectedProject?.summary) {
-      toast.error("Please add a summary to your project first");
+      toast.error(
+        "The book needs a summary first — add one and I'll outline from there.",
+      );
       return;
     }
     setAiLoading(true);
@@ -780,7 +783,7 @@ export default function ManuscriptWorkspace() {
       setAiResponse(res.data.response);
       setAiResponseType("outline");
     } catch (error) {
-      toast.error("Failed to generate outline");
+      toast.error("Couldn't outline that. Try again?");
     } finally {
       setAiLoading(false);
     }
@@ -822,7 +825,7 @@ export default function ManuscriptWorkspace() {
 
   const createAiSafetySnapshot = async (actionLabel) => {
     if (!selectedChapter?.id || !editor) {
-      toast.error("Could not create version snapshot");
+      toast.error("Couldn't save a snapshot first — won't risk applying.");
       return false;
     }
 
@@ -836,21 +839,21 @@ export default function ManuscriptWorkspace() {
         minute: "2-digit",
       });
 
-      const label = `AI Snapshot - ${actionLabel} - ${timestamp}`;
+      const label = `Before ${actionLabel} — ${timestamp}`;
 
       await versionsApi.create({
         parent_type: "chapter",
         parent_id: selectedChapter.id,
         content_snapshot: currentContent,
         label,
-        created_by: "ai",
+        created_by: "thad",
       });
 
       autosave.setRefreshVersionsTrigger((prev) => prev + 1);
       return true;
     } catch (error) {
       console.error("AI snapshot failed:", error);
-      toast.error("Version snapshot failed. AI content was not applied.");
+      toast.error("Snapshot didn't save. Held off on applying.");
       return false;
     }
   };
@@ -876,10 +879,10 @@ export default function ManuscriptWorkspace() {
         showErrorToast: true,
       });
 
-      toast.success("Inserted into editor");
+      toast.success("Inserted.");
     } catch (error) {
       console.error("Insert into editor failed:", error);
-      toast.error("Could not insert AI response");
+      toast.error("Couldn't insert that.");
     } finally {
       setApplyingAi(false);
     }
@@ -890,7 +893,7 @@ export default function ManuscriptWorkspace() {
     if (applyingAi) return;
 
     if (!hasStoredSelection) {
-      toast.error("Select text in the editor first");
+      toast.error("Highlight something in the chapter first.");
       return;
     }
 
@@ -920,10 +923,10 @@ export default function ManuscriptWorkspace() {
         showErrorToast: true,
       });
 
-      toast.success("Selection replaced");
+      toast.success("Replaced.");
     } catch (error) {
       console.error("Replace selection failed:", error);
-      toast.error("Could not replace selection");
+      toast.error("Couldn't replace that.");
     } finally {
       setApplyingAi(false);
     }
@@ -934,17 +937,17 @@ export default function ManuscriptWorkspace() {
 
     try {
       await navigator.clipboard.writeText(aiResponse);
-      toast.success("AI response copied");
+      toast.success("Copied.");
     } catch (error) {
       console.error("Failed to copy AI response:", error);
-      toast.error("Could not copy response");
+      toast.error("Couldn't copy that.");
     }
   };
 
   // Deny/dismiss the rewrite suggestion
   const handleDenyRewrite = () => {
     clearAiResponse();
-    toast.info("Rewrite was dismissed");
+    toast.info("Set aside.");
   };
 
   // ── Upload Functions ─────────────────────────────────────────────────────
@@ -980,7 +983,9 @@ export default function ManuscriptWorkspace() {
     const ext = "." + file.name.split(".").pop().toLowerCase();
 
     if (!allowedTypes.includes(ext)) {
-      toast.error(`Unsupported file type. Allowed: ${allowedTypes.join(", ")}`);
+      toast.error(
+        "That file type doesn't work here. Try .txt, .docx, .pdf, or .md.",
+      );
       return;
     }
 
@@ -994,7 +999,7 @@ export default function ManuscriptWorkspace() {
       setUploadDialogOpen(true);
     } catch (error) {
       toast.error(
-        "Failed to preview file: " +
+        "Couldn't read that file: " +
           (error.response?.data?.detail || error.message),
       );
       setUploadedFile(null);
@@ -1033,7 +1038,7 @@ export default function ManuscriptWorkspace() {
       }
     } catch (error) {
       toast.error(
-        "Failed to import manuscript: " +
+        "Couldn't bring that in: " +
           (error.response?.data?.detail || error.message),
       );
     } finally {
@@ -1042,11 +1047,7 @@ export default function ManuscriptWorkspace() {
   };
 
   const handleImportActionComplete = (actionId, result) => {
-    // Handle specific actions if needed
-    if (actionId === "autoformat" && selectedChapter && editor) {
-      // Could apply the formatted content back to the editor
-      toast.success("You can review the formatted content in the results");
-    }
+    // Hook for post-action behavior. Stays silent — the dialog itself speaks.
   };
 
   const handleUploadClose = () => {
@@ -1110,7 +1111,7 @@ export default function ManuscriptWorkspace() {
       setAiResponseType("rewrite");
     } catch (err) {
       console.error("Failed to rewrite selected text:", err);
-      setAiResponse("THAD couldn't rewrite that selection right now.");
+      setAiResponse("Couldn't rewrite that selection right now. Try again?");
       setAiResponseType("rewrite");
     } finally {
       setAiLoading(false);
@@ -1202,7 +1203,7 @@ export default function ManuscriptWorkspace() {
                     data-testid="versions-tab"
                   >
                     <History className="h-3.5 w-3.5 mr-1" />
-                    Versions
+                    History
                   </TabsTrigger>
                   <TabsTrigger
                     value="notes"
@@ -1218,7 +1219,7 @@ export default function ManuscriptWorkspace() {
                     data-testid="analyzer-tab"
                   >
                     <Zap className="h-3.5 w-3.5 mr-1" />
-                    Insight
+                    Read
                   </TabsTrigger>
                   <TabsTrigger
                     value="thad"
@@ -1226,7 +1227,7 @@ export default function ManuscriptWorkspace() {
                     data-testid="thad-tab"
                   >
                     <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                    THAD
+                    Thad
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -1245,7 +1246,7 @@ export default function ManuscriptWorkspace() {
                         title="No chapters yet"
                         body="Add your first chapter to start writing."
                         primaryAction={{
-                          label: "New chapter",
+                          label: "Start a chapter",
                           icon: Plus,
                           onClick: () => setNewChapterOpen(true),
                           testId: "empty-chapters-new-btn",
@@ -1285,7 +1286,7 @@ export default function ManuscriptWorkspace() {
                     data-testid="add-chapter-btn"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add A New Chapter
+                    Add a chapter
                   </Button>
 
                   {/* Upload/Import Button */}
@@ -1302,7 +1303,7 @@ export default function ManuscriptWorkspace() {
                     ) : (
                       <Upload className="h-4 w-4 mr-2" />
                     )}
-                    Import Your Manuscript
+                    Import a manuscript
                   </Button>
                   <input
                     ref={fileInputRef}
@@ -1322,7 +1323,7 @@ export default function ManuscriptWorkspace() {
                     data-testid="duplicate-chapter-btn"
                   >
                     <Copy className="h-4 w-4 mr-2" />
-                    Duplicate Your Chapter
+                    Duplicate this chapter
                   </Button>
 
                   <Button
@@ -1334,7 +1335,7 @@ export default function ManuscriptWorkspace() {
                     data-testid="rename-chapter-btn"
                   >
                     <Pencil className="h-4 w-4 mr-2" />
-                    Rename Your Chapter
+                    Rename this chapter
                   </Button>
 
                   <Button
@@ -1346,7 +1347,7 @@ export default function ManuscriptWorkspace() {
                     data-testid="delete-chapter-btn"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Your Chapter
+                    Delete this chapter
                   </Button>
 
                   {/* Export Section */}
@@ -1360,7 +1361,7 @@ export default function ManuscriptWorkspace() {
                       data-testid="export-manuscript-btn"
                     >
                       <FileDown className="h-4 w-4 mr-2" />
-                      Export Your Manuscript
+                      Export the manuscript
                     </Button>
                   </div>
 
@@ -1375,7 +1376,7 @@ export default function ManuscriptWorkspace() {
                       data-testid="delete-manuscript-btn"
                     >
                       <BookX className="h-4 w-4 mr-2" />
-                      Delete Your Manuscript
+                      Delete this manuscript
                     </Button>
                   </div>
                 </div>
@@ -1414,7 +1415,7 @@ export default function ManuscriptWorkspace() {
                     onRestoreVersion={(content) => {
                       if (editor) {
                         editor.commands.setContent(content);
-                        toast.success("Version restored");
+                        toast.success("Restored.");
                       }
                     }}
                   />
@@ -1453,7 +1454,7 @@ export default function ManuscriptWorkspace() {
                       onApplyChange={(newContent) => {
                         if (editor) {
                           editor.commands.setContent(newContent);
-                          toast.success("Change applied to editor");
+                          toast.success("Applied.");
                         }
                       }}
                       onCreateVersion={async (label) => {
@@ -1464,7 +1465,7 @@ export default function ManuscriptWorkspace() {
                               parent_id: selectedChapter.id,
                               content_snapshot: editor.getHTML(),
                               label: label,
-                              created_by: "thaddaeus",
+                              created_by: "thad",
                             });
                           } catch (e) {
                             console.error("Failed to create version:", e);
@@ -1587,7 +1588,7 @@ export default function ManuscriptWorkspace() {
                   });
                 }}
               >
-                {focusMode ? "Exit Focus Mode" : "Focus Mode"}
+                {focusMode ? "Exit focus mode" : "Focus mode"}
               </Button>
             </div>
             <div className="flex items-center gap-2">
@@ -1611,8 +1612,8 @@ export default function ManuscriptWorkspace() {
                   )}
                   <span className="text-xs text-muted-foreground">
                     {autosave.autoVersionSaving
-                      ? "Saving version..."
-                      : "Auto-version"}
+                      ? "Saving snapshot."
+                      : "Auto-snapshot"}
                   </span>
                 </div>
                 <Switch
@@ -1676,7 +1677,7 @@ export default function ManuscriptWorkspace() {
                     });
                   }}
                   className="text-4xl font-serif font-medium border-none p-0 h-auto mb-8 focus-visible:ring-0 bg-transparent"
-                  placeholder="New Chapter Title"
+                  placeholder="Untitled chapter"
                   data-testid="chapter-title-input"
                 />
                 <EditorContent
@@ -1736,7 +1737,7 @@ export default function ManuscriptWorkspace() {
                     primaryAction={
                       chapters.length === 0
                         ? {
-                            label: "New chapter",
+                            label: "Start a chapter",
                             icon: Plus,
                             onClick: () => setNewChapterOpen(true),
                             testId: "empty-editor-new-chapter-btn",
@@ -1744,7 +1745,7 @@ export default function ManuscriptWorkspace() {
                         : undefined
                     }
                     secondaryAction={{
-                      label: "Browse files to import",
+                      label: "Bring in a file",
                       icon: Upload,
                       onClick: () => fileInputRef.current?.click(),
                       testId: "empty-editor-browse-btn",
@@ -1789,7 +1790,7 @@ export default function ManuscriptWorkspace() {
                         data-testid="ai-tab"
                       >
                         <Wand2 className="h-3 w-3 mr-1" />
-                        THAD
+                        Thad
                       </TabsTrigger>
                       <TabsTrigger
                         value="stats"
@@ -1819,11 +1820,11 @@ export default function ManuscriptWorkspace() {
                       <div className="mb-3">
                         {selectedText?.trim() ? (
                           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                            THAD is working on selected text.
+                            Reading your selection.
                           </div>
                         ) : (
                           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                            THAD will use the full chapter.
+                            Reading the whole chapter.
                           </div>
                         )}
                       </div>
@@ -1831,7 +1832,7 @@ export default function ManuscriptWorkspace() {
                       {/* Writing Help */}
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                          Writing Help
+                          On the writing
                         </p>
                         <Button
                           variant="outline"
@@ -1846,7 +1847,7 @@ export default function ManuscriptWorkspace() {
                           data-testid="rewrite-tone-btn"
                         >
                           <Wand2 className="h-4 w-4 mr-2" />
-                          Improve Writing
+                          {selectedText ? "Improve this passage" : "Improve the chapter"}
                         </Button>
                         <Button
                           variant="outline"
@@ -1857,14 +1858,14 @@ export default function ManuscriptWorkspace() {
                           data-testid="summarize-btn"
                         >
                           <FileText className="h-4 w-4 mr-2" />
-                          Chapter Summary
+                          Summarize the chapter
                         </Button>
                       </div>
 
                       {/* Structure */}
                       <div className="space-y-2 border-t border-border pt-3">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                          Structure
+                          On the shape
                         </p>
 
                         <Button
@@ -1876,7 +1877,7 @@ export default function ManuscriptWorkspace() {
                           data-testid="generate-outline-btn"
                         >
                           <ListOrdered className="h-4 w-4 mr-2" />
-                          Create Outline
+                          Outline the book
                         </Button>
                         <Button
                           variant="outline"
@@ -1893,7 +1894,7 @@ export default function ManuscriptWorkspace() {
                           data-testid="analyze-chapter-btn"
                         >
                           <Sparkles className="h-4 w-4 mr-2" />
-                          Analyze Structure
+                          Read for structure
                         </Button>
                       </div>
                     </div>
@@ -1910,7 +1911,7 @@ export default function ManuscriptWorkspace() {
                             {aiResponseType === "rewrite" && (
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Wand2 className="h-3 w-3" />
-                                <span>Preview The Suggested Rewrite</span>
+                                <span>The rewrite</span>
                               </div>
                             )}
 
@@ -1919,7 +1920,7 @@ export default function ManuscriptWorkspace() {
                               <div className="grid gap-3 md:grid-cols-2">
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    <span>Original Text</span>
+                                    <span>Original</span>
                                   </div>
                                   <div
                                     className="text-sm whitespace-pre-wrap p-3 bg-background rounded-sm border max-h-[260px] overflow-y-auto"
@@ -1930,7 +1931,7 @@ export default function ManuscriptWorkspace() {
                                 </div>
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    <span>Rewritten Text</span>
+                                    <span>Rewrite</span>
                                   </div>
                                   <div
                                     className="ai-response text-sm whitespace-pre-wrap p-3 bg-muted/30 rounded-sm border max-h-[260px] overflow-y-auto"
@@ -1962,8 +1963,8 @@ export default function ManuscriptWorkspace() {
                                 >
                                   <Check className="h-4 w-4 mr-2" />
                                   {applyingAi
-                                    ? "Applying..."
-                                    : "Insert into Editor"}
+                                    ? "Applying."
+                                    : "Insert into the chapter"}
                                 </Button>
 
                                 <Button
@@ -1976,8 +1977,8 @@ export default function ManuscriptWorkspace() {
                                 >
                                   <Pencil className="h-4 w-4 mr-2" />
                                   {applyingAi
-                                    ? "Applying..."
-                                    : "Replace Selection"}
+                                    ? "Applying."
+                                    : "Replace what's selected"}
                                 </Button>
                               </div>
                               {/* Secondary Actions */}
@@ -1989,7 +1990,7 @@ export default function ManuscriptWorkspace() {
                                 data-testid="copy-ai-response-btn"
                               >
                                 <Copy className="h-4 w-4 mr-2" />
-                                Copy The Response
+                                Copy
                               </Button>
 
                               {/* Deny / Clear Action */}
@@ -2002,7 +2003,7 @@ export default function ManuscriptWorkspace() {
                                   data-testid="deny-rewrite-btn"
                                 >
                                   <X className="h-4 w-4 mr-2" />
-                                  Clear The Response
+                                  Dismiss
                                 </Button>
                               ) : (
                                 <Button
@@ -2013,19 +2014,17 @@ export default function ManuscriptWorkspace() {
                                   data-testid="dismiss-ai-btn"
                                 >
                                   <X className="h-4 w-4 mr-2" />
-                                  Clear The Response
+                                  Dismiss
                                 </Button>
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              Insert is non-destructive. Replace uses your
-                              selected text.
+                              Insert leaves what's there. Replace swaps your selection.
                             </p>
                           </div>
                         ) : (
                           <p className="text-sm text-muted-foreground text-center py-8">
-                            THAD is ready to help! Select a section of text OR
-                            choose an action to get started.
+                            Pick something to do, or highlight a passage and choose an action.
                           </p>
                         )}
                       </div>
@@ -2057,18 +2056,15 @@ export default function ManuscriptWorkspace() {
       <Dialog open={newChapterOpen} onOpenChange={setNewChapterOpen}>
         <DialogContent data-testid="new-chapter-dialog">
           <DialogHeader>
-            <DialogTitle className="font-serif">Add New Chapter</DialogTitle>
-            <DialogDescription>
-              Create a new chapter for your manuscript.
-            </DialogDescription>
+            <DialogTitle className="font-serif">New chapter</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <Label htmlFor="chapterTitle">A New Chapter Title</Label>
+            <Label htmlFor="chapterTitle">Title</Label>
             <Input
               id="chapterTitle"
               value={newChapterTitle}
               onChange={(e) => setNewChapterTitle(e.target.value)}
-              placeholder="Enter new chapter title"
+              placeholder="Untitled chapter"
               className="mt-2 rounded-sm"
               data-testid="new-chapter-title-input"
             />
@@ -2086,7 +2082,7 @@ export default function ManuscriptWorkspace() {
               className="rounded-sm"
               data-testid="create-chapter-submit"
             >
-              Add A New Chapter
+              Add chapter
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2096,20 +2092,15 @@ export default function ManuscriptWorkspace() {
       <Dialog open={renameChapterOpen} onOpenChange={setRenameChapterOpen}>
         <DialogContent data-testid="rename-chapter-dialog">
           <DialogHeader>
-            <DialogTitle className="font-serif">
-              Rename Your Chapter
-            </DialogTitle>
-            <DialogDescription>
-              Enter A New Name For This Chapter.
-            </DialogDescription>
+            <DialogTitle className="font-serif">Rename chapter</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <Label htmlFor="renameChapterTitle">A New Chapter Title</Label>
+            <Label htmlFor="renameChapterTitle">Title</Label>
             <Input
               id="renameChapterTitle"
               value={renameChapterTitle}
               onChange={(e) => setRenameChapterTitle(e.target.value)}
-              placeholder="Enter new chapter title"
+              placeholder="Untitled chapter"
               className="mt-2 rounded-sm"
               data-testid="rename-chapter-title-input"
             />
@@ -2137,16 +2128,13 @@ export default function ManuscriptWorkspace() {
       <Dialog open={outlineOpen} onOpenChange={setOutlineOpen}>
         <DialogContent data-testid="outline-dialog">
           <DialogHeader>
-            <DialogTitle className="font-serif">
-              Generate A Book Outline
-            </DialogTitle>
+            <DialogTitle className="font-serif">Outline the book</DialogTitle>
             <DialogDescription>
-              THAD will generate a chapter-by-chapter outline based on your
-              project summary.
+              I'll work from the book's summary. Tell me how many chapters.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Label htmlFor="chapterCount">Number of Chapters</Label>
+            <Label htmlFor="chapterCount">How many chapters</Label>
             <Input
               id="chapterCount"
               type="number"
@@ -2171,7 +2159,7 @@ export default function ManuscriptWorkspace() {
               className="rounded-sm"
               data-testid="generate-outline-submit"
             >
-              Generate Outline
+              Outline it
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2181,12 +2169,9 @@ export default function ManuscriptWorkspace() {
       <AlertDialog open={deleteChapterOpen} onOpenChange={setDeleteChapterOpen}>
         <AlertDialogContent data-testid="delete-chapter-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Are you sure you want to delete this chapter?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Delete this chapter?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The chapter &ldquo;
-              {selectedChapter?.title}&rdquo; will be permanently deleted.
+              &ldquo;{selectedChapter?.title}&rdquo; — gone for good. Sure?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2196,7 +2181,7 @@ export default function ManuscriptWorkspace() {
               className="rounded-sm bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="confirm-delete-chapter-btn"
             >
-              Delete This Chapter
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -2209,13 +2194,10 @@ export default function ManuscriptWorkspace() {
       >
         <AlertDialogContent data-testid="delete-manuscript-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Are you sure you want to delete this manuscript?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Delete this manuscript?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The manuscript &ldquo;
-              {selectedProject?.title}&rdquo; and all its chapters will be
-              permanently deleted.
+              &ldquo;{selectedProject?.title}&rdquo; and every chapter inside —
+              gone for good. Sure?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2225,7 +2207,7 @@ export default function ManuscriptWorkspace() {
               className="rounded-sm bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="confirm-delete-manuscript-btn"
             >
-              Delete This Manuscript
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -2240,17 +2222,17 @@ export default function ManuscriptWorkspace() {
           <DialogHeader>
             <DialogTitle className="font-serif flex items-center gap-2">
               <FileDown className="h-5 w-5" />
-              Export Your Manuscript
+              Export
             </DialogTitle>
             <DialogDescription>
-              Export &ldquo;{selectedProject?.title}&rdquo; as a document file.
+              &ldquo;{selectedProject?.title}&rdquo; — pick a format.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {/* Format Selection */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Export Format</Label>
+              <Label className="text-sm font-medium">Format</Label>
               <Select value={exportFormat} onValueChange={setExportFormat}>
                 <SelectTrigger
                   className="rounded-sm"
@@ -2269,7 +2251,7 @@ export default function ManuscriptWorkspace() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="include-title" className="text-sm">
-                  Include A Title Page
+                  Include a title page
                 </Label>
                 <Switch
                   id="include-title"
@@ -2280,7 +2262,7 @@ export default function ManuscriptWorkspace() {
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="include-numbers" className="text-sm">
-                  Include Chapter Numbers
+                  Include chapter numbers
                 </Label>
                 <Switch
                   id="include-numbers"
@@ -2294,14 +2276,14 @@ export default function ManuscriptWorkspace() {
             {/* Info */}
             <div className="text-xs text-muted-foreground bg-muted p-3 rounded-sm">
               <p>
-                <strong>{chapters.length}</strong> Chapter
-                {chapters.length !== 1 ? "s" : ""} Will Be Exported
+                <strong>{chapters.length}</strong>{" "}
+                {chapters.length === 1 ? "chapter" : "chapters"}
               </p>
               <p className="mt-1">
-                Total Words:{" "}
                 <strong>
                   {selectedProject?.word_count?.toLocaleString() || 0}
-                </strong>
+                </strong>{" "}
+                words
               </p>
             </div>
           </div>
@@ -2323,12 +2305,12 @@ export default function ManuscriptWorkspace() {
               {exporting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Exporting...
+                  Exporting.
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4 mr-2" />
-                  Export {exportFormat.toUpperCase()}
+                  Export
                 </>
               )}
             </Button>
@@ -2345,10 +2327,10 @@ export default function ManuscriptWorkspace() {
           <DialogHeader>
             <DialogTitle className="font-serif flex items-center gap-2">
               <FileUp className="h-5 w-5" />
-              Import Your Manuscript
+              Bring in a manuscript
             </DialogTitle>
             <DialogDescription>
-              Preview And Import Your External Manuscript As A New Chapter.
+              Take a look. Bring it in as a new chapter.
             </DialogDescription>
           </DialogHeader>
 
@@ -2363,8 +2345,8 @@ export default function ManuscriptWorkspace() {
                       {uploadPreview.filename}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {uploadPreview.file_type.toUpperCase()} •{" "}
-                      {uploadPreview.word_count.toLocaleString()} Words
+                      {uploadPreview.file_type.toUpperCase()} ·{" "}
+                      {uploadPreview.word_count.toLocaleString()} words
                     </p>
                   </div>
                 </div>
@@ -2380,12 +2362,12 @@ export default function ManuscriptWorkspace() {
 
               {/* Chapter Title Input */}
               <div className="space-y-2">
-                <Label htmlFor="uploadChapterTitle">Chapter Title</Label>
+                <Label htmlFor="uploadChapterTitle">Title</Label>
                 <Input
                   id="uploadChapterTitle"
                   value={uploadChapterTitle}
                   onChange={(e) => setUploadChapterTitle(e.target.value)}
-                  placeholder="Enter chapter title"
+                  placeholder="Untitled chapter"
                   className="rounded-sm"
                   data-testid="upload-chapter-title-input"
                 />
@@ -2393,7 +2375,7 @@ export default function ManuscriptWorkspace() {
 
               {/* Preview */}
               <div className="space-y-2">
-                <Label>Content Preview</Label>
+                <Label>Preview</Label>
                 <ScrollArea className="h-[200px] border border-border rounded-sm p-3">
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {uploadPreview.preview}
@@ -2420,12 +2402,12 @@ export default function ManuscriptWorkspace() {
               {uploading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Importing...
+                  Bringing it in.
                 </>
               ) : (
                 <>
                   <Upload className="h-4 w-4 mr-2" />
-                  Import As A Chapter
+                  Bring it in
                 </>
               )}
             </Button>
