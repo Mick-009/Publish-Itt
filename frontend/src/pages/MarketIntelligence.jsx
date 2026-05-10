@@ -56,7 +56,7 @@ export default function MarketIntelligence() {
   const handleCopy = async () => {
     await navigator.clipboard.writeText(response);
     setCopied(true);
-    toast.success("Copied to clipboard");
+    toast.success("Copied.");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -67,7 +67,7 @@ export default function MarketIntelligence() {
       const res = await marketApi.generateBookIdeas(universe, ideaCount);
       setResponse(res.data.response);
     } catch (error) {
-      toast.error("Failed to generate ideas");
+      toast.error("Couldn't put that together. Try again?");
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export default function MarketIntelligence() {
       const res = await marketApi.analyzeMarket(genre, ageGroup || null);
       setResponse(res.data.response);
     } catch (error) {
-      toast.error("Failed to analyze market");
+      toast.error("Couldn't read the market. Try again?");
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function MarketIntelligence() {
 
   const handleCustomerResearch = async () => {
     if (!bookIdea.trim()) {
-      toast.error("Please enter a book idea");
+      toast.error("Tell me about the book first.");
       return;
     }
     setLoading(true);
@@ -95,7 +95,7 @@ export default function MarketIntelligence() {
       const res = await marketApi.customerResearch(bookIdea);
       setResponse(res.data.response);
     } catch (error) {
-      toast.error("Failed to generate research");
+      toast.error("Couldn't put that together. Try again?");
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export default function MarketIntelligence() {
 
   const handleMarketOutline = async () => {
     if (!bookIdea.trim()) {
-      toast.error("Please enter a book idea");
+      toast.error("Tell me about the book first.");
       return;
     }
     setLoading(true);
@@ -111,7 +111,7 @@ export default function MarketIntelligence() {
       const res = await marketApi.generateMarketOutline(bookIdea, chapterCount);
       setResponse(res.data.response);
     } catch (error) {
-      toast.error("Failed to generate outline");
+      toast.error("Couldn't outline that. Try again?");
     } finally {
       setLoading(false);
     }
@@ -119,7 +119,7 @@ export default function MarketIntelligence() {
 
   const handleManuscriptDraft = async () => {
     if (!bookIdea.trim()) {
-      toast.error("Please enter a book idea");
+      toast.error("Tell me about the book first.");
       return;
     }
     setLoading(true);
@@ -127,7 +127,7 @@ export default function MarketIntelligence() {
       const res = await marketApi.generateManuscriptDraft(bookIdea, wordCount);
       setResponse(res.data.response);
     } catch (error) {
-      toast.error("Failed to generate manuscript draft");
+      toast.error("Couldn't draft that. Try again?");
     } finally {
       setLoading(false);
     }
@@ -135,7 +135,7 @@ export default function MarketIntelligence() {
 
   const handleBookDescription = async () => {
     if (!bookTitle.trim() || !bookSummary.trim()) {
-      toast.error("Please enter both title and summary");
+      toast.error("I need a title and a summary.");
       return;
     }
     setLoading(true);
@@ -146,7 +146,7 @@ export default function MarketIntelligence() {
       );
       setResponse(res.data.response);
     } catch (error) {
-      toast.error("Failed to generate description");
+      toast.error("Couldn't write that. Try again?");
     } finally {
       setLoading(false);
     }
@@ -154,7 +154,7 @@ export default function MarketIntelligence() {
 
   const handleSalesAnalysis = async () => {
     if (!salesData.trim()) {
-      toast.error("Please enter sales data");
+      toast.error("Paste your numbers in first.");
       return;
     }
     setLoading(true);
@@ -162,7 +162,7 @@ export default function MarketIntelligence() {
       const res = await marketApi.analyzeSales(salesData);
       setResponse(res.data.response);
     } catch (error) {
-      toast.error("Failed to analyze sales");
+      toast.error("Couldn't read those numbers. Try again?");
     } finally {
       setLoading(false);
     }
@@ -176,10 +176,10 @@ export default function MarketIntelligence() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">
-          Publishing Insights
+          Out in the world
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Discover book ideas with strong market potential
+          What's selling, where the gaps are, where your book might land.
         </p>
       </div>
 
@@ -189,10 +189,10 @@ export default function MarketIntelligence() {
           <CardHeader>
             <CardTitle className="font-serif flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-accent" />
-              Insight Tools
+              The tools
             </CardTitle>
             <CardDescription>
-              Select a tool and configure your research parameters
+              Pick one. Tell me what you're chasing.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -212,7 +212,7 @@ export default function MarketIntelligence() {
                 </TabsTrigger>
                 <TabsTrigger value="research" className="text-xs px-2 py-1.5">
                   <Users className="h-3 w-3 mr-1" />
-                  Research
+                  Readers
                 </TabsTrigger>
                 <TabsTrigger value="outline" className="text-xs px-2 py-1.5">
                   <FileText className="h-3 w-3 mr-1" />
@@ -227,7 +227,7 @@ export default function MarketIntelligence() {
                   className="text-xs px-2 py-1.5"
                 >
                   <Sparkles className="h-3 w-3 mr-1" />
-                  Description
+                  Blurb
                 </TabsTrigger>
                 <TabsTrigger value="sales" className="text-xs px-2 py-1.5">
                   <BarChart3 className="h-3 w-3 mr-1" />
@@ -238,7 +238,7 @@ export default function MarketIntelligence() {
               {/* Book Ideas Tab */}
               <TabsContent value="ideas" className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label>Story World</Label>
+                  <Label>The world it lives in</Label>
                   <Input
                     value={universe}
                     onChange={(e) => setUniverse(e.target.value)}
@@ -248,7 +248,7 @@ export default function MarketIntelligence() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Number of Ideas</Label>
+                  <Label>How many ideas</Label>
                   <Select
                     value={ideaCount.toString()}
                     onValueChange={(v) => setIdeaCount(parseInt(v))}
@@ -278,14 +278,14 @@ export default function MarketIntelligence() {
                   ) : (
                     <Lightbulb className="h-4 w-4 mr-2" />
                   )}
-                  Generate Book Ideas
+                  Pitch me some ideas
                 </Button>
               </TabsContent>
 
               {/* Market Analysis Tab */}
               <TabsContent value="market" className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label>Genre/Category</Label>
+                  <Label>Genre or category</Label>
                   <Input
                     value={genre}
                     onChange={(e) => setGenre(e.target.value)}
@@ -295,7 +295,7 @@ export default function MarketIntelligence() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Target Age Group (optional)</Label>
+                  <Label>Age group (optional)</Label>
                   <Select
                     value={ageGroup || "all"}
                     onValueChange={(v) => setAgeGroup(v === "all" ? "" : v)}
@@ -309,16 +309,16 @@ export default function MarketIntelligence() {
                     <SelectContent>
                       <SelectItem value="all">All ages</SelectItem>
                       <SelectItem value="3-5 years">
-                        3-5 years (Early Readers)
+                        3–5 (early readers)
                       </SelectItem>
                       <SelectItem value="6-8 years">
-                        6-8 years (Beginning Readers)
+                        6–8 (beginning readers)
                       </SelectItem>
                       <SelectItem value="8-12 years">
-                        8-12 years (Middle Grade)
+                        8–12 (middle grade)
                       </SelectItem>
                       <SelectItem value="12-18 years">
-                        12-18 years (Young Adult)
+                        12–18 (young adult)
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -334,18 +334,18 @@ export default function MarketIntelligence() {
                   ) : (
                     <TrendingUp className="h-4 w-4 mr-2" />
                   )}
-                  Analyze Market
+                  Read the market
                 </Button>
               </TabsContent>
 
               {/* Customer Research Tab */}
               <TabsContent value="research" className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label>Book Idea</Label>
+                  <Label>The book</Label>
                   <Textarea
                     value={bookIdea}
                     onChange={(e) => setBookIdea(e.target.value)}
-                    placeholder="Describe your book idea in detail..."
+                    placeholder="What it's about, who it's for, what makes it different."
                     className="rounded-sm resize-none min-h-[120px]"
                     data-testid="book-idea-input"
                   />
@@ -361,24 +361,24 @@ export default function MarketIntelligence() {
                   ) : (
                     <Users className="h-4 w-4 mr-2" />
                   )}
-                  Generate Customer Research
+                  Sketch the reader
                 </Button>
               </TabsContent>
 
               {/* Market Outline Tab */}
               <TabsContent value="outline" className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label>Book Idea</Label>
+                  <Label>The book</Label>
                   <Textarea
                     value={bookIdea}
                     onChange={(e) => setBookIdea(e.target.value)}
-                    placeholder="Describe your book idea..."
+                    placeholder="What it's about."
                     className="rounded-sm resize-none min-h-[100px]"
                     data-testid="outline-idea-input"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Number of Chapters</Label>
+                  <Label>How many chapters</Label>
                   <Input
                     type="number"
                     min={5}
@@ -402,24 +402,24 @@ export default function MarketIntelligence() {
                   ) : (
                     <FileText className="h-4 w-4 mr-2" />
                   )}
-                  Generate Market-Aligned Outline
+                  Outline it
                 </Button>
               </TabsContent>
 
               {/* Manuscript Draft Tab */}
               <TabsContent value="draft" className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label>Book Idea</Label>
+                  <Label>The book</Label>
                   <Textarea
                     value={bookIdea}
                     onChange={(e) => setBookIdea(e.target.value)}
-                    placeholder="Describe your book idea..."
+                    placeholder="What it's about."
                     className="rounded-sm resize-none min-h-[100px]"
                     data-testid="draft-idea-input"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Target Word Count</Label>
+                  <Label>Target length</Label>
                   <Select
                     value={wordCount.toString()}
                     onValueChange={(v) => setWordCount(parseInt(v))}
@@ -432,16 +432,16 @@ export default function MarketIntelligence() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="10000">
-                        10,000 words (Picture Book)
+                        10,000 words (picture book)
                       </SelectItem>
                       <SelectItem value="20000">
-                        20,000 words (Chapter Book)
+                        20,000 words (chapter book)
                       </SelectItem>
                       <SelectItem value="30000">
-                        30,000 words (Middle Grade)
+                        30,000 words (middle grade)
                       </SelectItem>
                       <SelectItem value="50000">
-                        50,000 words (Young Adult)
+                        50,000 words (young adult)
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -457,28 +457,28 @@ export default function MarketIntelligence() {
                   ) : (
                     <BookOpen className="h-4 w-4 mr-2" />
                   )}
-                  Generate Manuscript Outline
+                  Sketch a draft
                 </Button>
               </TabsContent>
 
               {/* Book Description Tab */}
               <TabsContent value="description" className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label>Book Title</Label>
+                  <Label>Title</Label>
                   <Input
                     value={bookTitle}
                     onChange={(e) => setBookTitle(e.target.value)}
-                    placeholder="Enter book title"
+                    placeholder="What it's called."
                     className="rounded-sm"
                     data-testid="book-title-input"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Book Summary</Label>
+                  <Label>Summary</Label>
                   <Textarea
                     value={bookSummary}
                     onChange={(e) => setBookSummary(e.target.value)}
-                    placeholder="Brief summary of the book..."
+                    placeholder="A few sentences on what it's about."
                     className="rounded-sm resize-none min-h-[100px]"
                     data-testid="book-summary-input"
                   />
@@ -494,18 +494,18 @@ export default function MarketIntelligence() {
                   ) : (
                     <Sparkles className="h-4 w-4 mr-2" />
                   )}
-                  Generate Sales Description
+                  Write the back-cover blurb
                 </Button>
               </TabsContent>
 
               {/* Sales Analysis Tab */}
               <TabsContent value="sales" className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label>Sales Data</Label>
+                  <Label>The numbers</Label>
                   <Textarea
                     value={salesData}
                     onChange={(e) => setSalesData(e.target.value)}
-                    placeholder="Paste your sales data here (e.g., monthly sales figures, revenue by title, channel performance)..."
+                    placeholder="Paste sales — month by month, by title, by channel, however you've got it."
                     className="rounded-sm resize-none min-h-[150px]"
                     data-testid="sales-data-input"
                   />
@@ -521,7 +521,7 @@ export default function MarketIntelligence() {
                   ) : (
                     <BarChart3 className="h-4 w-4 mr-2" />
                   )}
-                  Analyze Sales Data
+                  Read the numbers
                 </Button>
               </TabsContent>
             </Tabs>
@@ -534,9 +534,9 @@ export default function MarketIntelligence() {
             <div>
               <CardTitle className="font-serif flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-accent" />
-                Results
+                What I found
               </CardTitle>
-              <CardDescription>AI-generated market insights</CardDescription>
+              <CardDescription>The market, in plain sight.</CardDescription>
             </div>
             {response && (
               <Button
@@ -575,8 +575,7 @@ export default function MarketIntelligence() {
                 <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
                   <TrendingUp className="h-12 w-12 mb-4 opacity-50" />
                   <p className="text-sm text-center">
-                    Select a research tool and generate insights to discover
-                    market opportunities.
+                    Pick a tool. I'll go read.
                   </p>
                 </div>
               )}

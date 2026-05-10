@@ -212,7 +212,7 @@ export default function ArtStudio() {
         loadArtProfile(firstProject.id, firstProject);
       }
     } catch (error) {
-      toast.error("Failed to load data");
+      toast.error("Couldn't pull up the workshop. Try again?");
     } finally {
       setLoading(false);
     }
@@ -368,9 +368,9 @@ export default function ArtStudio() {
       };
       await artProfileApi.createOrUpdate(profileData);
       setHasUnsavedChanges(false);
-      toast.success("Art profile saved!");
+      toast.success("Saved.");
     } catch (error) {
-      toast.error("Failed to save art profile");
+      toast.error("Couldn't save the profile. Try again?");
     } finally {
       setProfileLoading(false);
     }
@@ -399,9 +399,9 @@ export default function ArtStudio() {
       }
 
       setHasUnsavedChanges(true);
-      toast.success("Visual identity summary generated!");
+      toast.success("Pulled it together.");
     } catch (error) {
-      toast.error("Failed to generate summary");
+      toast.error("Couldn't put that together. Try again?");
     } finally {
       setProfileSummaryLoading(false);
       setRefinementsLoading(false);
@@ -421,7 +421,7 @@ export default function ArtStudio() {
       // Update refinements
       if (res.data.refinements && res.data.refinements.length > 0) {
         setRefinementSuggestions(res.data.refinements);
-        toast.success("Refinement suggestions updated!");
+        toast.success("Fresh suggestions.");
       }
 
       // Also update summary if available
@@ -433,7 +433,7 @@ export default function ArtStudio() {
         setHasUnsavedChanges(true);
       }
     } catch (error) {
-      toast.error("Failed to regenerate suggestions");
+      toast.error("Couldn't refresh those. Try again?");
     } finally {
       setRefinementsLoading(false);
     }
@@ -441,11 +441,11 @@ export default function ArtStudio() {
 
   const handleGeneratePrompts = async () => {
     if (!selectedProject) {
-      toast.error("Please select a project");
+      toast.error("Pick a project first.");
       return;
     }
     if (!selectedPreset) {
-      toast.error("Please select a style preset");
+      toast.error("Pick a style preset first.");
       return;
     }
 
@@ -458,7 +458,7 @@ export default function ArtStudio() {
         useExtractedScene && extractedScene ? extractedScene : context;
 
       if (!sceneText && promptType !== "cover") {
-        toast.error("Please provide scene context or select a chapter");
+        toast.error("Tell me what scene, or pick a chapter.");
         setAiLoading(false);
         return;
       }
@@ -481,10 +481,10 @@ export default function ArtStudio() {
       // Clear any previous generated image
       setGeneratedImage(null);
 
-      toast.success("Art prompt generated!");
+      toast.success("Prompt ready.");
     } catch (error) {
       console.error("Generation failed:", error);
-      toast.error("Failed to generate art prompts");
+      toast.error("Couldn't shape that prompt. Try again?");
     } finally {
       setAiLoading(false);
     }
@@ -494,7 +494,7 @@ export default function ArtStudio() {
   const handleGenerateImage = async () => {
     const prompt = artPromptResult?.main_prompt || aiResponse;
     if (!prompt) {
-      toast.error("Please generate an art prompt first");
+      toast.error("Build a prompt first.");
       return;
     }
 
@@ -512,19 +512,19 @@ export default function ArtStudio() {
 
       if (res.data.success && res.data.image_base64) {
         setGeneratedImage(res.data.image_base64);
-        toast.success("Image generated successfully!");
+        toast.success("Painted.");
 
         // Reload assets if a new one was created
         if (res.data.asset_id && selectedProject) {
           loadArtAssets(selectedProject.id);
         }
       } else {
-        toast.error(res.data.message || "Failed to generate image");
+        toast.error(res.data.message || "Couldn't paint that. Try again?");
       }
     } catch (error) {
       console.error("Image generation failed:", error);
       toast.error(
-        "Failed to generate image: " +
+        "Couldn't paint that: " +
           (error.response?.data?.detail || error.message),
       );
     } finally {
@@ -546,9 +546,9 @@ export default function ArtStudio() {
         status: "generated",
       });
       loadArtAssets(selectedProject.id);
-      toast.success("Art asset saved!");
+      toast.success("Pinned to the corkboard.");
     } catch (error) {
-      toast.error("Failed to save art asset");
+      toast.error("Couldn't save that one. Try again?");
     }
   };
 
@@ -556,16 +556,16 @@ export default function ArtStudio() {
     try {
       await artAssetApi.delete(assetId);
       setArtAssets(artAssets.filter((a) => a.id !== assetId));
-      toast.success("Asset deleted");
+      toast.success("Deleted.");
     } catch (error) {
-      toast.error("Failed to delete asset");
+      toast.error("Couldn't delete that. Try again?");
     }
   };
 
   const promptTypeOptions = [
-    { value: "cover", label: "Cover Art", icon: Book },
-    { value: "chapter_header", label: "Chapter Header", icon: FileImage },
-    { value: "spot_illustration", label: "Spot Illustration", icon: Image },
+    { value: "cover", label: "Cover", icon: Book },
+    { value: "chapter_header", label: "Chapter header", icon: FileImage },
+    { value: "spot_illustration", label: "Spot illustration", icon: Image },
   ];
 
   if (loading) {
@@ -615,10 +615,10 @@ export default function ArtStudio() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">
-            Cover & Art
+            Cover & art
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Define your visual identity and generate art prompts
+            What the book looks like — and the prompts that get it there.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -656,7 +656,7 @@ export default function ArtStudio() {
             data-testid="art-profile-tab"
           >
             <Palette className="h-4 w-4 mr-2" />
-            Book Art Profile
+            The look
           </TabsTrigger>
           <TabsTrigger
             value="generate"
@@ -664,7 +664,7 @@ export default function ArtStudio() {
             data-testid="generate-tab"
           >
             <Wand2 className="h-4 w-4 mr-2" />
-            Generate Art
+            Make art
           </TabsTrigger>
         </TabsList>
 
@@ -678,10 +678,10 @@ export default function ArtStudio() {
                   <div>
                     <CardTitle className="font-serif flex items-center gap-2">
                       <Palette className="h-5 w-5 text-accent" />
-                      Visual Identity
+                      How it looks
                     </CardTitle>
                     <CardDescription>
-                      Define the artistic direction for your book
+                      The visual through-line for the whole book.
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
@@ -690,7 +690,7 @@ export default function ArtStudio() {
                         variant="outline"
                         className="text-orange-500 border-orange-500/50"
                       >
-                        Unsaved changes
+                        Unsaved
                       </Badge>
                     )}
                     <Button
@@ -705,7 +705,7 @@ export default function ArtStudio() {
                       ) : (
                         <>
                           <Save className="h-4 w-4 mr-1" />
-                          Save Profile
+                          Save
                         </>
                       )}
                     </Button>
@@ -725,7 +725,7 @@ export default function ArtStudio() {
                         className="rounded-sm"
                         data-testid="profile-genre"
                       >
-                        <SelectValue placeholder="Select genre" />
+                        <SelectValue placeholder="Pick one" />
                       </SelectTrigger>
                       <SelectContent>
                         {GENRE_OPTIONS.map((g) => (
@@ -739,7 +739,7 @@ export default function ArtStudio() {
 
                   {/* Age Group */}
                   <div className="space-y-2">
-                    <Label htmlFor="age_group">Age Group</Label>
+                    <Label htmlFor="age_group">Age group</Label>
                     <Select
                       value={artProfile.age_group}
                       onValueChange={(v) => handleProfileChange("age_group", v)}
@@ -748,7 +748,7 @@ export default function ArtStudio() {
                         className="rounded-sm"
                         data-testid="profile-age-group"
                       >
-                        <SelectValue placeholder="Select age group" />
+                        <SelectValue placeholder="Pick one" />
                       </SelectTrigger>
                       <SelectContent>
                         {AGE_GROUP_OPTIONS.map((a) => (
@@ -771,7 +771,7 @@ export default function ArtStudio() {
                         className="rounded-sm"
                         data-testid="profile-mood"
                       >
-                        <SelectValue placeholder="Select mood" />
+                        <SelectValue placeholder="Pick one" />
                       </SelectTrigger>
                       <SelectContent>
                         {MOOD_OPTIONS.map((m) => (
@@ -785,7 +785,7 @@ export default function ArtStudio() {
 
                   {/* Art Style */}
                   <div className="space-y-2">
-                    <Label htmlFor="art_style">Art Style Preferences</Label>
+                    <Label htmlFor="art_style">Art style</Label>
                     <Select
                       value={artProfile.art_style_preferences}
                       onValueChange={(v) =>
@@ -796,7 +796,7 @@ export default function ArtStudio() {
                         className="rounded-sm"
                         data-testid="profile-art-style"
                       >
-                        <SelectValue placeholder="Select art style" />
+                        <SelectValue placeholder="Pick one" />
                       </SelectTrigger>
                       <SelectContent>
                         {ART_STYLE_OPTIONS.map((s) => (
@@ -811,10 +811,10 @@ export default function ArtStudio() {
 
                 {/* Color Palette */}
                 <div className="space-y-2">
-                  <Label htmlFor="color_palette">Color Palette</Label>
+                  <Label htmlFor="color_palette">Colors</Label>
                   <Input
                     id="color_palette"
-                    placeholder="e.g., Earth tones with deep forest greens and golden highlights"
+                    placeholder="e.g., earth tones with deep forest greens and golden highlights"
                     value={artProfile.color_palette}
                     onChange={(e) =>
                       handleProfileChange("color_palette", e.target.value)
@@ -826,10 +826,10 @@ export default function ArtStudio() {
 
                 {/* Reference Notes */}
                 <div className="space-y-2">
-                  <Label htmlFor="reference_notes">Reference Notes</Label>
+                  <Label htmlFor="reference_notes">References</Label>
                   <Textarea
                     id="reference_notes"
-                    placeholder="Add any reference artists, existing book covers you like, or specific visual elements you want to include..."
+                    placeholder="Artists, covers you love, specific images you want to chase."
                     value={artProfile.reference_notes}
                     onChange={(e) =>
                       handleProfileChange("reference_notes", e.target.value)
@@ -851,12 +851,12 @@ export default function ArtStudio() {
                     {profileSummaryLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating...
+                        Pulling it together.
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4 mr-2" />
-                        Generate Visual Identity Summary
+                        Pull it together
                       </>
                     )}
                   </Button>
@@ -871,7 +871,7 @@ export default function ArtStudio() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-accent" />
-                    Visual Identity Summary
+                    The throughline
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -886,9 +886,7 @@ export default function ArtStudio() {
                     <div className="text-center py-4">
                       <Lightbulb className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
                       <p className="text-sm text-muted-foreground">
-                        Fill in your profile details and click &ldquo;Generate
-                        Visual Identity Summary&rdquo; to get an AI-crafted
-                        description of your book&apos;s visual style.
+                        Fill in the fields and hit Pull it together. I'll write up the visual signature.
                       </p>
                     </div>
                   )}
@@ -908,7 +906,7 @@ export default function ArtStudio() {
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-medium flex items-center gap-2">
                         <Lightbulb className="h-4 w-4 text-purple-500" />
-                        Refinement Suggestions
+                        A few suggestions
                       </CardTitle>
                       <div className="flex items-center gap-1">
                         <Button
@@ -940,8 +938,7 @@ export default function ArtStudio() {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Based on your current profile, consider these style
-                      refinements:
+                      Reading what you've put in, here's what I'd nudge:
                     </p>
                   </CardHeader>
                   <CardContent className="pt-0 pb-4">
@@ -964,8 +961,7 @@ export default function ArtStudio() {
 
                     <div className="mt-4 pt-3 border-t border-border/50">
                       <p className="text-xs text-muted-foreground text-center">
-                        💡 Update your profile fields above and click{" "}
-                        <strong>Refresh</strong> to get new suggestions
+                        Edit the fields above and hit <strong>Refresh</strong> for new suggestions.
                       </p>
                     </div>
                   </CardContent>
@@ -976,7 +972,7 @@ export default function ArtStudio() {
               <Card className="bg-muted/30">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">
-                    How It Works
+                    The flow
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs text-muted-foreground">
@@ -984,19 +980,19 @@ export default function ArtStudio() {
                     <div className="rounded-full bg-accent/20 text-accent w-5 h-5 flex items-center justify-center shrink-0 text-[10px] font-bold">
                       1
                     </div>
-                    <p>Define your genre, mood, and visual preferences</p>
+                    <p>Fill in genre, mood, the look you want.</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="rounded-full bg-accent/20 text-accent w-5 h-5 flex items-center justify-center shrink-0 text-[10px] font-bold">
                       2
                     </div>
-                    <p>Generate a visual identity summary with Thad</p>
+                    <p>I write up the visual throughline.</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <div className="rounded-full bg-accent/20 text-accent w-5 h-5 flex items-center justify-center shrink-0 text-[10px] font-bold">
                       3
                     </div>
-                    <p>Your profile automatically informs all art generation</p>
+                    <p>Every prompt over in Make art reads from it.</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1012,12 +1008,12 @@ export default function ArtStudio() {
               <CardHeader>
                 <CardTitle className="font-serif flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-accent" />
-                  Generate Art Prompts
+                  Build a prompt
                 </CardTitle>
                 {artProfile.ai_summary && (
                   <CardDescription className="flex items-center gap-2 text-green-600">
                     <Check className="h-3 w-3" />
-                    Using Book Art Profile
+                    Reading from the throughline
                   </CardDescription>
                 )}
               </CardHeader>
@@ -1025,7 +1021,7 @@ export default function ArtStudio() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Prompt Type */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Prompt Type</label>
+                    <label className="text-sm font-medium">What kind</label>
                     <Select value={promptType} onValueChange={setPromptType}>
                       <SelectTrigger
                         className="rounded-sm"
@@ -1048,7 +1044,7 @@ export default function ArtStudio() {
 
                   {/* Style Preset */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Style Preset</label>
+                    <label className="text-sm font-medium">Style preset</label>
                     <Select
                       value={selectedPreset}
                       onValueChange={setSelectedPreset}
@@ -1057,7 +1053,7 @@ export default function ArtStudio() {
                         className="rounded-sm"
                         data-testid="style-preset-select"
                       >
-                        <SelectValue placeholder="Select style" />
+                        <SelectValue placeholder="Pick a style" />
                       </SelectTrigger>
                       <SelectContent>
                         {stylePresets.length > 0 ? (
@@ -1068,7 +1064,7 @@ export default function ArtStudio() {
                           ))
                         ) : (
                           <SelectItem value="default" disabled>
-                            No saved presets — build one in Settings
+                            No presets yet — build one in Settings
                           </SelectItem>
                         )}
                         <SelectItem value="Epic Fantasy">
@@ -1101,13 +1097,13 @@ export default function ArtStudio() {
                         className="rounded-sm"
                         data-testid="art-chapter-select"
                       >
-                        <SelectValue placeholder="Select chapter" />
+                        <SelectValue placeholder="Pick a chapter" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">
                           {chapters.length === 0
-                            ? "No chapters yet — standalone art"
-                            : "Standalone — no chapter"}
+                            ? "No chapters — standalone"
+                            : "Standalone"}
                         </SelectItem>
                         {chapters.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
@@ -1127,7 +1123,7 @@ export default function ArtStudio() {
                         <div className="flex items-center gap-2">
                           <Eye className="h-4 w-4 text-accent" />
                           <span className="text-sm font-medium">
-                            Extracted Scene
+                            The scene I'd paint
                           </span>
                           {sceneExtracting && (
                             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -1146,12 +1142,12 @@ export default function ArtStudio() {
                             {useExtractedScene ? (
                               <>
                                 <Edit3 className="h-3 w-3 mr-1" />
-                                Edit manually
+                                Edit it
                               </>
                             ) : (
                               <>
                                 <RotateCcw className="h-3 w-3 mr-1" />
-                                Use extracted
+                                Use mine
                               </>
                             )}
                           </Button>
@@ -1171,7 +1167,7 @@ export default function ArtStudio() {
                       </div>
                       {sceneExtracting ? (
                         <p className="text-sm text-muted-foreground italic">
-                          Analyzing chapter for visually rich moments...
+                          Reading the chapter for a moment to paint.
                         </p>
                       ) : extractedScene ? (
                         <p
@@ -1182,8 +1178,7 @@ export default function ArtStudio() {
                         </p>
                       ) : (
                         <p className="text-sm text-muted-foreground italic">
-                          Nothing pulled from this chapter yet — hit refresh and
-                          I'll find a moment worth painting.
+                          Nothing pulled from this chapter yet — hit refresh and I'll find a moment worth painting.
                         </p>
                       )}
                     </CardContent>
@@ -1195,15 +1190,15 @@ export default function ArtStudio() {
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium">
                       {selectedChapter && useExtractedScene
-                        ? "Additional Context (optional)"
-                        : "Scene Context"}
+                        ? "Anything to add"
+                        : "What scene"}
                     </label>
                   </div>
                   <Textarea
                     placeholder={
                       selectedChapter && useExtractedScene
-                        ? "Add any additional details or override the extracted scene..."
-                        : "Describe the scene, mood, or specific elements you want in the artwork..."
+                        ? "Anything to add or change before I paint."
+                        : "Describe the scene, mood, what you want in the frame."
                     }
                     value={context}
                     onChange={(e) => setContext(e.target.value)}
@@ -1222,17 +1217,12 @@ export default function ArtStudio() {
                     {aiLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating...
+                        Building.
                       </>
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4 mr-2" />
-                        Generate{" "}
-                        {
-                          promptTypeOptions.find((o) => o.value === promptType)
-                            ?.label
-                        }{" "}
-                        Prompt
+                        Build the prompt
                       </>
                     )}
                   </Button>
@@ -1244,7 +1234,7 @@ export default function ArtStudio() {
                       data-testid="save-art-asset-btn"
                     >
                       <Save className="h-4 w-4 mr-2" />
-                      Save
+                      Pin it
                     </Button>
                   )}
                 </div>
@@ -1257,7 +1247,7 @@ export default function ArtStudio() {
                       <CardHeader className="pb-2 pt-3">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
                           <Sparkles className="h-4 w-4 text-accent" />
-                          Art Prompt
+                          The prompt
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -1277,7 +1267,7 @@ export default function ArtStudio() {
                       <Card>
                         <CardHeader className="pb-2 pt-3">
                           <CardTitle className="text-sm font-medium">
-                            Focus Elements
+                            What's in the frame
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
@@ -1287,7 +1277,7 @@ export default function ArtStudio() {
                               <Users className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground">
-                                  Characters
+                                  Who
                                 </p>
                                 <p
                                   className="text-sm"
@@ -1305,7 +1295,7 @@ export default function ArtStudio() {
                               <MapPin className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground">
-                                  Setting
+                                  Where
                                 </p>
                                 <p
                                   className="text-sm"
@@ -1321,7 +1311,7 @@ export default function ArtStudio() {
                               <Zap className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground">
-                                  Action
+                                  What's happening
                                 </p>
                                 <p
                                   className="text-sm"
@@ -1342,7 +1332,7 @@ export default function ArtStudio() {
                         <CardHeader className="pb-2 pt-3">
                           <CardTitle className="text-sm font-medium flex items-center gap-2">
                             <Lightbulb className="h-4 w-4 text-purple-500" />
-                            Refinement Suggestions
+                            A few nudges
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -1371,14 +1361,14 @@ export default function ArtStudio() {
                       <CardHeader className="pb-2 pt-3">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
                           <ImagePlus className="h-4 w-4 text-accent" />
-                          Generate Actual Image
+                          Paint it
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="flex items-center gap-3">
                           <div className="flex-1">
                             <label className="text-xs font-medium text-muted-foreground mb-1 block">
-                              Image Size
+                              Size
                             </label>
                             <Select
                               value={imageSize}
@@ -1414,12 +1404,12 @@ export default function ArtStudio() {
                             {imageGenerating ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Generating...
+                                Painting.
                               </>
                             ) : (
                               <>
                                 <ImagePlus className="h-4 w-4 mr-2" />
-                                Generate Image
+                                Paint it
                               </>
                             )}
                           </Button>
@@ -1465,8 +1455,7 @@ export default function ArtStudio() {
 
                         {!generatedImage && !imageGenerating && (
                           <p className="text-xs text-muted-foreground text-center py-4">
-                            Click &ldquo;Generate Image&rdquo; to create actual
-                            artwork from the prompt above
+                            Hit Paint it to make actual art from the prompt above.
                           </p>
                         )}
                       </CardContent>
@@ -1495,7 +1484,7 @@ export default function ArtStudio() {
               <CardHeader>
                 <CardTitle className="font-serif flex items-center gap-2">
                   <ImageIcon className="h-5 w-5" />
-                  Saved Assets
+                  Pinned
                 </CardTitle>
               </CardHeader>
               <CardContent>

@@ -12,10 +12,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const FEATURES = [
-  { icon: FileText,   label: "AI-Assisted Manuscript Editor",    desc: "Write with Thad by your side — rewrite, summarize, outline on demand." },
-  { icon: GitBranch,  label: "Writing Stage Tracker",            desc: "From concept to published: always know exactly where you are." },
-  { icon: Palette,    label: "Voice & Style Analysis",           desc: "Real-time tone, pacing, and reading-level feedback as you write." },
-  { icon: TrendingUp, label: "Publishing Insights",              desc: "Market intelligence to position your book before you launch." },
+  { icon: FileText,   label: "An editor in the room",          desc: "Thad reads what you've written and tells you what's working — and what isn't." },
+  { icon: GitBranch,  label: "Know where you are",             desc: "Concept, draft, revision, ready to send. The whole arc, kept track of." },
+  { icon: Palette,    label: "Voice you can hold onto",        desc: "Pacing, tone, sentence shape — feedback an editor would give at three in the morning." },
+  { icon: TrendingUp, label: "What the market is doing",       desc: "Who's reading what, where the gaps are, where your book might land." },
 ];
 
 export default function AuthPage() {
@@ -35,13 +35,13 @@ export default function AuthPage() {
 
   const validate = () => {
     const e = {};
-    if (!form.email.trim()) e.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter a valid email";
-    if (!form.password) e.password = "Password is required";
+    if (!form.email.trim()) e.email = "Email is needed";
+    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "That doesn't look like an email";
+    if (!form.password) e.password = "Password is needed";
     else if (form.password.length < 8) e.password = "At least 8 characters";
     if (mode === "register") {
-      if (!form.displayName.trim()) e.displayName = "Display name is required";
-      if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords don't match";
+      if (!form.displayName.trim()) e.displayName = "What should we call you?";
+      if (form.password !== form.confirmPassword) e.confirmPassword = "These don't match";
     }
     return e;
   };
@@ -54,14 +54,14 @@ export default function AuthPage() {
     try {
       if (mode === "login") {
         await login(form.email, form.password);
-        toast.success("Welcome back!");
+        toast.success("Welcome back.");
       } else {
         await register(form.email, form.password, form.displayName);
-        toast.success("Account created — welcome to Publish Itt!");
+        toast.success("You're in.");
       }
       navigate("/");
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Something went wrong.");
+      toast.error(err?.response?.data?.detail || "Something went sideways. Try again?");
     } finally { setLoading(false); }
   };
 
@@ -92,10 +92,10 @@ export default function AuthPage() {
           {/* Headline */}
           <div className="mb-12">
             <h1 className="font-serif text-4xl xl:text-5xl font-semibold text-primary-foreground leading-[1.2] mb-4">
-              Your story,<br />crafted with AI.
+              A workshop<br />for the long draft.
             </h1>
             <p className="text-primary-foreground/60 text-lg leading-relaxed max-w-sm">
-              Publish Itt gives writers a complete creative workspace — from first idea to finished manuscript.
+              Publish Itt is where the book gets made — first idea, shaky middle, last line. Thad's the editor in the corner, and he's read it.
             </p>
           </div>
 
@@ -122,7 +122,7 @@ export default function AuthPage() {
         {/* Quote */}
         <blockquote className="border-l-2 border-primary-foreground/20 pl-4">
           <p className="text-sm text-primary-foreground/50 italic leading-relaxed">
-            "Every story that's ever been told started with a blank page and a brave soul."
+            "The first draft of anything is shit." — Hemingway, probably to himself, probably more than once.
           </p>
         </blockquote>
       </div>
@@ -139,19 +139,19 @@ export default function AuthPage() {
           {/* Header */}
           <div className="mb-8">
             <h2 className="font-serif text-2xl font-semibold tracking-tight">
-              {mode === "login" ? "Welcome back" : "Create your account"}
+              {mode === "login" ? "Welcome back" : "Pull up a chair"}
             </h2>
             <p className="text-muted-foreground text-sm mt-1">
               {mode === "login"
-                ? "Sign in to continue writing."
-                : "Join Publish Itt and start your story."}
+                ? "Sign in and pick up where you left off."
+                : "Make an account and get to writing."}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "register" && (
               <div className="space-y-1.5">
-                <Label htmlFor="displayName">Display Name</Label>
+                <Label htmlFor="displayName">What should we call you?</Label>
                 <Input
                   id="displayName"
                   placeholder="e.g., J.K. Rowling"
@@ -206,7 +206,7 @@ export default function AuthPage() {
 
             {mode === "register" && (
               <div className="space-y-1.5">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">Confirm password</Label>
                 <Input
                   id="confirmPassword"
                   type={showPassword ? "text" : "password"}
@@ -223,16 +223,16 @@ export default function AuthPage() {
 
             <Button type="submit" className="w-full rounded-sm mt-2" disabled={loading}>
               {loading
-                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Please wait…</>
-                : mode === "login" ? "Sign In" : "Create Account"}
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />One moment.</>
+                : mode === "login" ? "Sign in" : "Create account"}
             </Button>
           </form>
 
           <div className="mt-5 text-center text-sm text-muted-foreground">
             {mode === "login" ? (
-              <>Don't have an account?{" "}<button onClick={switchMode} className="text-accent hover:underline font-medium">Sign up free</button></>
+              <>New here?{" "}<button onClick={switchMode} className="text-accent hover:underline font-medium">Make an account</button></>
             ) : (
-              <>Already have an account?{" "}<button onClick={switchMode} className="text-accent hover:underline font-medium">Sign in</button></>
+              <>Already have one?{" "}<button onClick={switchMode} className="text-accent hover:underline font-medium">Sign in</button></>
             )}
           </div>
         </div>

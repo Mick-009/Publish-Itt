@@ -87,7 +87,7 @@ export default function Settings() {
 
   const handleSaveGoal = async () => {
     if (goalDraft < 0 || goalDraft > 100000) {
-      toast.error("Please enter a number between 0 and 100,000");
+      toast.error("Pick a number between 0 and 100,000.");
       return;
     }
     setSavingGoal(true);
@@ -96,11 +96,11 @@ export default function Settings() {
       updateUser({ daily_word_goal: res.data.daily_word_goal });
       toast.success(
         goalDraft === 0
-          ? "Daily goal turned off"
-          : `Daily goal set to ${goalDraft.toLocaleString()} words`,
+          ? "Goal turned off."
+          : `${goalDraft.toLocaleString()} words a day.`,
       );
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Could not update goal");
+      toast.error(err.response?.data?.detail || "Couldn't save that. Try again?");
     } finally {
       setSavingGoal(false);
     }
@@ -115,7 +115,7 @@ export default function Settings() {
 
   const handleTourComplete = () => {
     setShowTour(false);
-    toast.success("Tour completed! You're ready to create.");
+    toast.success("That's the tour. Now go write something.");
   };
 
   const handleResetOnboarding = () => {
@@ -124,7 +124,7 @@ export default function Settings() {
     localStorage.removeItem("thad_user_name");
     localStorage.removeItem("thad_tour_complete");
     
-    toast.success("Onboarding reset! Redirecting to welcome experience...");
+    toast.success("Reset. Heading back to the start.");
     
     // Navigate to Dashboard which will trigger the onboarding flow
     setTimeout(() => {
@@ -143,7 +143,7 @@ export default function Settings() {
       const res = await stylePresetApi.getAll();
       setPresets(res.data);
     } catch (error) {
-      toast.error("Failed to load style presets");
+      toast.error("Couldn't pull up the style presets. Try again?");
     } finally {
       setLoading(false);
     }
@@ -175,7 +175,7 @@ export default function Settings() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.description.trim()) {
-      toast.error("Name and description are required");
+      toast.error("Name and description are needed.");
       return;
     }
 
@@ -186,29 +186,29 @@ export default function Settings() {
         setPresets(presets.map(p => 
           p.id === editingPreset.id ? { ...p, ...formData } : p
         ));
-        toast.success("Preset updated!");
+        toast.success("Updated.");
       } else {
         const res = await stylePresetApi.create(formData);
         setPresets([...presets, res.data]);
-        toast.success("Preset created!");
+        toast.success("Preset saved.");
       }
       setDialogOpen(false);
     } catch (error) {
-      toast.error("Failed to save preset");
+      toast.error("Couldn't save that preset. Try again?");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (presetId) => {
-    if (!window.confirm("Are you sure you want to delete this style preset?")) return;
+    if (!window.confirm("Delete this style preset?")) return;
     
     try {
       await stylePresetApi.delete(presetId);
       setPresets(presets.filter(p => p.id !== presetId));
-      toast.success("Preset deleted");
+      toast.success("Deleted.");
     } catch (error) {
-      toast.error("Failed to delete preset");
+      toast.error("Couldn't delete that. Try again?");
     }
   };
 
@@ -233,7 +233,7 @@ export default function Settings() {
             Settings
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Manage your themes, style presets, and preferences
+            Themes, presets, and the way you like things.
           </p>
         </div>
       </div>
@@ -246,7 +246,7 @@ export default function Settings() {
             General
           </CardTitle>
           <CardDescription>
-            App preferences and helpful features
+            App preferences and helpful features.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -258,9 +258,9 @@ export default function Settings() {
                   <Map className="h-5 w-5 text-accent" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm">Guided Tour</h4>
+                  <h4 className="font-medium text-sm">Take the tour</h4>
                   <p className="text-xs text-muted-foreground">
-                    Take a quick tour of Publish Itt's features with Thad
+                    A quick walkthrough of the workshop with Thad.
                   </p>
                 </div>
               </div>
@@ -272,7 +272,7 @@ export default function Settings() {
                 data-testid="start-guided-tour-btn"
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                Start Tour
+                Start tour
               </Button>
             </div>
             
@@ -283,9 +283,9 @@ export default function Settings() {
                   <RotateCcw className="h-5 w-5 text-orange-500" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm">Reset Onboarding</h4>
+                  <h4 className="font-medium text-sm">Start over</h4>
                   <p className="text-xs text-muted-foreground">
-                    Start fresh with the welcome experience from the beginning
+                    Clear the welcome and run through it again from the top.
                   </p>
                 </div>
               </div>
@@ -309,10 +309,10 @@ export default function Settings() {
         <CardHeader>
           <CardTitle className="font-serif flex items-center gap-2">
             <Target className="h-5 w-5 text-accent" />
-            Daily Writing Goal
+            A daily target
           </CardTitle>
           <CardDescription>
-            A daily word target shown on your dashboard. Set to 0 to turn it off.
+            How many words you'd like to write each day. Set to 0 to turn it off.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -384,7 +384,7 @@ export default function Settings() {
             </div>
 
             <p className="text-xs text-muted-foreground italic">
-              Stephen King writes ~2,000 words a day. Hemingway aimed for 500. Pick something sustainable.
+              King writes around 2,000 a day. Hemingway aimed for 500. Pick something you can hold to.
             </p>
           </div>
         </CardContent>
@@ -398,7 +398,7 @@ export default function Settings() {
             Theme
           </CardTitle>
           <CardDescription>
-            Choose a color theme for THADDAEUS
+            How the workshop looks.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -406,7 +406,8 @@ export default function Settings() {
             value={theme}
             onValueChange={(value) => {
               setTheme(value);
-              toast.success(`Theme changed to ${themes.find(t => t.id === value)?.name}`);
+              const themeName = themes.find(t => t.id === value)?.name;
+              toast.success(`Switched to ${themeName}.`);
             }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
             data-testid="theme-selector"
@@ -450,7 +451,7 @@ export default function Settings() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="font-serif flex items-center gap-2">
             <Palette className="h-5 w-5 text-accent" />
-            Style Presets
+            Style presets
           </CardTitle>
           <Button
             onClick={() => handleOpenDialog()}
@@ -459,12 +460,12 @@ export default function Settings() {
             data-testid="add-preset-btn"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Preset
+            New preset
           </Button>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            Style presets define the visual direction for your art prompts. Create presets for different series, moods, or artistic styles.
+            Style presets shape the art prompts. Build one for each series, mood, or look you want to keep around.
           </p>
           
           <ScrollArea className="h-[400px]">
@@ -472,11 +473,11 @@ export default function Settings() {
               <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
                 <Palette className="h-12 w-12 mb-4 opacity-50" />
                 <p className="text-sm text-center mb-4">
-                  No style presets yet. Create one to use in the Art Studio.
+                  No presets yet. Make one to use over in the art studio.
                 </p>
                 <Button onClick={() => handleOpenDialog()} variant="outline" className="rounded-sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Preset
+                  Build your first preset
                 </Button>
               </div>
             ) : (
@@ -541,7 +542,7 @@ export default function Settings() {
         <DialogContent className="sm:max-w-md" data-testid="preset-dialog">
           <DialogHeader>
             <DialogTitle className="font-serif">
-              {editingPreset ? "Edit Style Preset" : "Create Style Preset"}
+              {editingPreset ? "Edit preset" : "New preset"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -550,7 +551,7 @@ export default function Settings() {
                 <Label htmlFor="name">Name *</Label>
                 <Input
                   id="name"
-                  placeholder="e.g., Epic Fantasy"
+                  placeholder="e.g., Epic fantasy"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="rounded-sm"
@@ -561,7 +562,7 @@ export default function Settings() {
                 <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
-                  placeholder="Describe this visual style..."
+                  placeholder="What does this look and feel like?"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="rounded-sm resize-none"
@@ -570,10 +571,10 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="visual_style">Visual Style *</Label>
+                <Label htmlFor="visual_style">Visual style *</Label>
                 <Input
                   id="visual_style"
-                  placeholder="e.g., Soft watercolor, storybook illustration"
+                  placeholder="e.g., soft watercolor, storybook"
                   value={formData.visual_style}
                   onChange={(e) => setFormData({ ...formData, visual_style: e.target.value })}
                   className="rounded-sm"
@@ -584,7 +585,7 @@ export default function Settings() {
                 <Label htmlFor="mood">Mood *</Label>
                 <Input
                   id="mood"
-                  placeholder="e.g., Warm, cozy, adventurous"
+                  placeholder="e.g., warm, cozy, adventurous"
                   value={formData.mood}
                   onChange={(e) => setFormData({ ...formData, mood: e.target.value })}
                   className="rounded-sm"
@@ -592,10 +593,10 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="color_palette">Color Palette (optional)</Label>
+                <Label htmlFor="color_palette">Colors (optional)</Label>
                 <Input
                   id="color_palette"
-                  placeholder="e.g., Earth tones, forest greens, warm browns"
+                  placeholder="e.g., earth tones, forest greens, warm browns"
                   value={formData.color_palette}
                   onChange={(e) => setFormData({ ...formData, color_palette: e.target.value })}
                   className="rounded-sm"
@@ -621,10 +622,10 @@ export default function Settings() {
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
+                    Saving.
                   </>
                 ) : (
-                  editingPreset ? "Update Preset" : "Create Preset"
+                  editingPreset ? "Update" : "Save"
                 )}
               </Button>
             </DialogFooter>

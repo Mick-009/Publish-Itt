@@ -35,16 +35,16 @@ import {
 } from "lucide-react";
 
 const stageDescriptions = {
-  concept: "Initial idea and brainstorming",
-  outline: "Chapter structure and plot planning",
-  draft: "First draft writing",
-  revisions: "Major structural changes",
-  editing: "Line editing and polishing",
-  layout: "Formatting and design",
-  art: "Cover and illustrations",
-  proofing: "Final proofreading",
-  final: "Ready for publication",
-  published: "Book is live!",
+  concept: "An idea, taking shape.",
+  outline: "Chapters mapped, plot sketched.",
+  draft: "Words on the page, end to end.",
+  revisions: "The big moves — structure, arc.",
+  editing: "Line by line, sentence by sentence.",
+  layout: "Format, design, the way it sits.",
+  art: "Cover, illustrations, what readers see first.",
+  proofing: "The last read, hunting for what slipped past.",
+  final: "Ready to send.",
+  published: "Out in the world.",
 };
 
 export default function WorkflowWorkspace() {
@@ -80,7 +80,7 @@ export default function WorkflowWorkspace() {
         setSelectedProject(res.data[0]);
       }
     } catch (error) {
-      toast.error("Failed to load projects");
+      toast.error("Couldn't pull up your projects. Try again?");
     } finally {
       setLoading(false);
     }
@@ -104,9 +104,9 @@ export default function WorkflowWorkspace() {
           p.id === selectedProject.id ? { ...p, status: newStatus } : p,
         ),
       );
-      toast.success(`Status updated to ${newStatus}`);
+      toast.success(`Moved to ${newStatus}.`);
     } catch (error) {
-      toast.error("Failed to update status");
+      toast.error("Couldn't change the stage. Try again?");
     } finally {
       setUpdating(false);
     }
@@ -114,7 +114,7 @@ export default function WorkflowWorkspace() {
 
   const handleAnalyzeWorkflow = async () => {
     if (!statusDescription.trim()) {
-      toast.error("Please describe your current progress");
+      toast.error("Tell me where you are first.");
       return;
     }
     setAiLoading(true);
@@ -122,7 +122,7 @@ export default function WorkflowWorkspace() {
       const res = await aiApi.analyzeWorkflow(statusDescription);
       setAiResponse(res.data.response);
     } catch (error) {
-      toast.error("Failed to analyze workflow");
+      toast.error("Couldn't read that. Try again?");
     } finally {
       setAiLoading(false);
     }
@@ -179,10 +179,10 @@ export default function WorkflowWorkspace() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">
-            Writing Stage
+            Where you are
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Track your manuscript's journey to publication
+            The arc from idea to published — and where this one sits.
           </p>
         </div>
         <Select value={selectedProject?.id} onValueChange={handleProjectChange}>
@@ -278,12 +278,11 @@ export default function WorkflowWorkspace() {
 
               <div className="mt-4 p-4 bg-muted rounded-sm">
                 <p className="text-sm">
-                  <span className="font-medium">Current Stage: </span>
+                  <span className="font-medium">Right now: </span>
                   {stageDescriptions[selectedProject.status]}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Progress: {calculateProgress(selectedProject.status)}%
-                  complete
+                  {calculateProgress(selectedProject.status)}% of the way through.
                 </p>
               </div>
             </CardContent>
@@ -295,16 +294,15 @@ export default function WorkflowWorkspace() {
               <CardHeader>
                 <CardTitle className="font-serif flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-accent" />
-                  What's My Stage?
+                  Tell me where you are
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Describe where you are in your writing process, and Thad will
-                  analyze your progress and suggest next steps.
+                  Describe what you've got and what you're stuck on. I'll tell you what stage that sounds like — and what comes next.
                 </p>
                 <Textarea
-                  placeholder="e.g., I've finished the first draft and made some initial revisions based on feedback. The plot is solid but some chapters need tightening..."
+                  placeholder="e.g., Finished the first draft, did one revision pass on feedback. The plot holds, but the middle three chapters drag."
                   value={statusDescription}
                   onChange={(e) => setStatusDescription(e.target.value)}
                   className="min-h-[120px] rounded-sm resize-none"
@@ -319,12 +317,12 @@ export default function WorkflowWorkspace() {
                   {aiLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Analyzing...
+                      Reading.
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Analyze My Progress
+                      Read where I am
                     </>
                   )}
                 </Button>
@@ -333,7 +331,7 @@ export default function WorkflowWorkspace() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="font-serif">AI Analysis</CardTitle>
+                <CardTitle className="font-serif">What I think</CardTitle>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[250px]">
@@ -348,8 +346,7 @@ export default function WorkflowWorkspace() {
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                       <GitBranch className="h-12 w-12 mb-4 opacity-50" />
                       <p className="text-sm text-center">
-                        Describe your progress and Thad will help identify your
-                        current stage and next steps
+                        Tell me where you are. I'll point at the stage and the next step.
                       </p>
                     </div>
                   )}

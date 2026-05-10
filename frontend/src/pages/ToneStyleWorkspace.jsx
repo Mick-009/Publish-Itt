@@ -54,7 +54,7 @@ export default function ToneStyleWorkspace() {
         loadChapters(res.data[0].id);
       }
     } catch (error) {
-      toast.error("Failed to load projects");
+      toast.error("Couldn't pull up your projects. Try again?");
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export default function ToneStyleWorkspace() {
         setSelectedChapter(null);
       }
     } catch (error) {
-      toast.error("Failed to load chapters");
+      toast.error("Couldn't pull up the chapters. Try again?");
     }
   };
 
@@ -93,9 +93,7 @@ export default function ToneStyleWorkspace() {
     const textToAnalyze = customText.trim() || strippedChapterText;
 
     if (!textToAnalyze) {
-      toast.error(
-        "No content to analyze. Select a chapter or enter custom text.",
-      );
+      toast.error("Bring me something to read first.");
       return;
     }
 
@@ -111,14 +109,14 @@ export default function ToneStyleWorkspace() {
         res.data?.response || res.data?.analysis || res.data?.result || "";
 
       if (!output) {
-        toast.error("Tone analysis returned no content");
+        toast.error("Came back empty. Try again?");
         return;
       }
 
       setAiResponse(output);
     } catch (error) {
       console.error("Tone analysis failed:", error);
-      toast.error("Failed to analyze tone");
+      toast.error("Couldn't read that. Try again?");
     } finally {
       setAiLoading(false);
     }
@@ -177,10 +175,10 @@ export default function ToneStyleWorkspace() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">
-            Voice & Style
+            Voice & style
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Analyze voice, reading level, and pacing
+            How it reads — voice, level, pacing.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -231,7 +229,7 @@ export default function ToneStyleWorkspace() {
           <CardHeader>
             <CardTitle className="font-serif flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Content to Analyze
+              What I'll read
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -244,7 +242,7 @@ export default function ToneStyleWorkspace() {
                   </h3>
                   <ScrollArea className="h-[200px]">
                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {stripHtml(selectedChapter.content) || "No content yet"}
+                      {stripHtml(selectedChapter.content) || "Nothing in this one yet."}
                     </p>
                   </ScrollArea>
                 </div>
@@ -254,7 +252,7 @@ export default function ToneStyleWorkspace() {
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-card px-2 text-muted-foreground">
-                      Or enter custom text
+                      Or paste something
                     </span>
                   </div>
                 </div>
@@ -266,7 +264,7 @@ export default function ToneStyleWorkspace() {
             )}
 
             <Textarea
-              placeholder="Paste or type text here to analyze..."
+              placeholder="Paste a passage and I'll read it."
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
               className="min-h-[150px] rounded-sm resize-none"
@@ -284,12 +282,12 @@ export default function ToneStyleWorkspace() {
               {aiLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing...
+                  Reading.
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Analyze Tone
+                  Read it
                 </>
               )}
             </Button>
@@ -301,7 +299,7 @@ export default function ToneStyleWorkspace() {
           <CardHeader>
             <CardTitle className="font-serif flex items-center gap-2">
               <Palette className="h-5 w-5 text-accent" />
-              Tone Analysis
+              What I noticed
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -317,8 +315,7 @@ export default function ToneStyleWorkspace() {
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                   <Palette className="h-12 w-12 mb-4 opacity-50" />
                   <p className="text-sm text-center">
-                    Select a chapter or enter text, then click "Analyze Tone" to
-                    get insights on voice, reading level, and pacing.
+                    Pick a chapter or paste a passage, then hit Read it. I'll tell you what I hear.
                   </p>
                 </div>
               )}

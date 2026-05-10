@@ -89,29 +89,29 @@ function EmptyState({ onNew, onImport, uploading, isDragging, onDragOver, onDrag
               <FileUp className="h-8 w-8 text-accent" />
             </div>
             <h3 className="font-serif text-2xl mb-2 text-accent">Drop it here</h3>
-            <p className="text-muted-foreground text-sm">Supports .txt, .docx, .pdf, .md</p>
+            <p className="text-muted-foreground text-sm">.txt, .docx, .pdf, or .md</p>
           </>
         ) : (
           <>
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6">
               <Feather className="h-7 w-7 text-muted-foreground" />
             </div>
-            <h3 className="font-serif text-2xl font-medium mb-2">Your story starts here</h3>
+            <h3 className="font-serif text-2xl font-medium mb-2">Where would you like to begin?</h3>
             <p className="text-muted-foreground text-sm mb-8 max-w-xs">
-              Create a new project from scratch or import an existing manuscript to get started.
+              Start something new, or bring in a manuscript you've been carrying around.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <Button onClick={onNew} className="rounded-sm px-6" size="lg">
                 <Plus className="h-4 w-4 mr-2" />
-                New Project
+                New project
               </Button>
               <Button variant="outline" onClick={onImport} disabled={uploading} className="rounded-sm px-6" size="lg">
                 {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                Import Manuscript
+                Import a manuscript
               </Button>
             </div>
             <p className="mt-8 text-xs text-muted-foreground">
-              or drag & drop a .txt, .docx, .pdf, or .md file anywhere on this area
+              Or drop a file right here — .txt, .docx, .pdf, or .md.
             </p>
           </>
         )}
@@ -164,7 +164,7 @@ function ProjectCard({ project, index, onOpen, onEdit }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(e, project); }}>
-                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit Project
+                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit project
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -328,7 +328,7 @@ export default function Dashboard() {
   const handleFileSelect = async (file) => {
     const allowed = [".txt", ".docx", ".pdf", ".md"];
     const ext = "." + file.name.split(".").pop().toLowerCase();
-    if (!allowed.includes(ext)) { toast.error(`Unsupported file. Allowed: ${allowed.join(", ")}`); return; }
+    if (!allowed.includes(ext)) { toast.error("That file type doesn't work here. Try .txt, .docx, .pdf, or .md."); return; }
     setUploadedFile(file);
     const base = file.name.replace(/\.[^/.]+$/, "");
     setImportProjectTitle(base); setImportChapterTitle(base); setUploading(true);
@@ -336,13 +336,13 @@ export default function Dashboard() {
       const res = await uploadApi.previewManuscript(file);
       setUploadPreview(res.data); setUploadDialogOpen(true);
     } catch (err) {
-      toast.error("Failed to preview: " + (err.response?.data?.detail || err.message));
+      toast.error("Couldn't read that file: " + (err.response?.data?.detail || err.message));
       setUploadedFile(null);
     } finally { setUploading(false); }
   };
 
   const handleUploadConfirm = async () => {
-    if (!uploadedFile || !importProjectTitle.trim()) { toast.error("Please enter a project title"); return; }
+    if (!uploadedFile || !importProjectTitle.trim()) { toast.error("The project needs a title."); return; }
     setUploading(true);
     try {
       const projRes = await projectApi.create({ title: importProjectTitle, type: "novel", status: "draft", summary: `Imported from ${uploadedFile.name}` });
@@ -354,7 +354,7 @@ export default function Dashboard() {
       setImportedFilename(uploadedFile.name);
       handleUploadClose(); setImportAnalysisOpen(true);
     } catch (err) {
-      toast.error("Failed to import: " + (err.response?.data?.detail || err.message));
+      toast.error("Couldn't bring that in: " + (err.response?.data?.detail || err.message));
     } finally { setUploading(false); }
   };
 
@@ -366,16 +366,16 @@ export default function Dashboard() {
 
   const handleCreateProject = async (e) => {
     e?.preventDefault();
-    if (!newProject.title.trim()) { toast.error("Please enter a title"); return; }
+    if (!newProject.title.trim()) { toast.error("The book needs a title to start."); return; }
     setCreating(true);
     try {
       const res = await projectApi.create(newProject);
       setProjects([...projects, res.data]);
       setDialogOpen(false);
       resetNewProject();
-      toast.success("Project created!");
+      toast.success("Project started.");
       navigate(`/manuscript/${res.data.id}`);
-    } catch { toast.error("Failed to create project"); }
+    } catch { toast.error("Couldn't start that project. Try again?"); }
     finally { setCreating(false); }
   };
 
@@ -399,13 +399,13 @@ export default function Dashboard() {
   };
 
   const handleSaveEdit = async () => {
-    if (!editFields.title.trim()) { toast.error("Title is required"); return; }
+    if (!editFields.title.trim()) { toast.error("Title can't be blank."); return; }
     try {
       await projectApi.update(projectToRename.id, editFields);
       setProjects(projects.map((p) => p.id === projectToRename.id ? { ...p, ...editFields } : p));
       setRenameDialogOpen(false); setProjectToRename(null);
-      toast.success("Project updated!");
-    } catch { toast.error("Failed to update project"); }
+      toast.success("Updated.");
+    } catch { toast.error("Couldn't save those changes. Try again?"); }
   };
 
   // Greeting
@@ -437,13 +437,13 @@ export default function Dashboard() {
             {greeting}, {displayName}
           </p>
           <h1 className="text-4xl md:text-5xl font-serif font-semibold tracking-tight">
-            Your Projects
+            Your projects
           </h1>
           {!loading && (
             <p className="mt-2 text-muted-foreground">
               {projects.length === 0
-                ? "Start your first project below."
-                : `${projects.length} ${projects.length === 1 ? "project" : "projects"} in progress`}
+                ? "Start something below."
+                : `${projects.length} ${projects.length === 1 ? "project" : "projects"} on the bench`}
             </p>
           )}
         </div>
@@ -459,7 +459,7 @@ export default function Dashboard() {
           </Button>
           <Button onClick={() => setDialogOpen(true)} className="rounded-sm shadow-sm" size="default" data-testid="new-project-btn">
             <Plus className="h-4 w-4 mr-2" />
-            New Project
+            New project
           </Button>
         </div>
       </div>
@@ -502,7 +502,7 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-full border-2 border-current flex items-center justify-center group-hover:scale-110 transition-transform">
               <Plus className="h-4 w-4" />
             </div>
-            <span className="text-sm font-medium">New Project</span>
+            <span className="text-sm font-medium">New project</span>
           </button>
         </div>
       )}
@@ -513,9 +513,9 @@ export default function Dashboard() {
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-accent" />
-              Start New Book
+              Start a new book
             </DialogTitle>
-            <DialogDescription>Create a new project or import an existing manuscript.</DialogDescription>
+            <DialogDescription>Begin from scratch, or bring in something you've already started.</DialogDescription>
           </DialogHeader>
 
           {/* Import strip */}
@@ -526,7 +526,7 @@ export default function Dashboard() {
                   <Upload className="h-5 w-5 text-accent" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm">Import Manuscript</h4>
+                  <h4 className="font-medium text-sm">Import a manuscript</h4>
                   <p className="text-xs text-muted-foreground">.txt, .docx, .pdf, or .md</p>
                 </div>
               </div>
@@ -539,7 +539,7 @@ export default function Dashboard() {
           <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or create from scratch</span>
+              <span className="bg-background px-2 text-muted-foreground">Or start fresh</span>
             </div>
           </div>
 
@@ -548,11 +548,11 @@ export default function Dashboard() {
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title *</Label>
-                  <Input id="title" placeholder="Enter book title" value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })} className="rounded-sm" data-testid="new-project-title" autoFocus />
+                  <Input id="title" placeholder="What's it called?" value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })} className="rounded-sm" data-testid="new-project-title" autoFocus />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="series">Series Name</Label>
+                    <Label htmlFor="series">Series name</Label>
                     <Input id="series" placeholder="e.g., The Dragon Chronicles" value={newProject.series_name} onChange={(e) => setNewProject({ ...newProject, series_name: e.target.value })} className="rounded-sm" />
                   </div>
                   <div className="space-y-2">
@@ -573,9 +573,9 @@ export default function Dashboard() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Age Group</Label>
+                    <Label>Age group</Label>
                     <Select value={newProject.age_group} onValueChange={(v) => setNewProject({ ...newProject, age_group: v })}>
-                      <SelectTrigger className="rounded-sm"><SelectValue placeholder="Select…" /></SelectTrigger>
+                      <SelectTrigger className="rounded-sm"><SelectValue placeholder="Pick one" /></SelectTrigger>
                       <SelectContent>
                         {AGE_GROUPS.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
                       </SelectContent>
@@ -585,7 +585,7 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   <Label>Genre</Label>
                   <Select value={newProject.genre} onValueChange={(v) => setNewProject({ ...newProject, genre: v })}>
-                    <SelectTrigger className="rounded-sm"><SelectValue placeholder="Select genre" /></SelectTrigger>
+                    <SelectTrigger className="rounded-sm"><SelectValue placeholder="Pick a genre" /></SelectTrigger>
                     <SelectContent className="max-h-[300px]">
                       {Object.entries(getGenresByCategory()).map(([cat, genres]) => (
                         <SelectGroup key={cat}>
@@ -597,9 +597,9 @@ export default function Dashboard() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Writing Style</Label>
+                  <Label>Writing style</Label>
                   <Select value={newProject.writing_style} onValueChange={(v) => setNewProject({ ...newProject, writing_style: v })}>
-                    <SelectTrigger className="rounded-sm"><SelectValue placeholder="Select style" /></SelectTrigger>
+                    <SelectTrigger className="rounded-sm"><SelectValue placeholder="Pick a style" /></SelectTrigger>
                     <SelectContent>
                       {WRITING_STYLES.map((s) => (
                         <SelectItem key={s.value} value={s.value}>
@@ -611,24 +611,24 @@ export default function Dashboard() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="summary">Summary</Label>
-                  <Textarea id="summary" placeholder="Brief description of your book…" value={newProject.summary} onChange={(e) => setNewProject({ ...newProject, summary: e.target.value })} className="rounded-sm resize-none" rows={3} />
+                  <Textarea id="summary" placeholder="A few sentences on what it's about." value={newProject.summary} onChange={(e) => setNewProject({ ...newProject, summary: e.target.value })} className="rounded-sm resize-none" rows={3} />
                 </div>
                 <div className="space-y-4 rounded-lg border border-border p-4">
                   <div>
-                    <h4 className="text-sm font-medium">Voice & Tone Profile</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Optional — Thad will use these when helping you write.</p>
+                    <h4 className="text-sm font-medium">Voice & tone</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Optional. I'll keep these in mind when reading.</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Voice Style</Label><Input placeholder="e.g., lyrical" value={newProject.voice_style} onChange={(e) => setNewProject({ ...newProject, voice_style: e.target.value })} className="rounded-sm" /></div>
-                    <div className="space-y-2"><Label>Tone Style</Label><Input placeholder="e.g., warm, adventurous" value={newProject.tone_style} onChange={(e) => setNewProject({ ...newProject, tone_style: e.target.value })} className="rounded-sm" /></div>
+                    <div className="space-y-2"><Label>Voice style</Label><Input placeholder="e.g., lyrical" value={newProject.voice_style} onChange={(e) => setNewProject({ ...newProject, voice_style: e.target.value })} className="rounded-sm" /></div>
+                    <div className="space-y-2"><Label>Tone</Label><Input placeholder="e.g., warm, adventurous" value={newProject.tone_style} onChange={(e) => setNewProject({ ...newProject, tone_style: e.target.value })} className="rounded-sm" /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Target Audience</Label><Input placeholder="e.g., middle grade readers" value={newProject.target_audience} onChange={(e) => setNewProject({ ...newProject, target_audience: e.target.value })} className="rounded-sm" /></div>
+                    <div className="space-y-2"><Label>Audience</Label><Input placeholder="e.g., middle grade readers" value={newProject.target_audience} onChange={(e) => setNewProject({ ...newProject, target_audience: e.target.value })} className="rounded-sm" /></div>
                     <div className="space-y-2"><Label>Pacing</Label><Input placeholder="e.g., fast, reflective" value={newProject.pacing_preference} onChange={(e) => setNewProject({ ...newProject, pacing_preference: e.target.value })} className="rounded-sm" /></div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Style Notes</Label>
-                    <Textarea placeholder="Any author-specific style preferences…" value={newProject.style_notes} onChange={(e) => setNewProject({ ...newProject, style_notes: e.target.value })} className="rounded-sm resize-none" rows={3} />
+                    <Label>Notes on style</Label>
+                    <Textarea placeholder="Anything specific to your voice." value={newProject.style_notes} onChange={(e) => setNewProject({ ...newProject, style_notes: e.target.value })} className="rounded-sm resize-none" rows={3} />
                   </div>
                 </div>
               </div>
@@ -638,7 +638,7 @@ export default function Dashboard() {
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => { setDialogOpen(false); resetNewProject(); }} className="rounded-sm">Cancel</Button>
             <Button onClick={handleCreateProject} disabled={creating || !newProject.title} className="rounded-sm" data-testid="create-project-submit">
-              {creating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating…</> : <><Plus className="h-4 w-4 mr-2" />Create Project</>}
+              {creating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Starting.</> : <><Plus className="h-4 w-4 mr-2" />Start it</>}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -649,9 +649,9 @@ export default function Dashboard() {
         <DialogContent className="sm:max-w-2xl" data-testid="import-project-dialog">
           <DialogHeader>
             <DialogTitle className="font-serif flex items-center gap-2 text-2xl">
-              <FileUp className="h-6 w-6" />Import Manuscript
+              <FileUp className="h-6 w-6" />Bring in a manuscript
             </DialogTitle>
-            <DialogDescription>Create a new project from your imported manuscript.</DialogDescription>
+            <DialogDescription>Take a look. Make a project around it.</DialogDescription>
           </DialogHeader>
           {uploadPreview && (
             <div className="space-y-4 py-4">
@@ -666,15 +666,15 @@ export default function Dashboard() {
                 <Button variant="ghost" size="icon" onClick={handleUploadClose} className="h-8 w-8"><X className="h-4 w-4" /></Button>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="importProjectTitle">Project Title *</Label>
-                <Input id="importProjectTitle" value={importProjectTitle} onChange={(e) => setImportProjectTitle(e.target.value)} placeholder="Enter project title" className="rounded-sm" data-testid="import-project-title-input" />
+                <Label htmlFor="importProjectTitle">Project title *</Label>
+                <Input id="importProjectTitle" value={importProjectTitle} onChange={(e) => setImportProjectTitle(e.target.value)} placeholder="What's it called?" className="rounded-sm" data-testid="import-project-title-input" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="importChapterTitle">Chapter Title</Label>
-                <Input id="importChapterTitle" value={importChapterTitle} onChange={(e) => setImportChapterTitle(e.target.value)} placeholder="Enter chapter title" className="rounded-sm" data-testid="import-chapter-title-input" />
+                <Label htmlFor="importChapterTitle">Chapter title</Label>
+                <Input id="importChapterTitle" value={importChapterTitle} onChange={(e) => setImportChapterTitle(e.target.value)} placeholder="Chapter title" className="rounded-sm" data-testid="import-chapter-title-input" />
               </div>
               <div className="space-y-2">
-                <Label>Content Preview</Label>
+                <Label>Preview</Label>
                 <ScrollArea className="h-[150px] border border-border rounded-sm p-3">
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">{uploadPreview.preview}</p>
                 </ScrollArea>
@@ -684,7 +684,7 @@ export default function Dashboard() {
           <DialogFooter>
             <Button variant="outline" onClick={handleUploadClose} className="rounded-sm">Cancel</Button>
             <Button onClick={handleUploadConfirm} disabled={uploading || !importProjectTitle.trim()} className="rounded-sm" data-testid="confirm-import-project-btn">
-              {uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating…</> : <><Upload className="h-4 w-4 mr-2" />Create Project & Import</>}
+              {uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Bringing it in.</> : <><Upload className="h-4 w-4 mr-2" />Bring it in</>}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -695,9 +695,9 @@ export default function Dashboard() {
         <DialogContent className="sm:max-w-md" data-testid="rename-project-dialog">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl flex items-center gap-2">
-              <Pencil className="h-4 w-4 text-accent" />Edit Project
+              <Pencil className="h-4 w-4 text-accent" />Edit project
             </DialogTitle>
-            <DialogDescription>Update your project details and voice profile.</DialogDescription>
+            <DialogDescription>Update the details and the voice profile.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -706,22 +706,22 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2">
               <Label>Summary</Label>
-              <Textarea value={editFields.summary} onChange={(e) => setEditFields({ ...editFields, summary: e.target.value })} placeholder="Brief description…" className="rounded-sm resize-none" rows={3} />
+              <Textarea value={editFields.summary} onChange={(e) => setEditFields({ ...editFields, summary: e.target.value })} placeholder="A few sentences on what it's about." className="rounded-sm resize-none" rows={3} />
             </div>
             <div className="space-y-3 rounded-lg border border-border p-4">
-              <h4 className="text-sm font-medium">Voice & Tone Profile</h4>
+              <h4 className="text-sm font-medium">Voice & tone</h4>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label className="text-xs">Voice Style</Label><Input value={editFields.voice_style} onChange={(e) => setEditFields({ ...editFields, voice_style: e.target.value })} placeholder="e.g., lyrical" className="rounded-sm h-8 text-sm" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Tone Style</Label><Input value={editFields.tone_style} onChange={(e) => setEditFields({ ...editFields, tone_style: e.target.value })} placeholder="e.g., warm" className="rounded-sm h-8 text-sm" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Target Audience</Label><Input value={editFields.target_audience} onChange={(e) => setEditFields({ ...editFields, target_audience: e.target.value })} placeholder="e.g., MG readers" className="rounded-sm h-8 text-sm" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Voice style</Label><Input value={editFields.voice_style} onChange={(e) => setEditFields({ ...editFields, voice_style: e.target.value })} placeholder="e.g., lyrical" className="rounded-sm h-8 text-sm" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Tone</Label><Input value={editFields.tone_style} onChange={(e) => setEditFields({ ...editFields, tone_style: e.target.value })} placeholder="e.g., warm" className="rounded-sm h-8 text-sm" /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Audience</Label><Input value={editFields.target_audience} onChange={(e) => setEditFields({ ...editFields, target_audience: e.target.value })} placeholder="e.g., MG readers" className="rounded-sm h-8 text-sm" /></div>
                 <div className="space-y-1.5"><Label className="text-xs">Pacing</Label><Input value={editFields.pacing_preference} onChange={(e) => setEditFields({ ...editFields, pacing_preference: e.target.value })} placeholder="e.g., balanced" className="rounded-sm h-8 text-sm" /></div>
               </div>
-              <div className="space-y-1.5"><Label className="text-xs">Style Notes</Label><Textarea value={editFields.style_notes} onChange={(e) => setEditFields({ ...editFields, style_notes: e.target.value })} placeholder="Author-specific preferences…" className="rounded-sm resize-none text-sm" rows={3} /></div>
+              <div className="space-y-1.5"><Label className="text-xs">Notes on style</Label><Textarea value={editFields.style_notes} onChange={(e) => setEditFields({ ...editFields, style_notes: e.target.value })} placeholder="Anything specific to your voice." className="rounded-sm resize-none text-sm" rows={3} /></div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setRenameDialogOpen(false); setProjectToRename(null); }} className="rounded-sm">Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={!editFields.title.trim()} className="rounded-sm" data-testid="confirm-rename-btn">Save Changes</Button>
+            <Button onClick={handleSaveEdit} disabled={!editFields.title.trim()} className="rounded-sm" data-testid="confirm-rename-btn">Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
