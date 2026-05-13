@@ -27,6 +27,7 @@ import uuid
 from datetime import datetime, timezone
 from litellm import acompletion
 import prompts as P
+import exports as E
 
 # Document parsing imports
 from docx import Document as DocxDocument
@@ -2396,7 +2397,7 @@ async def generate_image_from_prompt(request: ImageGenerationRequest, current_us
                 style_preset="ai_generated",
                 prompt_used=request.prompt,
                 status="generated",
-                image_reference=f"data:image/png;base64,{image_base64[:100]}...",  # Store truncated reference
+                image_reference=f"data:image/png;base64,{image_base64}",  # Store truncated reference
             )
             doc = asset_obj.model_dump()
             await db.art_assets.insert_one(doc)
@@ -3609,6 +3610,56 @@ async def split_and_create_chapters(request: SplitChaptersRequest, current_user:
         ),
     )
 
+async def _resolve_export_author(
+    request: ExportRequest, current_user: UserOut
+) -> str:
+    """Pick the author name for an export: override → display_name → email → ''."""
+    candidate = (request.author_override or "").strip()
+    if candidate:
+        return candidate
+    if current_user.display_name:
+        return current_user.display_name
+    if current_user.email:
+        # Just the local part, capitalised — better than blank.
+        return current_user.email.split("@")[0].replace(".", " ").title()
+    return ""
+
+
+async def _fetch_cover_for_project(project_id: str) -> tuple[Optional[bytes], str]:
+    """
+    Find the most recent cover ArtAsset for a project and return its bytes.
+
+    Returns (bytes, media_type). If no cover exists or the bytes can't be
+    decoded, returns (None, "").
+
+    Art assets store images as data URLs in `image_reference`. We decode the
+    base64 payload back into raw bytes here so the EPUB can embed it.
+    """
+    cursor = (
+        db.art_assets.find(
+            {"project_id": project_id, "type": "cover"}, {"_id": 0}
+        )
+        .sort("created_at", -1)
+    )
+    async for asset in cursor:
+        ref = asset.get("image_reference") or ""
+        # The ManuscriptWorkspace stores covers as `data:image/png;base64,XXXX...`
+        # but the comment in server.py says only the first 100 chars are stored
+        # as a reference. We try to decode whatever's there; if it's not a full
+        # data URL, skip and try the next asset.
+        if not ref.startswith("data:"):
+            continue
+        try:
+            header, payload = ref.split(",", 1)
+            # header looks like "data:image/png;base64"
+            media_type = header.split(";")[0].removeprefix("data:")
+            image_bytes = base64.b64decode(payload)
+            if len(image_bytes) > 64:  # crude sanity: ignore truncated stubs
+                return image_bytes, media_type or "image/png"
+        except Exception:
+            logger.warning("Cover decode failed for asset %s", asset.get("id"))
+            continue
+    return None, ""
 
 # ============== EXPORT ENDPOINTS ==============
 
@@ -3617,6 +3668,7 @@ class ExportRequest(BaseModel):
     project_id: str
     include_title_page: bool = True
     include_chapter_numbers: bool = True
+    author_override: Optional[str] = None  # if blank, falls back to user.display_name
 
 
 def strip_html_tags(html_content: str) -> str:
@@ -3850,6 +3902,81 @@ async def export_to_pdf(request: ExportRequest, current_user: UserOut = Depends(
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
+@api_router.post("/export/markdown")
+async def export_to_markdown(
+    request: ExportRequest, current_user: UserOut = Depends(get_current_user)
+):
+    """Export a project to a Markdown file."""
+
+    project = await db.projects.find_one(
+        {"id": request.project_id, "user_id": current_user.id}, {"_id": 0}
+    )
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    chapters = (
+        await db.chapters.find({"project_id": request.project_id}, {"_id": 0})
+        .sort("chapter_number", 1)
+        .to_list(1000)
+    )
+
+    author = await _resolve_export_author(request, current_user)
+
+    md_bytes = E.build_markdown(
+        project=project,
+        chapters=chapters,
+        author=author,
+        include_title_page=request.include_title_page,
+        include_chapter_numbers=request.include_chapter_numbers,
+    )
+
+    filename = E.safe_filename(project.get("title", "export"), "md")
+    return StreamingResponse(
+        io.BytesIO(md_bytes),
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@api_router.post("/export/epub")
+async def export_to_epub(
+    request: ExportRequest, current_user: UserOut = Depends(get_current_user)
+):
+    """Export a project to an EPUB 3 file."""
+
+    project = await db.projects.find_one(
+        {"id": request.project_id, "user_id": current_user.id}, {"_id": 0}
+    )
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    chapters = (
+        await db.chapters.find({"project_id": request.project_id}, {"_id": 0})
+        .sort("chapter_number", 1)
+        .to_list(1000)
+    )
+
+    author = await _resolve_export_author(request, current_user)
+    cover_bytes, cover_media_type = await _fetch_cover_for_project(
+        request.project_id
+    )
+
+    epub_bytes = E.build_epub(
+        project=project,
+        chapters=chapters,
+        author=author,
+        include_title_page=request.include_title_page,
+        include_chapter_numbers=request.include_chapter_numbers,
+        cover_bytes=cover_bytes,
+        cover_media_type=cover_media_type or "image/jpeg",
+    )
+
+    filename = E.safe_filename(project.get("title", "export"), "epub")
+    return StreamingResponse(
+        io.BytesIO(epub_bytes),
+        media_type="application/epub+zip",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 # ── Status endpoints ──────────────────────────────────────────────────────────
 @api_router.get("/")

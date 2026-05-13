@@ -61,6 +61,7 @@ import {
   QuillMarkArt,
 } from "@/components/EmptyStateArt";
 import { useChapterAutosave } from "@/hooks/useChapterAutosave";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Plus,
   Save,
@@ -194,12 +195,14 @@ export default function ManuscriptWorkspace() {
   const statsIntervalRef = useRef(null);
 
   // ── Export state ─────────────────────────────────────────────────────────
+  const { user } = useAuth();
   const [exporting, setExporting] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState("docx");
   const [exportIncludeTitlePage, setExportIncludeTitlePage] = useState(true);
   const [exportIncludeChapterNumbers, setExportIncludeChapterNumbers] =
     useState(true);
+  const [exportAuthorOverride, setExportAuthorOverride] = useState("");
 
   // ── Autosave hook ────────────────────────────────────────────────────────
   // The hook is the sole owner of: saving / saveState / lastSavedAt /
@@ -602,6 +605,31 @@ export default function ManuscriptWorkspace() {
   };
 
   // ── Export ───────────────────────────────────────────────────────────────
+  // Format → API method, file extension, MIME type. Adding a future format
+  // (HTML, EPUB variant, etc.) is one line here.
+  const EXPORT_FORMATS = {
+    docx: {
+      method: projectApi.exportDocx,
+      extension: "docx",
+      mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    },
+    pdf: {
+      method: projectApi.exportPdf,
+      extension: "pdf",
+      mime: "application/pdf",
+    },
+    epub: {
+      method: projectApi.exportEpub,
+      extension: "epub",
+      mime: "application/epub+zip",
+    },
+    markdown: {
+      method: projectApi.exportMarkdown,
+      extension: "md",
+      mime: "text/markdown",
+    },
+  };
+
   const handleExport = async () => {
     if (!selectedProject) {
       toast.error("Open a project first.");
@@ -613,30 +641,24 @@ export default function ManuscriptWorkspace() {
       return;
     }
 
+    const formatConfig = EXPORT_FORMATS[exportFormat];
+    if (!formatConfig) {
+      toast.error("Pick a format first.");
+      return;
+    }
+
     setExporting(true);
     try {
-      let response;
-      if (exportFormat === "docx") {
-        response = await projectApi.exportDocx(
-          selectedProject.id,
-          exportIncludeTitlePage,
-          exportIncludeChapterNumbers,
-        );
-      } else {
-        response = await projectApi.exportPdf(
-          selectedProject.id,
-          exportIncludeTitlePage,
-          exportIncludeChapterNumbers,
-        );
-      }
+      const author = exportAuthorOverride.trim() || null;
+      const response = await formatConfig.method(
+        selectedProject.id,
+        exportIncludeTitlePage,
+        exportIncludeChapterNumbers,
+        author,
+      );
 
       // Create download link
-      const blob = new Blob([response.data], {
-        type:
-          exportFormat === "docx"
-            ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            : "application/pdf",
-      });
+      const blob = new Blob([response.data], { type: formatConfig.mime });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -645,15 +667,15 @@ export default function ManuscriptWorkspace() {
         .replace(/[^\w\s-]/g, "")
         .trim()
         .substring(0, 50);
-      link.download = `${safeTitle || "manuscript"}.${exportFormat}`;
+      link.download = `${safeTitle || "manuscript"}.${formatConfig.extension}`;
 
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success("Exported.");
       setExportDialogOpen(false);
+      toast.success("Exported.");
     } catch (error) {
       console.error("Export failed:", error);
       toast.error(
@@ -1847,7 +1869,9 @@ export default function ManuscriptWorkspace() {
                           data-testid="rewrite-tone-btn"
                         >
                           <Wand2 className="h-4 w-4 mr-2" />
-                          {selectedText ? "Improve this passage" : "Improve the chapter"}
+                          {selectedText
+                            ? "Improve this passage"
+                            : "Improve the chapter"}
                         </Button>
                         <Button
                           variant="outline"
@@ -2019,12 +2043,14 @@ export default function ManuscriptWorkspace() {
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              Insert leaves what's there. Replace swaps your selection.
+                              Insert leaves what's there. Replace swaps your
+                              selection.
                             </p>
                           </div>
                         ) : (
                           <p className="text-sm text-muted-foreground text-center py-8">
-                            Pick something to do, or highlight a passage and choose an action.
+                            Pick something to do, or highlight a passage and
+                            choose an action.
                           </p>
                         )}
                       </div>
@@ -2241,10 +2267,40 @@ export default function ManuscriptWorkspace() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="docx">Microsoft Word (.docx)</SelectItem>
-                  <SelectItem value="pdf">PDF Document (.pdf)</SelectItem>
+                  <SelectItem value="epub">
+                    EPUB — for readers (.epub)
+                  </SelectItem>
+                  <SelectItem value="docx">
+                    Word — for editing (.docx)
+                  </SelectItem>
+                  <SelectItem value="pdf">PDF — for printing (.pdf)</SelectItem>
+                  <SelectItem value="markdown">
+                    Markdown — for plain text (.md)
+                  </SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Author override */}
+            <div className="space-y-2">
+              <Label htmlFor="export-author" className="text-sm font-medium">
+                Author name
+              </Label>
+              <Input
+                id="export-author"
+                value={exportAuthorOverride}
+                onChange={(e) => setExportAuthorOverride(e.target.value)}
+                placeholder={user?.display_name || "Your name on the cover"}
+                className="rounded-sm"
+                data-testid="export-author-input"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave blank to use{" "}
+                {user?.display_name
+                  ? `"${user.display_name}"`
+                  : "your account name"}
+                .
+              </p>
             </div>
 
             {/* Options */}
@@ -2285,6 +2341,11 @@ export default function ManuscriptWorkspace() {
                 </strong>{" "}
                 words
               </p>
+              {exportFormat === "epub" && (
+                <p className="mt-1 text-accent">
+                  If a cover exists in the art studio, it'll be embedded.
+                </p>
+              )}
             </div>
           </div>
 

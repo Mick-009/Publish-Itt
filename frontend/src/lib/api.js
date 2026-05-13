@@ -61,6 +61,7 @@ export const projectApi = {
     projectId,
     includeTitlePage = true,
     includeChapterNumbers = true,
+    authorOverride = null,
   ) =>
     api.post(
       "/export/pdf",
@@ -68,6 +69,55 @@ export const projectApi = {
         project_id: projectId,
         include_title_page: includeTitlePage,
         include_chapter_numbers: includeChapterNumbers,
+        author_override: authorOverride,
+      },
+      { responseType: "blob" },
+    ),
+  exportDocx: (
+    projectId,
+    includeTitlePage = true,
+    includeChapterNumbers = true,
+    authorOverride = null,
+  ) =>
+    api.post(
+      "/export/docx",
+      {
+        project_id: projectId,
+        include_title_page: includeTitlePage,
+        include_chapter_numbers: includeChapterNumbers,
+        author_override: authorOverride,
+      },
+      { responseType: "blob" },
+    ),
+  exportMarkdown: (
+    projectId,
+    includeTitlePage = true,
+    includeChapterNumbers = true,
+    authorOverride = null,
+  ) =>
+    api.post(
+      "/export/markdown",
+      {
+        project_id: projectId,
+        include_title_page: includeTitlePage,
+        include_chapter_numbers: includeChapterNumbers,
+        author_override: authorOverride,
+      },
+      { responseType: "blob" },
+    ),
+  exportEpub: (
+    projectId,
+    includeTitlePage = true,
+    includeChapterNumbers = true,
+    authorOverride = null,
+  ) =>
+    api.post(
+      "/export/epub",
+      {
+        project_id: projectId,
+        include_title_page: includeTitlePage,
+        include_chapter_numbers: includeChapterNumbers,
+        author_override: authorOverride,
       },
       { responseType: "blob" },
     ),
