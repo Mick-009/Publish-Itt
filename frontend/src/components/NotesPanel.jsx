@@ -51,9 +51,9 @@ import {
 
 const NOTE_TYPES = [
   { value: "comment", label: "Comment", icon: MessageSquare, color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  { value: "todo", label: "To-Do", icon: CheckSquare, color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  { value: "todo", label: "To-do", icon: CheckSquare, color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   { value: "revision", label: "Revision", icon: AlertCircle, color: "bg-red-500/10 text-red-600 border-red-500/20" },
-  { value: "author_intent", label: "Author Intent", icon: Lightbulb, color: "bg-green-500/10 text-green-600 border-green-500/20" },
+  { value: "author_intent", label: "Intent", icon: Lightbulb, color: "bg-green-500/10 text-green-600 border-green-500/20" },
 ];
 
 export default function NotesPanel({ parentType, parentId }) {
@@ -81,7 +81,7 @@ export default function NotesPanel({ parentType, parentId }) {
     setLoading(true);
     try {
       const res = await notesApi.getByParent(parentType, parentId);
-      // Sort DESCENDING by created_at (newest first) - THADDAEUS rule
+      // Newest first.
       const sortedNotes = [...res.data].sort((a, b) => 
         new Date(b.created_at) - new Date(a.created_at)
       );
@@ -95,7 +95,7 @@ export default function NotesPanel({ parentType, parentId }) {
 
   const handleCreateNote = async () => {
     if (!newNote.note_text.trim()) {
-      toast.error("Please enter note text");
+      toast.error("Add some text first.");
       return;
     }
 
@@ -106,12 +106,12 @@ export default function NotesPanel({ parentType, parentId }) {
         parent_id: parentId,
         ...newNote
       });
-      toast.success("Note created");
+      toast.success("Pinned.");
       setCreateDialogOpen(false);
       setNewNote({ note_text: "", note_type: "comment", location_reference: "" });
       loadNotes();
     } catch (error) {
-      toast.error("Failed to create note");
+      toast.error("Couldn't pin it. Try again?");
     } finally {
       setCreating(false);
     }
@@ -119,7 +119,7 @@ export default function NotesPanel({ parentType, parentId }) {
 
   const handleUpdateNote = async () => {
     if (!selectedNote || !selectedNote.note_text.trim()) {
-      toast.error("Please enter note text");
+      toast.error("Add some text first.");
       return;
     }
 
@@ -130,12 +130,12 @@ export default function NotesPanel({ parentType, parentId }) {
         note_type: selectedNote.note_type,
         location_reference: selectedNote.location_reference
       });
-      toast.success("Note updated");
+      toast.success("Updated.");
       setEditDialogOpen(false);
       setSelectedNote(null);
       loadNotes();
     } catch (error) {
-      toast.error("Failed to update note");
+      toast.error("Couldn't update. Try again?");
     } finally {
       setCreating(false);
     }
@@ -146,12 +146,12 @@ export default function NotesPanel({ parentType, parentId }) {
     
     try {
       await notesApi.delete(selectedNote.id);
-      toast.success("Note deleted");
+      toast.success("Removed.");
       setDeleteDialogOpen(false);
       setSelectedNote(null);
       loadNotes();
     } catch (error) {
-      toast.error("Failed to delete note");
+      toast.error("Couldn't remove it. Try again?");
     }
   };
 
@@ -172,7 +172,7 @@ export default function NotesPanel({ parentType, parentId }) {
     return (
       <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
         <StickyNote className="h-8 w-8 mb-2 opacity-50" />
-        <p className="text-sm">Select a chapter to view notes</p>
+        <p className="text-sm">Open a chapter to see its notes.</p>
       </div>
     );
   }
@@ -183,7 +183,7 @@ export default function NotesPanel({ parentType, parentId }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <StickyNote className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Notes & Comments</span>
+          <span className="text-sm font-medium">Notes</span>
           <Badge variant="secondary" className="text-xs">
             {notes.length}
           </Badge>
@@ -195,7 +195,7 @@ export default function NotesPanel({ parentType, parentId }) {
           data-testid="create-note-btn"
         >
           <Plus className="h-3.5 w-3.5 mr-1" />
-          Add Note
+          Pin a note
         </Button>
       </div>
 
@@ -211,7 +211,7 @@ export default function NotesPanel({ parentType, parentId }) {
           title="A clean corkboard."
           body="Pin reminders, questions, and revision flags to this chapter as you go."
           primaryAction={{
-            label: "Add first note",
+            label: "Pin a note",
             icon: Plus,
             onClick: () => setCreateDialogOpen(true),
             testId: "empty-notes-add-btn",
@@ -290,14 +290,14 @@ export default function NotesPanel({ parentType, parentId }) {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent data-testid="create-note-dialog">
           <DialogHeader>
-            <DialogTitle className="font-serif">Add Note</DialogTitle>
+            <DialogTitle className="font-serif">Pin a note</DialogTitle>
             <DialogDescription>
-              Add a note, comment, or reminder for this chapter.
+              Pin a reminder or question to this chapter.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="noteType">Note Type</Label>
+              <Label htmlFor="noteType">Type</Label>
               <Select
                 value={newNote.note_type}
                 onValueChange={(value) => setNewNote({ ...newNote, note_type: value })}
@@ -318,12 +318,12 @@ export default function NotesPanel({ parentType, parentId }) {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="noteLocation">Location Reference (optional)</Label>
+              <Label htmlFor="noteLocation">Where it points (optional)</Label>
               <Input
                 id="noteLocation"
                 value={newNote.location_reference}
                 onChange={(e) => setNewNote({ ...newNote, location_reference: e.target.value })}
-                placeholder="e.g., Paragraph 3, Line 42..."
+                placeholder="e.g. paragraph 3, line 42"
                 className="rounded-sm"
                 data-testid="note-location-input"
               />
@@ -334,7 +334,7 @@ export default function NotesPanel({ parentType, parentId }) {
                 id="noteText"
                 value={newNote.note_text}
                 onChange={(e) => setNewNote({ ...newNote, note_text: e.target.value })}
-                placeholder="Enter your note..."
+                placeholder="Write the note..."
                 className="rounded-sm resize-none"
                 rows={4}
                 data-testid="note-text-input"
@@ -358,10 +358,10 @@ export default function NotesPanel({ parentType, parentId }) {
               {creating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
+                  Saving.
                 </>
               ) : (
-                "Add Note"
+                "Pin it"
               )}
             </Button>
           </DialogFooter>
@@ -372,15 +372,15 @@ export default function NotesPanel({ parentType, parentId }) {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent data-testid="edit-note-dialog">
           <DialogHeader>
-            <DialogTitle className="font-serif">Edit Note</DialogTitle>
+            <DialogTitle className="font-serif">Edit note</DialogTitle>
             <DialogDescription>
-              Update your note details.
+              Change the note.
             </DialogDescription>
           </DialogHeader>
           {selectedNote && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="editNoteType">Note Type</Label>
+                <Label htmlFor="editNoteType">Type</Label>
                 <Select
                   value={selectedNote.note_type}
                   onValueChange={(value) => setSelectedNote({ ...selectedNote, note_type: value })}
@@ -401,12 +401,12 @@ export default function NotesPanel({ parentType, parentId }) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editNoteLocation">Location Reference</Label>
+                <Label htmlFor="editNoteLocation">Where it points</Label>
                 <Input
                   id="editNoteLocation"
                   value={selectedNote.location_reference || ""}
                   onChange={(e) => setSelectedNote({ ...selectedNote, location_reference: e.target.value })}
-                  placeholder="e.g., Paragraph 3, Line 42..."
+                  placeholder="e.g. paragraph 3, line 42"
                   className="rounded-sm"
                 />
               </div>
@@ -440,10 +440,10 @@ export default function NotesPanel({ parentType, parentId }) {
               {creating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Updating...
+                  Updating.
                 </>
               ) : (
-                "Update Note"
+                "Update"
               )}
             </Button>
           </DialogFooter>
@@ -454,9 +454,9 @@ export default function NotesPanel({ parentType, parentId }) {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent data-testid="delete-note-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this note?</AlertDialogTitle>
+            <AlertDialogTitle>Remove this note?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this note. This action cannot be undone.
+              Gone for good — can't undo.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -466,7 +466,7 @@ export default function NotesPanel({ parentType, parentId }) {
               className="rounded-sm bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="confirm-delete-note-btn"
             >
-              Delete Note
+              Remove
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

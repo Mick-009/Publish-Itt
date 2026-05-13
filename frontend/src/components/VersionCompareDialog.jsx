@@ -248,14 +248,14 @@ function createUnifiedBlocks(wordDiff) {
 
 function getVersionRole(version, isEarlier) {
   if (version?.isCurrentDraft) {
-    return "Current Draft";
+    return "Current draft";
   }
 
-  return isEarlier ? "Earlier Version" : "Later Version";
+  return isEarlier ? "Earlier" : "Later";
 }
 
 function getVersionTitle(version) {
-  return version?.label?.trim() || "Untitled Version";
+  return version?.label?.trim() || "Untitled version";
 }
 
 function renderParagraphs(text) {
@@ -375,12 +375,12 @@ export default function VersionCompareDialog({
         <DialogHeader className="space-y-2">
           <DialogTitle className="font-serif flex items-center gap-2 text-xl">
             <GitCompare className="h-5 w-5" />
-            Compare Versions
+            Compare versions
           </DialogTitle>
           <DialogDescription className="text-sm leading-6">
             {isCurrentDraftCompare
-              ? "Review how the current draft differs from the saved version."
-              : "Review what changed between these two saved versions."}
+              ? "How the current draft differs from this saved one."
+              : "What changed between these two."}
           </DialogDescription>
         </DialogHeader>
 
@@ -404,19 +404,19 @@ export default function VersionCompareDialog({
           <div className="grid min-w-0 gap-2 sm:grid-cols-3 xl:w-full xl:max-w-2xl">
             <SummaryCard
               icon={Plus}
-              label="Words Added"
+              label="Words added"
               value={stats.additions}
               tone="added"
             />
             <SummaryCard
               icon={Minus}
-              label="Words Removed"
+              label="Words removed"
               value={stats.deletions}
               tone="removed"
             />
             <SummaryCard
               icon={Sparkles}
-              label="Changed Sections"
+              label="Changed sections"
               value={stats.changedSections}
               helper={`${stats.unchanged} unchanged words`}
             />
@@ -432,7 +432,7 @@ export default function VersionCompareDialog({
               data-testid="side-by-side-view-btn"
             >
               <Columns className="h-3.5 w-3.5 mr-1.5" />
-              Side by Side
+              Side by side
             </Button>
             <Button
               variant={viewMode === "unified" ? "secondary" : "ghost"}

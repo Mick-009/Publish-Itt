@@ -47,17 +47,17 @@ const CATEGORY_CONFIG = {
     color: "bg-purple-500/10 text-purple-600 border-purple-500/20",
   },
   tone: {
-    label: "Tone & Style",
+    label: "Tone & style",
     icon: Palette,
     color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   },
   notes: {
-    label: "Notes Detected",
+    label: "Notes found",
     icon: StickyNote,
     color: "bg-green-500/10 text-green-600 border-green-500/20",
   },
   chapters: {
-    label: "Chapter Detection",
+    label: "Chapter breaks",
     icon: ListChecks,
     color: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20",
   },
@@ -106,14 +106,14 @@ export default function AnalyzerPanel({
     if (!content || content.trim().length < 30) {
       setToneStyleData({
         tone_analysis:
-          "Add more content to see tone analysis. I need at least a few sentences to work with.",
+          "Give me more to work with — a few sentences at least.",
         style_analysis:
-          "Style analysis will appear once you have enough content to analyze.",
+          "Style read needs more on the page.",
         suggestions: [
-          "Start writing or paste your content",
-          "Share at least a paragraph for meaningful analysis",
+          "Start writing, or paste something in",
+          "At least a paragraph so I have something to chew on",
         ],
-        reading_level: "Not yet determined",
+        reading_level: "Not yet",
       });
       return;
     }
@@ -134,20 +134,19 @@ export default function AnalyzerPanel({
 
       setToneStyleData(response.data);
       setLastAnalyzed(Date.now());
-      toast.success("Tone & Style analysis complete");
     } catch (error) {
       console.error("Tone analysis failed:", error);
-      toast.error("Failed to analyze tone & style");
-      // Set fallback data
+      toast.error("Couldn't read it just now. Try again?");
+      // Fallback in voice — used when the API is unreachable.
       setToneStyleData({
         tone_analysis:
-          "Unable to complete analysis at this time. Please try again.",
-        style_analysis: "Style analysis unavailable.",
+          "Couldn't get through. Try again?",
+        style_analysis: "Style read unavailable.",
         suggestions: [
-          "Try refreshing the analysis",
-          "Check your content and try again",
+          "Try again",
+          "Look at what's on the page",
         ],
-        reading_level: "Not determined",
+        reading_level: "Not yet",
       });
     } finally {
       setToneStyleLoading(false);
@@ -176,7 +175,7 @@ export default function AnalyzerPanel({
   // Detailed Import Analysis (existing functionality)
   const runDetailedAnalysis = async () => {
     if (!content || content.trim().length < 50) {
-      toast.error("Not enough content for detailed analysis");
+      toast.error("Not enough on the page for a deep read.");
       return;
     }
 
@@ -204,8 +203,8 @@ export default function AnalyzerPanel({
               category: "structure",
               title:
                 typeof issue === "string"
-                  ? "Structure Issue"
-                  : issue.title || "Structure Issue",
+                  ? "Structure issue"
+                  : issue.title || "Structure issue",
               description:
                 typeof issue === "string" ? issue : issue.description || issue,
               suggestion: issue.suggestion,
@@ -223,8 +222,8 @@ export default function AnalyzerPanel({
               category: "formatting",
               title:
                 typeof issue === "string"
-                  ? "Formatting Issue"
-                  : issue.title || "Formatting Issue",
+                  ? "Formatting issue"
+                  : issue.title || "Formatting issue",
               description:
                 typeof issue === "string" ? issue : issue.description || issue,
               suggestion: issue.suggestion,
@@ -240,7 +239,7 @@ export default function AnalyzerPanel({
             analysisFindings.push({
               id: `finding-${findingId++}`,
               category: "notes",
-              title: "Author Note Detected",
+              title: "Note found",
               description: typeof note === "string" ? note : note.text || note,
               location: note.location,
               severity: "info",
@@ -257,8 +256,8 @@ export default function AnalyzerPanel({
               category: "tone",
               title:
                 typeof issue === "string"
-                  ? "Style Issue"
-                  : issue.title || "Style Issue",
+                  ? "Style issue"
+                  : issue.title || "Style issue",
               description:
                 typeof issue === "string" ? issue : issue.description || issue,
               suggestion: issue.suggestion,
@@ -275,8 +274,8 @@ export default function AnalyzerPanel({
               category: "issues",
               title:
                 typeof issue === "string"
-                  ? "Lore Issue"
-                  : issue.title || "Lore Issue",
+                  ? "Lore issue"
+                  : issue.title || "Lore issue",
               description:
                 typeof issue === "string" ? issue : issue.description || issue,
               suggestion: issue.suggestion,
@@ -290,7 +289,7 @@ export default function AnalyzerPanel({
           analysisFindings.push({
             id: `finding-${findingId++}`,
             category: "structure",
-            title: "Word Count",
+            title: "Word count",
             description: `Total words: ${data.word_count.toLocaleString()}`,
             severity: "info",
           });
@@ -302,13 +301,13 @@ export default function AnalyzerPanel({
       setShowDetailedAnalysis(true);
 
       if (analysisFindings.length > 0) {
-        toast.success(`Found ${analysisFindings.length} items to review`);
+        toast.success(`Found ${analysisFindings.length} to look at.`);
       } else {
-        toast.success("Detailed analysis complete - no issues found!");
+        toast.success("Nothing to flag.");
       }
     } catch (error) {
       console.error("Detailed analysis failed:", error);
-      toast.error("Failed to run detailed analysis");
+      toast.error("Couldn't run the deep read. Try again?");
     } finally {
       setAnalyzing(false);
     }
@@ -317,17 +316,17 @@ export default function AnalyzerPanel({
   const handleApplyChange = async (finding) => {
     if (finding.applyAction && onApplyChange) {
       if (onCreateVersion) {
-        await onCreateVersion(`Before applying: ${finding.title}`);
+        await onCreateVersion(`Before ${finding.title.toLowerCase()}`);
       }
       onApplyChange(finding.applyAction);
       setDismissedIds((prev) => new Set([...prev, finding.id]));
-      toast.success("Change applied");
+      toast.success("Applied.");
     }
   };
 
   const handleSaveToNotes = async (finding) => {
     if (!chapterId) {
-      toast.error("No chapter selected");
+      toast.error("No chapter open.");
       return;
     }
 
@@ -340,9 +339,9 @@ export default function AnalyzerPanel({
         note_type: "comment",
       });
       setDismissedIds((prev) => new Set([...prev, finding.id]));
-      toast.success("Saved to notes");
+      toast.success("Pinned.");
     } catch (error) {
-      toast.error("Failed to save note");
+      toast.error("Couldn't pin it. Try again?");
     }
   };
 
@@ -373,7 +372,7 @@ export default function AnalyzerPanel({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-accent" />
-          <span className="text-sm font-medium">Tone & Style</span>
+          <span className="text-sm font-medium">Tone & style</span>
         </div>
         <Button
           variant="ghost"
@@ -416,7 +415,7 @@ export default function AnalyzerPanel({
               <CardHeader className="pb-2 pt-3 px-4">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-amber-500" />
-                  Tone Analysis
+                  Tone
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-3">
@@ -437,7 +436,7 @@ export default function AnalyzerPanel({
               <CardHeader className="pb-2 pt-3 px-4">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <Palette className="h-4 w-4 text-purple-500" />
-                  Style Analysis
+                  Style
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-3">
@@ -455,7 +454,7 @@ export default function AnalyzerPanel({
               <div className="flex items-center gap-2 px-1">
                 <GraduationCap className="h-4 w-4 text-blue-500" />
                 <span className="text-xs text-muted-foreground">
-                  Reading Level:
+                  Reading level:
                 </span>
                 <Badge
                   variant="secondary"
@@ -477,7 +476,7 @@ export default function AnalyzerPanel({
                   <CardHeader className="pb-2 pt-3 px-4">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       <Lightbulb className="h-4 w-4 text-green-500" />
-                      Suggestions
+                      A few suggestions
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="px-4 pb-3">
@@ -504,7 +503,7 @@ export default function AnalyzerPanel({
             {/* Last Analyzed */}
             {lastAnalyzed && (
               <div className="text-[10px] text-muted-foreground text-center pt-2">
-                Last analyzed: {new Date(lastAnalyzed).toLocaleTimeString()}
+                Last read: {new Date(lastAnalyzed).toLocaleTimeString()}
               </div>
             )}
 
@@ -514,7 +513,7 @@ export default function AnalyzerPanel({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Detailed Analysis
+                  Deeper read
                 </span>
                 <Button
                   variant="outline"
@@ -527,12 +526,12 @@ export default function AnalyzerPanel({
                   {analyzing ? (
                     <>
                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      Analyzing...
+                      Reading.
                     </>
                   ) : (
                     <>
                       <Zap className="h-3 w-3 mr-1" />
-                      Run Deep Analysis
+                      Go deeper
                     </>
                   )}
                 </Button>
@@ -644,7 +643,7 @@ export default function AnalyzerPanel({
                                           data-testid={`save-note-${finding.id}`}
                                         >
                                           <StickyNote className="h-3 w-3 mr-1" />
-                                          Save
+                                          Pin
                                         </Button>
                                       )}
                                       <Button
@@ -673,7 +672,7 @@ export default function AnalyzerPanel({
 
               {showDetailedAnalysis && totalFindings === 0 && !analyzing && (
                 <p className="text-xs text-muted-foreground text-center py-2">
-                  No detailed findings. Your content looks good!
+                  Nothing flagged. Reads clean.
                 </p>
               )}
             </div>
@@ -687,9 +686,9 @@ export default function AnalyzerPanel({
           size="panel"
           art={<AnalyzeLoopArt size={72} />}
           title="Want a closer read?"
-          body="Thad will look at your tone, pacing, and style — and surface what's working and what isn't."
+          body="I'll look at tone, pacing, and style — and tell you what's working and what isn't."
           primaryAction={{
-            label: "Analyze this chapter",
+            label: "Read this chapter",
             icon: Sparkles,
             onClick: runToneStyleAnalysis,
             testId: "initial-analyze-btn",

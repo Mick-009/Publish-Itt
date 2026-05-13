@@ -183,7 +183,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
     setDailyGoals(updated);
     localStorage.setItem(DAILY_GOALS_KEY, JSON.stringify(updated));
     setShowGoalDialog(false);
-    toast.success("Daily goals updated!");
+    toast.success("Goals set.");
   };
 
   const openGoalDialog = () => {
@@ -238,10 +238,10 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
       setLastMomentumCheck(Date.now());
     } catch (error) {
       console.error("Failed to load momentum:", error);
-      // Set fallback message
+      // Fallback in voice — used when the API is unreachable.
       setMomentumData({
-        message: "Your writing journey awaits! Every word you write brings your story to life.",
-        suggestions: ["Start writing today", "Set a small daily goal"]
+        message: "Couldn't reach the read. Keep going — the page is still there.",
+        suggestions: ["Open a chapter", "Set a small target"]
       });
     } finally {
       setMomentumLoading(false);
@@ -299,9 +299,9 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
                 <RotateCcw className="h-4 w-4 text-blue-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium mb-1">Daily Goals Refreshed</p>
+                <p className="text-sm font-medium mb-1">New day, fresh goals.</p>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Your daily writing goals have been reset for a fresh start. Ready to set new targets?
+                  Goals reset for the day. Want to change them?
                 </p>
                 <div className="flex gap-2">
                   <Button
@@ -312,7 +312,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
                     data-testid="set-new-goal-btn"
                   >
                     <Target className="h-3 w-3 mr-1" />
-                    Set Goals
+                    Set goals
                   </Button>
                   <Button
                     size="sm"
@@ -330,13 +330,13 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
         </Card>
       )}
 
-      {/* Thad's Momentum Message */}
+      {/* Thad's Momentum Read */}
       <Card className="border-l-4 border-l-accent bg-gradient-to-br from-accent/5 to-transparent" data-testid="momentum-card">
         <CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-accent" />
-              Your Momentum
+              Momentum
             </CardTitle>
             <Button
               variant="ghost"
@@ -361,7 +361,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
           {momentumLoading && !momentumData ? (
             <div className="flex items-center gap-2 py-2">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Checking your momentum...</span>
+              <span className="text-sm text-muted-foreground">Checking the run rate.</span>
             </div>
           ) : momentumData ? (
             <div className="space-y-3">
@@ -393,7 +393,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Click refresh to see your writing momentum!
+              Refresh to see the read.
             </p>
           )}
         </CardContent>
@@ -410,7 +410,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
               </div>
               <div>
                 <p className="text-2xl font-bold" data-testid="streak-count">{stats?.current_streak || 0}</p>
-                <p className="text-xs text-muted-foreground">Day Streak</p>
+                <p className="text-xs text-muted-foreground">day streak</p>
               </div>
             </div>
           </CardContent>
@@ -425,7 +425,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
               </div>
               <div>
                 <p className="text-2xl font-bold" data-testid="today-words">{todayWords.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Words Today</p>
+                <p className="text-xs text-muted-foreground">words today</p>
               </div>
             </div>
           </CardContent>
@@ -438,7 +438,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Target className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Daily Goal</span>
+              <span className="text-sm font-medium">Today's target</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">
@@ -459,7 +459,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
           {dailyProgress >= 100 && (
             <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
               <Zap className="h-3 w-3" />
-              Goal achieved! 🎉
+              Goal reached.
             </div>
           )}
         </CardContent>
@@ -470,7 +470,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
         <CardHeader className="pb-2 pt-3 px-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            This Week
+            This week
           </CardTitle>
         </CardHeader>
         <CardContent className="p-3 pt-0">
@@ -517,28 +517,28 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
           <Clock className="h-3.5 w-3.5 text-muted-foreground" />
           <div>
             <p className="font-medium" data-testid="total-time">{formatTime(stats?.total_time_seconds || 0)}</p>
-            <p className="text-muted-foreground">Total Time</p>
+            <p className="text-muted-foreground">Time at the desk</p>
           </div>
         </div>
         <div className="flex items-center gap-2 p-2 rounded-sm bg-muted/50">
           <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
           <div>
             <p className="font-medium" data-testid="avg-words">{Math.round(stats?.average_words_per_day || 0)}</p>
-            <p className="text-muted-foreground">Avg/Day</p>
+            <p className="text-muted-foreground">Avg / day</p>
           </div>
         </div>
         <div className="flex items-center gap-2 p-2 rounded-sm bg-muted/50">
           <FileText className="h-3.5 w-3.5 text-muted-foreground" />
           <div>
             <p className="font-medium" data-testid="total-words">{(stats?.total_words_written || 0).toLocaleString()}</p>
-            <p className="text-muted-foreground">Total Words</p>
+            <p className="text-muted-foreground">Total words</p>
           </div>
         </div>
         <div className="flex items-center gap-2 p-2 rounded-sm bg-muted/50">
           <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
           <div>
             <p className="font-medium" data-testid="days-active">{stats?.days_active || 0}</p>
-            <p className="text-muted-foreground">Days Active</p>
+            <p className="text-muted-foreground">Days active</p>
           </div>
         </div>
       </div>
@@ -548,7 +548,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
         <div className="flex items-center justify-center">
           <Badge variant="outline" className="text-xs gap-1" data-testid="longest-streak-badge">
             <Flame className="h-3 w-3 text-orange-500" />
-            Best Streak: {stats.longest_streak} days
+            Best streak: {stats.longest_streak} days
           </Badge>
         </div>
       )}
@@ -559,13 +559,13 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Target className="h-5 w-5 text-accent" />
-              Set Daily Goals
+              Today's targets
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="word-goal" className="text-sm font-medium">
-                Word Count Goal
+                Word target
               </Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -582,13 +582,13 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
                 <span className="text-sm text-muted-foreground">words</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                How many words do you want to write today?
+                How many words today?
               </p>
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="time-goal" className="text-sm font-medium">
-                Time Goal
+                Time target
               </Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -605,16 +605,16 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
                 <span className="text-sm text-muted-foreground">minutes</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                How long do you want to write today?
+                How long today?
               </p>
             </div>
 
             <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-sm">
               <p className="font-medium mb-1 flex items-center gap-1">
                 <Bell className="h-3 w-3" />
-                Auto-Reset Info
+                How resets work
               </p>
-              <p>Goals reset automatically at midnight or after 24 hours of inactivity.</p>
+              <p>Goals reset at midnight or after 24 hours away.</p>
             </div>
           </div>
           <DialogFooter>
@@ -630,7 +630,7 @@ export default function WritingStatsPanel({ className, ageGroup, autoAnalyzeOnMo
               className="rounded-sm"
               data-testid="save-goals-btn"
             >
-              Save Goals
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>

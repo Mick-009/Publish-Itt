@@ -20,6 +20,8 @@ import {
   Clock,
 } from "lucide-react";
 
+// Stage IDs are backend contract — `analyzeWorkflowStage` returns one of these
+// in `data.stage`, so don't rename them. Display copy comes from the backend.
 const WORKFLOW_STAGES = [
   {
     id: "Idea Drop",
@@ -78,10 +80,10 @@ export default function WorkflowPanel({
       setAnalysisData({
         stage: "Idea Drop",
         message:
-          "Welcome! You're at the beginning of your creative journey. Start by capturing your initial ideas or importing an existing manuscript.",
+          "Nothing on the page yet. Start a chapter, or bring in something you've already written.",
         next_steps: [
-          "Create your first chapter",
-          "Import an existing manuscript",
+          "Start your first chapter",
+          "Bring in a manuscript",
         ],
         progress_percent: 10,
       });
@@ -114,13 +116,13 @@ export default function WorkflowPanel({
       setLastAnalyzed(Date.now());
     } catch (err) {
       console.error("Workflow analysis failed:", err);
-      setError("Unable to analyze workflow. Please try again.");
-      // Set fallback data
+      setError("Couldn't read the workflow. Try again?");
+      // Fallback in voice — used when the API is unreachable.
       setAnalysisData({
         stage: "Draft",
         message:
-          "I'm here to help guide your writing journey. Let me know when you're ready for suggestions!",
-        next_steps: ["Continue writing", "Review your chapters"],
+          "Lost the thread on the analysis. Keep writing — I'll catch up.",
+        next_steps: ["Keep going", "Look back at what's there"],
         progress_percent: 50,
       });
     } finally {
@@ -159,7 +161,7 @@ export default function WorkflowPanel({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-accent" />
-          <span className="text-sm font-medium">Writing Stage</span>
+          <span className="text-sm font-medium">Where you are</span>
         </div>
         <Button
           variant="ghost"
@@ -201,7 +203,7 @@ export default function WorkflowPanel({
               onClick={analyzeWorkflow}
               className="mt-2"
             >
-              Try Again
+              Try again
             </Button>
           </CardContent>
         </Card>
@@ -237,25 +239,24 @@ export default function WorkflowPanel({
             </CardContent>
           </Card>
 
-          {/* Thad's Message */}
+          {/* Thad's read — the sparkles icon carries the attribution, no label needed */}
           <div className="bg-muted/30 border rounded-lg p-3">
-            <div className="flex items-start gap-2 mb-2">
+            <div className="flex items-start gap-2">
               <Sparkles className="h-4 w-4 text-accent mt-0.5 shrink-0" />
-              <p className="text-xs text-muted-foreground">Thad says:</p>
+              <p
+                className="text-sm leading-relaxed"
+                data-testid="workflow-message"
+              >
+                {analysisData.message}
+              </p>
             </div>
-            <p
-              className="text-sm leading-relaxed"
-              data-testid="workflow-message"
-            >
-              {analysisData.message}
-            </p>
           </div>
 
           {/* Next Steps */}
           {analysisData.next_steps && analysisData.next_steps.length > 0 && (
             <div className="space-y-2">
               <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Suggested Next Steps
+                What's next
               </h5>
               <div className="space-y-1.5">
                 {analysisData.next_steps.map((step, index) => (
@@ -275,7 +276,7 @@ export default function WorkflowPanel({
           {/* Stage Timeline */}
           <div className="pt-2">
             <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
-              Writing Journey
+              The arc
             </h5>
             <div className="flex items-center justify-between gap-1">
               {WORKFLOW_STAGES.map((stage, index) => {
@@ -332,7 +333,7 @@ export default function WorkflowPanel({
           {lastAnalyzed && (
             <div className="flex items-center gap-1 text-[10px] text-muted-foreground pt-2">
               <Clock className="h-3 w-3" />
-              Last analyzed: {new Date(lastAnalyzed).toLocaleTimeString()}
+              Last read: {new Date(lastAnalyzed).toLocaleTimeString()}
             </div>
           )}
         </>

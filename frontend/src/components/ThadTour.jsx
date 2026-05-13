@@ -66,14 +66,14 @@ export default function ThadTour({
       setTourData(res.data);
     } catch (error) {
       console.error("Failed to get tour step:", error);
-      // Fallback data
+      // Fallback in voice — used when the API is unreachable.
       setTourData({
         step_number: stepIndex + 1,
         total_steps: 6,
         area: "Feature",
-        message: "Let me show you around Publish Itt!",
+        message: "Let me show you around.",
         is_final: stepIndex >= 5,
-        final_actions: stepIndex >= 5 ? ["Start Writing", "Create a Character", "Set Up My Book Style"] : null
+        final_actions: stepIndex >= 5 ? ["Start writing", "Make a character", "Set the look"] : null
       });
     } finally {
       setLoading(false);
@@ -147,7 +147,7 @@ export default function ThadTour({
                 data-testid="tour-skip"
               >
                 <X className="h-3 w-3 mr-1" />
-                Skip Tour
+                Skip
               </Button>
             </div>
             <Progress value={progressPercent} className="h-1.5" />
@@ -170,7 +170,7 @@ export default function ThadTour({
                   <h3 className="font-medium text-base">{tourData.area}</h3>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
-                    Thad's Tour
+                    Thad
                   </p>
                 </div>
               </div>
@@ -186,7 +186,7 @@ export default function ThadTour({
               {tourData.is_final ? (
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-center text-muted-foreground mb-3">
-                    Ready to create? Choose your starting point:
+                    That's the tour. Where would you like to start?
                   </p>
                   <div className="grid gap-2">
                     <Button
@@ -195,7 +195,7 @@ export default function ThadTour({
                       data-testid="tour-start-writing"
                     >
                       <BookOpen className="h-4 w-4 mr-3 shrink-0" />
-                      <span>Start Writing</span>
+                      <span>Start writing</span>
                     </Button>
                     <Button
                       variant="outline"
@@ -204,7 +204,7 @@ export default function ThadTour({
                       data-testid="tour-create-character"
                     >
                       <Users className="h-4 w-4 mr-3 shrink-0" />
-                      <span>Create a Character</span>
+                      <span>Make a character</span>
                     </Button>
                     <Button
                       variant="outline"
@@ -213,7 +213,7 @@ export default function ThadTour({
                       data-testid="tour-book-style"
                     >
                       <Palette className="h-4 w-4 mr-3 shrink-0" />
-                      <span>Set Up My Book Style</span>
+                      <span>Set the look</span>
                     </Button>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,7 +68,7 @@ export default function VersionsPanel({
     setLoading(true);
     try {
       const res = await versionsApi.getByParent(parentType, parentId);
-      // Sort DESCENDING by created_at (newest first) - THADDAEUS rule
+      // Newest first.
       const sortedVersions = [...res.data].sort(
         (a, b) => new Date(b.created_at) - new Date(a.created_at),
       );
@@ -123,12 +123,12 @@ export default function VersionsPanel({
         label: buildManualVersionLabel(),
         created_by: "author",
       });
-      toast.success("Version snapshot saved");
+      toast.success("Saved.");
       setCreateDialogOpen(false);
       setNewVersionLabel("");
       loadVersions();
     } catch (error) {
-      toast.error("Failed to create version");
+      toast.error("Couldn't save it. Try again?");
     } finally {
       setCreating(false);
     }
@@ -139,12 +139,12 @@ export default function VersionsPanel({
 
     try {
       await versionsApi.delete(selectedVersion.id);
-      toast.success("Version deleted");
+      toast.success("Removed.");
       setDeleteDialogOpen(false);
       setSelectedVersion(null);
       loadVersions();
     } catch (error) {
-      toast.error("Failed to delete version");
+      toast.error("Couldn't remove it. Try again?");
     }
   };
 
@@ -152,7 +152,7 @@ export default function VersionsPanel({
     if (selectedVersion && onRestoreVersion) {
       onRestoreVersion(selectedVersion.content_snapshot);
       setViewDialogOpen(false);
-      toast.success("Version restored to editor");
+      toast.success("Restored.");
     }
   };
 
@@ -163,7 +163,7 @@ export default function VersionsPanel({
       version,
       {
         id: "current-draft",
-        label: "Current Draft",
+        label: "Current draft",
         content_snapshot: getCurrentContent?.() || "",
         created_at: new Date().toISOString(),
         created_by: "current",
@@ -186,7 +186,7 @@ export default function VersionsPanel({
 
   const getVersionLabel = (version, fallbackIndex) => {
     if (version?.isCurrentDraft) {
-      return "Current Draft";
+      return "Current draft";
     }
 
     if (version?.label?.trim()) {
@@ -194,18 +194,19 @@ export default function VersionsPanel({
     }
 
     if (version?.created_by === "auto") {
-      return `Auto snapshot - ${formatDate(version.created_at)}`;
+      return `Auto save — ${formatDate(version.created_at)}`;
     }
 
-    return `Saved version ${fallbackIndex}`;
+    return `Version ${fallbackIndex}`;
   };
 
   const getVersionSourceLabel = (version) => {
     if (version?.isCurrentDraft) return "Current";
     if (version?.created_by === "auto") return "Auto";
-    if (version?.created_by === "ai") return "AI";
-    if (version?.label?.startsWith("AI Snapshot")) return "AI";
-    return "Manual";
+    if (version?.created_by === "thad" || version?.created_by === "ai") return "Thad";
+    // Legacy label prefix kept for older data — backend now emits created_by: "thad".
+    if (version?.label?.startsWith("AI Snapshot")) return "Thad";
+    return "Yours";
   };
 
   const buildManualVersionLabel = () => {
@@ -213,14 +214,14 @@ export default function VersionsPanel({
       return newVersionLabel.trim();
     }
 
-    return `Manual snapshot - ${formatDate(new Date().toISOString())}`;
+    return `Saved — ${formatDate(new Date().toISOString())}`;
   };
 
   if (!parentId) {
     return (
       <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
         <History className="h-8 w-8 mb-2 opacity-50" />
-        <p className="text-sm">Select a chapter to view versions</p>
+        <p className="text-sm">Open a chapter to see its history.</p>
       </div>
     );
   }
@@ -235,7 +236,7 @@ export default function VersionsPanel({
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <GitBranch className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm font-medium">Version History</span>
+            <span className="text-sm font-medium">History</span>
             <Badge variant="secondary" className="shrink-0 text-xs">
               {versions.length}
             </Badge>
@@ -248,7 +249,7 @@ export default function VersionsPanel({
             data-testid="create-version-btn"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Save
+            Save a version
           </Button>
         </div>
 
@@ -267,7 +268,7 @@ export default function VersionsPanel({
                 className="text-xs font-medium cursor-pointer flex items-center gap-1"
               >
                 <GitCompare className="h-3.5 w-3.5" />
-                Compare Mode
+                Compare two
               </label>
             </div>
             {compareMode && (
@@ -407,24 +408,24 @@ export default function VersionsPanel({
           <DialogContent data-testid="create-version-dialog">
             <DialogHeader>
               <DialogTitle className="font-serif">
-                Save Version Snapshot
+                Save a version
               </DialogTitle>
               <DialogDescription>
-                Create a snapshot of the current content to track your changes.
+                Save a copy of where the chapter sits now.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <Label htmlFor="versionLabel">Version Label</Label>
+              <Label htmlFor="versionLabel">Label</Label>
               <Input
                 id="versionLabel"
                 value={newVersionLabel}
                 onChange={(e) => setNewVersionLabel(e.target.value)}
-                placeholder="Optional: First draft, After review..."
+                placeholder="e.g. first draft, after Sarah's read"
                 className="mt-2 rounded-sm"
                 data-testid="version-label-input"
               />
               <p className="mt-2 text-xs text-muted-foreground">
-                Leave blank to use a timestamped manual snapshot label.
+                Leave blank and I'll timestamp it.
               </p>
             </div>
             <DialogFooter>
@@ -444,10 +445,10 @@ export default function VersionsPanel({
                 {creating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
+                    Saving.
                   </>
                 ) : (
-                  "Save Version"
+                  "Save"
                 )}
               </Button>
             </DialogFooter>
@@ -494,7 +495,7 @@ export default function VersionsPanel({
                 data-testid="compare-current-version-btn"
               >
                 <GitCompare className="h-4 w-4 mr-2" />
-                Compare With Current
+                Compare with current
               </Button>
               <Button
                 onClick={handleRestoreVersion}
@@ -502,7 +503,7 @@ export default function VersionsPanel({
                 data-testid="restore-version-btn"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Restore This Version
+                Restore this version
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -512,11 +513,9 @@ export default function VersionsPanel({
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent data-testid="delete-version-dialog">
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete this version?</AlertDialogTitle>
+              <AlertDialogTitle>Remove this version?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete the version "
-                {selectedVersion?.label}
-                ". This action cannot be undone.
+                Gone for good — can't undo.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -528,7 +527,7 @@ export default function VersionsPanel({
                 className="rounded-sm bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 data-testid="confirm-delete-version-btn"
               >
-                Delete Version
+                Remove
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

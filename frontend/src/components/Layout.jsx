@@ -40,11 +40,11 @@ import { BarChart2 } from "lucide-react";
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/", exact: true },
   { icon: FileText, label: "Manuscript", path: "/manuscript" },
-  { icon: BarChart2, label: "Writing Stats", path: "/stats" },
-  { icon: GitBranch, label: "Writing Stage", path: "/workflow" },
-  { icon: Palette, label: "Voice & Style", path: "/tone" },
-  { icon: ImageIcon, label: "Cover & Art", path: "/art" },
-  { icon: TrendingUp, label: "Publishing Insights", path: "/market" },
+  { icon: BarChart2, label: "Stats", path: "/stats" },
+  { icon: GitBranch, label: "Where you are", path: "/workflow" },
+  { icon: Palette, label: "Voice & style", path: "/tone" },
+  { icon: ImageIcon, label: "Cover & art", path: "/art" },
+  { icon: TrendingUp, label: "Out in the world", path: "/market" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
@@ -154,7 +154,7 @@ function UserMenu({ collapsed }) {
           onClick={handleLogout}
           className="text-destructive focus:text-destructive"
         >
-          <LogOut className="mr-2 h-4 w-4" /> Sign Out
+          <LogOut className="mr-2 h-4 w-4" /> Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
