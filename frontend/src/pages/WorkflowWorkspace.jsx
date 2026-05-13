@@ -302,7 +302,7 @@ export default function WorkflowWorkspace() {
                   Describe what you've got and what you're stuck on. I'll tell you what stage that sounds like — and what comes next.
                 </p>
                 <Textarea
-                  placeholder="e.g., Finished the first draft, did one revision pass on feedback. The plot holds, but the middle three chapters drag."
+                  placeholder="e.g. Finished the first draft, did one revision pass on feedback. The plot holds, but the middle three chapters drag."
                   value={statusDescription}
                   onChange={(e) => setStatusDescription(e.target.value)}
                   className="min-h-[120px] rounded-sm resize-none"

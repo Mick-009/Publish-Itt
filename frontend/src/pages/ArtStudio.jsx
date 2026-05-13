@@ -556,9 +556,9 @@ export default function ArtStudio() {
     try {
       await artAssetApi.delete(assetId);
       setArtAssets(artAssets.filter((a) => a.id !== assetId));
-      toast.success("Deleted.");
+      toast.success("Removed.");
     } catch (error) {
-      toast.error("Couldn't delete that. Try again?");
+      toast.error("Couldn't remove it. Try again?");
     }
   };
 
@@ -814,7 +814,7 @@ export default function ArtStudio() {
                   <Label htmlFor="color_palette">Colors</Label>
                   <Input
                     id="color_palette"
-                    placeholder="e.g., earth tones with deep forest greens and golden highlights"
+                    placeholder="e.g. earth tones with deep forest greens and golden highlights"
                     value={artProfile.color_palette}
                     onChange={(e) =>
                       handleProfileChange("color_palette", e.target.value)
@@ -1448,7 +1448,7 @@ export default function ArtStudio() {
                           <LoadingState
                             size="panel"
                             title="Painting from the prompt."
-                            body="This usually takes about a minute — Thad is working from your scene."
+                            body="This usually takes about a minute — I'm working from your scene."
                             testId="loading-image-gen"
                           />
                         )}
