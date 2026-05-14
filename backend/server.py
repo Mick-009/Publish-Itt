@@ -3610,56 +3610,6 @@ async def split_and_create_chapters(request: SplitChaptersRequest, current_user:
         ),
     )
 
-async def _resolve_export_author(
-    request: ExportRequest, current_user: UserOut
-) -> str:
-    """Pick the author name for an export: override → display_name → email → ''."""
-    candidate = (request.author_override or "").strip()
-    if candidate:
-        return candidate
-    if current_user.display_name:
-        return current_user.display_name
-    if current_user.email:
-        # Just the local part, capitalised — better than blank.
-        return current_user.email.split("@")[0].replace(".", " ").title()
-    return ""
-
-
-async def _fetch_cover_for_project(project_id: str) -> tuple[Optional[bytes], str]:
-    """
-    Find the most recent cover ArtAsset for a project and return its bytes.
-
-    Returns (bytes, media_type). If no cover exists or the bytes can't be
-    decoded, returns (None, "").
-
-    Art assets store images as data URLs in `image_reference`. We decode the
-    base64 payload back into raw bytes here so the EPUB can embed it.
-    """
-    cursor = (
-        db.art_assets.find(
-            {"project_id": project_id, "type": "cover"}, {"_id": 0}
-        )
-        .sort("created_at", -1)
-    )
-    async for asset in cursor:
-        ref = asset.get("image_reference") or ""
-        # The ManuscriptWorkspace stores covers as `data:image/png;base64,XXXX...`
-        # but the comment in server.py says only the first 100 chars are stored
-        # as a reference. We try to decode whatever's there; if it's not a full
-        # data URL, skip and try the next asset.
-        if not ref.startswith("data:"):
-            continue
-        try:
-            header, payload = ref.split(",", 1)
-            # header looks like "data:image/png;base64"
-            media_type = header.split(";")[0].removeprefix("data:")
-            image_bytes = base64.b64decode(payload)
-            if len(image_bytes) > 64:  # crude sanity: ignore truncated stubs
-                return image_bytes, media_type or "image/png"
-        except Exception:
-            logger.warning("Cover decode failed for asset %s", asset.get("id"))
-            continue
-    return None, ""
 
 # ============== EXPORT ENDPOINTS ==============
 
@@ -3717,6 +3667,57 @@ def sanitize_for_pdf(text: str) -> str:
 
 
 @api_router.post("/export/docx")
+
+async def _resolve_export_author(
+    request: ExportRequest, current_user: UserOut
+) -> str:
+    """Pick the author name for an export: override → display_name → email → ''."""
+    candidate = (request.author_override or "").strip()
+    if candidate:
+        return candidate
+    if current_user.display_name:
+        return current_user.display_name
+    if current_user.email:
+        # Just the local part, capitalised — better than blank.
+        return current_user.email.split("@")[0].replace(".", " ").title()
+    return ""
+
+async def _fetch_cover_for_project(project_id: str) -> tuple[Optional[bytes], str]:
+    """
+    Find the most recent cover ArtAsset for a project and return its bytes.
+
+    Returns (bytes, media_type). If no cover exists or the bytes can't be
+    decoded, returns (None, "").
+
+    Art assets store images as data URLs in `image_reference`. We decode the
+    base64 payload back into raw bytes here so the EPUB can embed it.
+    """
+    cursor = (
+        db.art_assets.find(
+            {"project_id": project_id, "type": "cover"}, {"_id": 0}
+        )
+        .sort("created_at", -1)
+    )
+    async for asset in cursor:
+        ref = asset.get("image_reference") or ""
+        # The ManuscriptWorkspace stores covers as `data:image/png;base64,XXXX...`
+        # but the comment in server.py says only the first 100 chars are stored
+        # as a reference. We try to decode whatever's there; if it's not a full
+        # data URL, skip and try the next asset.
+        if not ref.startswith("data:"):
+            continue
+        try:
+            header, payload = ref.split(",", 1)
+            # header looks like "data:image/png;base64"
+            media_type = header.split(";")[0].removeprefix("data:")
+            image_bytes = base64.b64decode(payload)
+            if len(image_bytes) > 64:  # crude sanity: ignore truncated stubs
+                return image_bytes, media_type or "image/png"
+        except Exception:
+            logger.warning("Cover decode failed for asset %s", asset.get("id"))
+            continue
+    return None, ""
+
 async def export_to_docx(request: ExportRequest, current_user: UserOut = Depends(get_current_user)):
     """Export a project (all chapters) to DOCX format"""
 
