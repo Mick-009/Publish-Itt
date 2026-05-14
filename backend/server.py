@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from litellm import acompletion
 import prompts as P
 import exports as E
+import thad_revisions
 
 # Document parsing imports
 from docx import Document as DocxDocument
@@ -1411,6 +1412,52 @@ async def _verify_parent_ownership(parent_type: str, parent_id: str, user_id: st
         return project is not None
     return False
 
+async def _call_llm_for_regen(
+    system_prompt: str,
+    user_prompt: str,
+    want_json: bool,
+) -> str:
+    """LLM caller for the thad_revisions module. Wraps get_ai_response.
+
+    The `want_json` flag is unused here — get_ai_response doesn't toggle
+    response_format. The pattern used throughout this file is "tell the
+    model to return JSON in the prompt, then regex it out on the way back"
+    (see analyze_tone, workflow_stage, etc.). thad_revisions follows the
+    same pattern, so we just need a working text-out caller.
+    """
+    effective_system = GLOBAL_SYSTEM_PROMPT
+    if system_prompt:
+        effective_system = f"{GLOBAL_SYSTEM_PROMPT}\n\n{system_prompt}"
+    return await get_ai_response(effective_system, user_prompt)
+
+
+async def _fetch_chapter_content_for_regen(
+    project_id: str,
+    source_id: str,  # the chapter ID, for "analysis"-source regenerations
+    user_id: str,
+) -> Optional[str]:
+    """Look up a chapter's current content for analysis-source regenerations.
+
+    Returns the HTML-stripped content, or None if the chapter doesn't exist
+    or the parent project doesn't belong to user_id.
+
+    Ownership check matches the pattern in get_chapter / update_chapter:
+    chapters don't carry user_id directly — they inherit from their parent
+    project, so we re-verify via projects.find_one.
+    """
+    chapter = await db.chapters.find_one(
+        {"id": source_id, "project_id": project_id},
+        {"_id": 0, "content": 1, "project_id": 1},
+    )
+    if not chapter:
+        return None
+    project = await db.projects.find_one(
+        {"id": chapter["project_id"], "user_id": user_id},
+        {"_id": 0, "id": 1},
+    )
+    if not project:
+        return None
+    return strip_html_tags(chapter.get("content", ""))
 
 # ============== NOTES COLLECTION ENDPOINTS ==============
 
@@ -2584,6 +2631,19 @@ async def analyze_workflow_stage(request: WorkflowStageAnalysisRequest, current_
     if request.age_group:
         context_parts.append(f"Target age group: {request.age_group}")
 
+    if request.project_id:
+        try:
+            style_notes = await thad_revisions.fetch_active_style_notes(
+                db, request.project_id, current_user.id
+            )
+            if style_notes:
+                context_parts.append(
+                    "Standing notes from the writer (apply throughout):\n"
+                    + "\n".join(f"- {n}" for n in style_notes)
+                )
+        except Exception:
+            logger.warning("Couldn't fetch style notes for workflow_stage", exc_info=True)
+
     user_context = (
         "\n".join(context_parts)
         if context_parts
@@ -2732,6 +2792,20 @@ async def analyze_tone(request: ToneAnalysisRequest, current_user: UserOut = Dep
 
     if request.age_group:
         context_parts.append(f"Target age group: {request.age_group}")
+
+    # Pull any active style notes for the project and surface them as context.
+    if request.project_id:
+        try:
+            style_notes = await thad_revisions.fetch_active_style_notes(
+                db, request.project_id, current_user.id
+            )
+            if style_notes:
+                context_parts.append(
+                    "Standing notes from the writer (apply throughout):\n"
+                    + "\n".join(f"- {n}" for n in style_notes)
+                )
+        except Exception:
+            logger.warning("Couldn't fetch style notes for analyze_tone", exc_info=True)
 
     user_context = "\n".join(context_parts) if context_parts else "No content provided."
 
@@ -3997,6 +4071,15 @@ auth_set_db(db)
 app.include_router(api_router)
 app.include_router(auth_router)
 
+# Phase 2: regenerate-with-feedback for Thad outputs
+phase2_router = thad_revisions.build_router(
+    db=db,
+    get_current_user_dep=Depends(get_current_user),
+    call_llm_async=_call_llm_for_regen,
+    fetch_chapter_content_async=_fetch_chapter_content_for_regen,
+)
+app.include_router(phase2_router)
+
 # CORS — reads from CORS_ORIGINS env var; falls back to localhost:3000 for safety
 app.add_middleware(
     CORSMiddleware,
@@ -4020,6 +4103,7 @@ async def create_indexes():
     await db.versions.create_index([("user_id", 1)])
     await db.versions.create_index([("user_id", 1), ("parent_id", 1)])
     await db.style_presets.create_index([("user_id", 1)])
+    await thad_revisions.ensure_indexes(db)
     logger.info("MongoDB indexes created/verified.")
 
 
