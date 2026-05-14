@@ -3665,9 +3665,6 @@ def sanitize_for_pdf(text: str) -> str:
     text = text.encode("latin-1", errors="replace").decode("latin-1")
     return text
 
-
-@api_router.post("/export/docx")
-
 async def _resolve_export_author(
     request: ExportRequest, current_user: UserOut
 ) -> str:
@@ -3718,6 +3715,7 @@ async def _fetch_cover_for_project(project_id: str) -> tuple[Optional[bytes], st
             continue
     return None, ""
 
+@api_router.post("/export/docx")
 async def export_to_docx(request: ExportRequest, current_user: UserOut = Depends(get_current_user)):
     """Export a project (all chapters) to DOCX format"""
 
