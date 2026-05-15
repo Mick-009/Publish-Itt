@@ -29,6 +29,8 @@ import {
   History,
   ChevronDown,
   ChevronRight,
+  Bookmark,
+  X,
 } from "lucide-react";
 
 // Stage IDs are backend contract — `analyzeWorkflowStage` returns one of these
@@ -122,6 +124,11 @@ export default function WorkflowPanel({
   const [savePromptOpen, setSavePromptOpen] = useState(false);
   const [lastRevisionId, setLastRevisionId] = useState(null);
   const [lastFeedback, setLastFeedback] = useState("");
+
+  // Phase 2: project-wide standing notes (same data as AnalyzerPanel —
+  // they're per-project, so either panel can show and manage them).
+  const [styleNotes, setStyleNotes] = useState([]);
+  const [styleNotesOpen, setStyleNotesOpen] = useState(false);
 
   // Workflow reads aren't tied to a chapter — they span the whole manuscript.
   // We use the project ID as source_id so revisions group per-project, which
@@ -219,6 +226,23 @@ export default function WorkflowPanel({
     };
   }, [projectId, sourceId]);
 
+  // Phase 2: load project-wide style notes.
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await thadApi.listStyleNotes(projectId);
+        if (!cancelled) setStyleNotes(res.data || []);
+      } catch (err) {
+        console.warn("Couldn't load style notes:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
   // Phase 2: submit a pushback and regenerate.
   const submitPushback = async () => {
     const feedback = pushbackText.trim();
@@ -290,13 +314,40 @@ export default function WorkflowPanel({
       return;
     }
     try {
-      await thadApi.createStyleNote(projectId, lastFeedback, lastRevisionId);
+      const res = await thadApi.createStyleNote(
+        projectId,
+        lastFeedback,
+        lastRevisionId,
+      );
+      setStyleNotes((prev) => [...prev, res.data]);
       toast.success("I'll remember.");
     } catch (err) {
       console.error("Save style note failed:", err);
       toast.error("Couldn't save it. Try again?");
     } finally {
       setSavePromptOpen(false);
+    }
+  };
+
+  const retireStyleNote = async (noteId) => {
+    try {
+      await thadApi.setStyleNoteActive(noteId, false);
+      setStyleNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast.success("Set aside.");
+    } catch (err) {
+      console.error("Retire style note failed:", err);
+      toast.error("Couldn't update it. Try again?");
+    }
+  };
+
+  const deleteStyleNote = async (noteId) => {
+    try {
+      await thadApi.deleteStyleNote(noteId);
+      setStyleNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast.success("Removed.");
+    } catch (err) {
+      console.error("Delete style note failed:", err);
+      toast.error("Couldn't remove it. Try again?");
     }
   };
 
@@ -313,6 +364,67 @@ export default function WorkflowPanel({
 
   return (
     <div className="space-y-4" data-testid="workflow-panel">
+      {/* Standing notes — collapsed by default, only renders if any exist */}
+      {styleNotes.length > 0 && (
+        <Collapsible
+          open={styleNotesOpen}
+          onOpenChange={setStyleNotesOpen}
+          data-testid="standing-notes-section"
+        >
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between p-2 rounded-sm bg-muted/30 hover:bg-muted/50 transition-colors text-xs">
+              <div className="flex items-center gap-2">
+                <Bookmark className="h-3.5 w-3.5 text-accent" />
+                <span className="font-medium">What you've told me</span>
+                <Badge variant="secondary" className="text-[10px] h-4">
+                  {styleNotes.length}
+                </Badge>
+              </div>
+              {styleNotesOpen ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="space-y-1.5 mt-2 pl-2">
+              {styleNotes.map((note) => (
+                <div
+                  key={note.id}
+                  className="flex items-start gap-2 p-2 rounded-sm bg-muted/20 text-xs"
+                  data-testid={`style-note-${note.id}`}
+                >
+                  <span className="flex-1 text-muted-foreground leading-relaxed">
+                    {note.note}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-[10px] rounded-sm shrink-0"
+                    onClick={() => retireStyleNote(note.id)}
+                    title="Set aside (keeps the history)"
+                    data-testid={`retire-note-${note.id}`}
+                  >
+                    Set aside
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 rounded-sm shrink-0"
+                    onClick={() => deleteStyleNote(note.id)}
+                    title="Remove"
+                    data-testid={`delete-note-${note.id}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
       {/* Header with Refresh */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
