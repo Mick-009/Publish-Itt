@@ -42,6 +42,7 @@ class UserOut(BaseModel):
     display_name: Optional[str] = None
     created_at: str
     daily_word_goal: int = 500
+    onboarding_complete: bool = False
 
 
 class UserPreferencesUpdate(BaseModel):

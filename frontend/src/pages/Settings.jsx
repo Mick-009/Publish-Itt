@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,9 +25,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { 
-  Plus, 
-  Pencil, 
+import {
+  Plus,
+  Pencil,
   Trash2,
   Palette,
   Loader2,
@@ -35,10 +41,13 @@ import {
   Map,
   Sparkles,
   RotateCcw,
-  Target
+  Target,
 } from "lucide-react";
 import ThadTour from "@/components/ThadTour";
 import LoadingState from "@/components/LoadingState";
+import { useNavigate } from "react-router-dom";
+import { onboardingApi } from "@/lib/api";
+import { stylePresetApi, userApi, onboardingApi } from "@/lib/api";
 
 const THEME_ICONS = {
   default: Sun,
@@ -69,7 +78,7 @@ export default function Settings() {
     description: "",
     visual_style: "",
     mood: "",
-    color_palette: ""
+    color_palette: "",
   });
   const [saving, setSaving] = useState(false);
   const [showTour, setShowTour] = useState(false);
@@ -92,7 +101,9 @@ export default function Settings() {
     }
     setSavingGoal(true);
     try {
-      const res = await userApi.updatePreferences({ daily_word_goal: goalDraft });
+      const res = await userApi.updatePreferences({
+        daily_word_goal: goalDraft,
+      });
       updateUser({ daily_word_goal: res.data.daily_word_goal });
       toast.success(
         goalDraft === 0
@@ -100,7 +111,9 @@ export default function Settings() {
           : `${goalDraft.toLocaleString()} words a day.`,
       );
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Couldn't save that. Try again?");
+      toast.error(
+        err.response?.data?.detail || "Couldn't save that. Try again?",
+      );
     } finally {
       setSavingGoal(false);
     }
@@ -123,15 +136,24 @@ export default function Settings() {
     localStorage.removeItem("thad_onboarding_complete");
     localStorage.removeItem("thad_user_name");
     localStorage.removeItem("thad_tour_complete");
-    
+
     toast.success("Reset. Heading back to the start.");
-    
+
     // Navigate to Dashboard which will trigger the onboarding flow
     setTimeout(() => {
       navigate("/");
       // Force page reload to ensure fresh state
       window.location.reload();
     }, 500);
+  };
+
+  const handleReplayIntro = async () => {
+    try {
+      await onboardingApi.reset();
+      navigate("/onboarding");
+    } catch (err) {
+      toast.error("Couldn't reset that. Try again?");
+    }
   };
 
   useEffect(() => {
@@ -157,7 +179,7 @@ export default function Settings() {
         description: preset.description,
         visual_style: preset.visual_style,
         mood: preset.mood,
-        color_palette: preset.color_palette || ""
+        color_palette: preset.color_palette || "",
       });
     } else {
       setEditingPreset(null);
@@ -166,7 +188,7 @@ export default function Settings() {
         description: "",
         visual_style: "",
         mood: "",
-        color_palette: ""
+        color_palette: "",
       });
     }
     setDialogOpen(true);
@@ -183,9 +205,11 @@ export default function Settings() {
     try {
       if (editingPreset) {
         await stylePresetApi.update(editingPreset.id, formData);
-        setPresets(presets.map(p => 
-          p.id === editingPreset.id ? { ...p, ...formData } : p
-        ));
+        setPresets(
+          presets.map((p) =>
+            p.id === editingPreset.id ? { ...p, ...formData } : p,
+          ),
+        );
         toast.success("Updated.");
       } else {
         const res = await stylePresetApi.create(formData);
@@ -202,10 +226,10 @@ export default function Settings() {
 
   const handleDelete = async (presetId) => {
     if (!window.confirm("Delete this style preset?")) return;
-    
+
     try {
       await stylePresetApi.delete(presetId);
-      setPresets(presets.filter(p => p.id !== presetId));
+      setPresets(presets.filter((p) => p.id !== presetId));
       toast.success("Deleted.");
     } catch (error) {
       toast.error("Couldn't delete that. Try again?");
@@ -225,7 +249,10 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-8 lg:p-12 max-w-4xl mx-auto animate-fade-in" data-testid="settings-page">
+    <div
+      className="p-8 lg:p-12 max-w-4xl mx-auto animate-fade-in"
+      data-testid="settings-page"
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -275,7 +302,7 @@ export default function Settings() {
                 Start tour
               </Button>
             </div>
-            
+
             {/* Reset Onboarding Button */}
             <div className="flex items-center justify-between p-4 border border-border rounded-sm hover:border-accent/30 transition-colors">
               <div className="flex items-center gap-4">
@@ -300,6 +327,31 @@ export default function Settings() {
                 Reset
               </Button>
             </div>
+            
+            {/* Replay Wow-Moment Onboarding */}
+            <div className="flex items-center justify-between p-4 border border-border rounded-sm hover:border-accent/30 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="p-2 rounded-sm bg-accent/10">
+                  <Sparkles className="h-5 w-5 text-accent" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-sm">Replay the intro</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Let Thad read you a passage again. Takes about a minute.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReplayIntro}
+                className="rounded-sm"
+                data-testid="replay-intro-btn"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Replay
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -308,11 +360,11 @@ export default function Settings() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="font-serif flex items-center gap-2">
-            <Target className="h-5 w-5 text-accent" />
-            A daily target
+            <Target className="h-5 w-5 text-accent" />A daily target
           </CardTitle>
           <CardDescription>
-            How many words you'd like to write each day. Set to 0 to turn it off.
+            How many words you'd like to write each day. Set to 0 to turn it
+            off.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -353,7 +405,10 @@ export default function Settings() {
             {/* Custom input + save */}
             <div className="flex items-end gap-3">
               <div className="flex-1 max-w-xs space-y-1.5">
-                <Label htmlFor="daily-goal-input" className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Label
+                  htmlFor="daily-goal-input"
+                  className="text-xs uppercase tracking-wider text-muted-foreground"
+                >
                   Custom amount
                 </Label>
                 <div className="relative">
@@ -364,7 +419,9 @@ export default function Settings() {
                     max={100000}
                     step={50}
                     value={goalDraft}
-                    onChange={(e) => setGoalDraft(parseInt(e.target.value, 10) || 0)}
+                    onChange={(e) =>
+                      setGoalDraft(parseInt(e.target.value, 10) || 0)
+                    }
                     className="pr-16"
                     data-testid="daily-goal-input"
                   />
@@ -379,12 +436,17 @@ export default function Settings() {
                 className="rounded-sm shrink-0"
                 data-testid="save-daily-goal-btn"
               >
-                {savingGoal ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                {savingGoal ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Save"
+                )}
               </Button>
             </div>
 
             <p className="text-xs text-muted-foreground italic">
-              King writes around 2,000 a day. Hemingway aimed for 500. Pick something you can hold to.
+              King writes around 2,000 a day. Hemingway aimed for 500. Pick
+              something you can hold to.
             </p>
           </div>
         </CardContent>
@@ -397,16 +459,14 @@ export default function Settings() {
             <Palette className="h-5 w-5 text-accent" />
             Theme
           </CardTitle>
-          <CardDescription>
-            How the workshop looks.
-          </CardDescription>
+          <CardDescription>How the workshop looks.</CardDescription>
         </CardHeader>
         <CardContent>
           <RadioGroup
             value={theme}
             onValueChange={(value) => {
               setTheme(value);
-              const themeName = themes.find(t => t.id === value)?.name;
+              const themeName = themes.find((t) => t.id === value)?.name;
               toast.success(`Switched to ${themeName}.`);
             }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
@@ -415,26 +475,32 @@ export default function Settings() {
             {themes.map((t) => {
               const Icon = THEME_ICONS[t.id] || Sun;
               const colorClass = THEME_COLORS[t.id] || "bg-accent";
-              
+
               return (
                 <Label
                   key={t.id}
                   htmlFor={`theme-${t.id}`}
                   className={cn(
                     "flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-all",
-                    theme === t.id 
-                      ? "border-accent bg-accent/5 ring-1 ring-accent" 
-                      : "border-border hover:border-accent/50"
+                    theme === t.id
+                      ? "border-accent bg-accent/5 ring-1 ring-accent"
+                      : "border-border hover:border-accent/50",
                   )}
                   data-testid={`theme-option-${t.id}`}
                 >
-                  <RadioGroupItem value={t.id} id={`theme-${t.id}`} className="sr-only" />
+                  <RadioGroupItem
+                    value={t.id}
+                    id={`theme-${t.id}`}
+                    className="sr-only"
+                  />
                   <div className={cn("p-2 rounded-sm", colorClass)}>
                     <Icon className="h-4 w-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{t.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{t.description}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {t.description}
+                    </p>
                   </div>
                   {theme === t.id && (
                     <Check className="h-4 w-4 text-accent shrink-0" />
@@ -465,9 +531,10 @@ export default function Settings() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            Style presets shape the art prompts. Build one for each series, mood, or look you want to keep around.
+            Style presets shape the art prompts. Build one for each series,
+            mood, or look you want to keep around.
           </p>
-          
+
           <ScrollArea className="h-[400px]">
             {presets.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
@@ -475,7 +542,11 @@ export default function Settings() {
                 <p className="text-sm text-center mb-4">
                   No presets yet. Make one to use over in the art studio.
                 </p>
-                <Button onClick={() => handleOpenDialog()} variant="outline" className="rounded-sm">
+                <Button
+                  onClick={() => handleOpenDialog()}
+                  variant="outline"
+                  className="rounded-sm"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Build your first preset
                 </Button>
@@ -483,8 +554,8 @@ export default function Settings() {
             ) : (
               <div className="space-y-4">
                 {presets.map((preset) => (
-                  <div 
-                    key={preset.id} 
+                  <div
+                    key={preset.id}
                     className="p-4 border border-border rounded-sm hover:border-accent/50 transition-colors"
                     data-testid={`preset-${preset.id}`}
                   >
@@ -553,7 +624,9 @@ export default function Settings() {
                   id="name"
                   placeholder="e.g., Epic fantasy"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   className="rounded-sm"
                   data-testid="preset-name-input"
                 />
@@ -564,7 +637,9 @@ export default function Settings() {
                   id="description"
                   placeholder="What does this look and feel like?"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   className="rounded-sm resize-none"
                   rows={2}
                   data-testid="preset-description-input"
@@ -576,7 +651,9 @@ export default function Settings() {
                   id="visual_style"
                   placeholder="e.g., soft watercolor, storybook"
                   value={formData.visual_style}
-                  onChange={(e) => setFormData({ ...formData, visual_style: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, visual_style: e.target.value })
+                  }
                   className="rounded-sm"
                   data-testid="preset-style-input"
                 />
@@ -587,7 +664,9 @@ export default function Settings() {
                   id="mood"
                   placeholder="e.g., warm, cozy, adventurous"
                   value={formData.mood}
-                  onChange={(e) => setFormData({ ...formData, mood: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, mood: e.target.value })
+                  }
                   className="rounded-sm"
                   data-testid="preset-mood-input"
                 />
@@ -598,7 +677,9 @@ export default function Settings() {
                   id="color_palette"
                   placeholder="e.g., earth tones, forest greens, warm browns"
                   value={formData.color_palette}
-                  onChange={(e) => setFormData({ ...formData, color_palette: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, color_palette: e.target.value })
+                  }
                   className="rounded-sm"
                   data-testid="preset-colors-input"
                 />
@@ -613,8 +694,8 @@ export default function Settings() {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={saving}
                 className="rounded-sm"
                 data-testid="save-preset-btn"
@@ -624,8 +705,10 @@ export default function Settings() {
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Saving.
                   </>
+                ) : editingPreset ? (
+                  "Update"
                 ) : (
-                  editingPreset ? "Update" : "Save"
+                  "Save"
                 )}
               </Button>
             </DialogFooter>

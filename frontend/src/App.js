@@ -14,6 +14,7 @@ import ToneStyleWorkspace from "@/pages/ToneStyleWorkspace";
 import ArtStudio from "@/pages/ArtStudio";
 import MarketIntelligence from "@/pages/MarketIntelligence";
 import Settings from "@/pages/Settings";
+import OnboardingFlow from "@/components/OnboardingFlow";
 
 function App() {
   return (
@@ -24,6 +25,10 @@ function App() {
             <Routes>
               {/* Public route — auth page */}
               <Route path="/auth" element={<AuthPage />} />
+
+              {/* Onboarding lives outside the gate to avoid an infinite redirect.
+                It still requires a token — the API calls inside will 401 if not. */}
+              <Route path="/onboarding" element={<OnboardingFlow />} />
 
               {/* All other routes require a valid session */}
               <Route element={<ProtectedRoute />}>

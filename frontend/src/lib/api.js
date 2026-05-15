@@ -342,6 +342,23 @@ export const thadApi = {
   deleteStyleNote: (noteId) => api.delete(`/thad/style-notes/${noteId}`),
 };
 
+// Phase 3a: wow-moment onboarding.
+//
+// getSamples returns the curated genre/excerpt/Thad-read JSON.
+// getStatus returns { onboarding_complete: bool } from the user record.
+// complete marks the user's onboarding done (used for both finish and skip).
+// reset clears the flag — used by the "Replay the intro" link in settings.
+export const onboardingApi = {
+  getSamples: () => api.get("/onboarding/samples"),
+  getStatus: () => api.get("/onboarding/status"),
+  complete: ({ chosen_genre = null, skipped = false } = {}) =>
+    api.post("/onboarding/complete", {
+      chosen_genre,
+      skipped,
+    }),
+  reset: () => api.post("/onboarding/reset"),
+};
+
 // Market Intelligence APIs
 export const marketApi = {
   generateBookIdeas: (universe, count = 10) =>

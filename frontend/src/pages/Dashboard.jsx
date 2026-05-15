@@ -33,6 +33,7 @@ import {
   Upload, FileUp, X, Sparkles, Pencil, MoreHorizontal, Trash2,
   Clock, BookMarked, ArrowRight, TrendingUp, Feather,
 } from "lucide-react";
+import { consumePendingStyleNote } from "@/lib/onboardingStash";
 
 // ── Status config ──────────────────────────────────────────────────────────
 const STATUS_META = {
@@ -350,6 +351,10 @@ export default function Dashboard() {
       const upRes = await uploadApi.uploadManuscript(uploadedFile, projId, importChapterTitle || importProjectTitle);
       await loadProjects();
       toast.success(`Imported "${importChapterTitle}" (${upRes.data.word_count?.toLocaleString()} words)`);
+      // ...after the project is created successfully...
+      const newProject = projRes.data;
+      await consumePendingStyleNote(newProject.id);
+      // then navigate/refresh as you normally would
       setImportedContent(uploadPreview?.full_content || upRes.data.content);
       setImportedFilename(uploadedFile.name);
       handleUploadClose(); setImportAnalysisOpen(true);

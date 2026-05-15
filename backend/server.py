@@ -29,6 +29,7 @@ from litellm import acompletion
 import prompts as P
 import exports as E
 import thad_revisions
+import onboarding
 
 # Document parsing imports
 from docx import Document as DocxDocument
@@ -4079,6 +4080,13 @@ phase2_router = thad_revisions.build_router(
     fetch_chapter_content_async=_fetch_chapter_content_for_regen,
 )
 app.include_router(phase2_router)
+
+# Phase 3a: wow-moment onboarding
+onboarding_router = onboarding.build_router(
+    db=db,
+    get_current_user_dep=Depends(get_current_user),
+)
+app.include_router(onboarding_router)
 
 # CORS — reads from CORS_ORIGINS env var; falls back to localhost:3000 for safety
 app.add_middleware(

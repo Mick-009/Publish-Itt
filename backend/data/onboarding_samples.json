@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "_comment": "Onboarding samples for Publish Itt. Each entry is one genre's wow-moment beat. Excerpts are public domain. Thad reads are hand-written to be specific, in-voice, and pair perfectly with the chosen passage. Edit this file and restart the server to update the demo.",
+
+  "genres": [
+    {
+      "id": "literary",
+      "label": "Literary",
+      "description": "Character-driven, voice-forward, the texture of a sentence matters.",
+      "excerpt": {
+        "title": "Pride and Prejudice",
+        "author": "Jane Austen",
+        "year": 1813,
+        "text": "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.\n\nHowever little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families, that he is considered the rightful property of some one or other of their daughters.\n\n\"My dear Mr. Bennet,\" said his lady to him one day, \"have you heard that Netherfield Park is let at last?\"\n\nMr. Bennet replied that he had not.\n\n\"But it is,\" returned she; \"for Mrs. Long has just been here, and she told me all about it.\"\n\nMr. Bennet made no answer.\n\n\"Do you not want to know who has taken it?\" cried his wife impatiently.\n\n\"You want to tell me, and I have no objection to hearing it.\"\n\nThis was invitation enough."
+      },
+      "thad_read": {
+        "tone_analysis": "That opening sentence does so much in so few words. It sounds like a maxim — calm, declarative, the voice of universal wisdom — and then the next paragraph quietly reveals it's not Austen's view at all, it's the voice of the gossiping mothers. The whole tone of the book is set right there: dry, ironic, watching the social machinery from one careful step back.",
+        "style_analysis": "Look at the rhythm of that dialogue. Mr. Bennet barely speaks. His wife barrels forward, and his silence becomes its own kind of voice. \"Mr. Bennet replied that he had not.\" — that line is doing a lot. Austen isn't telling us he's exasperated; she's letting his refusal to engage tell us. It's character through restraint.",
+        "suggestions": [
+          "Notice how the famous first line works because the second paragraph corrects it — without that pivot, the line is just an aphorism. The reversal is what makes it land.",
+          "When you write dialogue between people who don't actually want the same conversation, give one of them less to say than the other. The imbalance is where the comedy lives."
+        ],
+        "reading_level": "Adult literary fiction"
+      }
+    },
+
+    {
+      "id": "genre",
+      "label": "Genre fiction",
+      "description": "Fantasy, science fiction, thriller, mystery — story-first, world-rich.",
+      "excerpt": {
+        "title": "The Time Machine",
+        "author": "H. G. Wells",
+        "year": 1895,
+        "text": "The Time Traveller (for so it will be convenient to speak of him) was expounding a recondite matter to us. His grey eyes shone and twinkled, and his usually pale face was flushed and animated. The fire burned brightly, and the soft radiance of the incandescent lights in the lilies of silver caught the bubbles that flashed and passed in our glasses. Our chairs, being his patents, embraced and caressed us rather than submitted to be sat upon, and there was that luxurious after-dinner atmosphere when thought roams gracefully free of the trammels of precision. And he put it to us in this way — marking the points with a lean forefinger — as we sat and lazily admired his earnestness over this new paradox (as we thought it) and his fecundity.\n\n\"You must follow me carefully. I shall have to controvert one or two ideas that are almost universally accepted. The geometry, for instance, they taught you at school is founded on a misconception.\""
+      },
+      "thad_read": {
+        "tone_analysis": "Wells lands the speculative idea by burying it inside a comfortable dinner party. The fire, the bubbles in the glasses, the chairs that 'embraced' — every detail is warm and conventional. That's the trick. You can't sell time travel cold; you have to set it down on a familiar tablecloth first. By the time the Time Traveller tells the room their school geometry is wrong, we're already leaning in.",
+        "style_analysis": "Notice the framing. We never get the Time Traveller's name — he's known by his function, capital-T capital-T, like a title. That detail is doing real work: it tells us this story is being told by someone who *witnessed* it, looking back. The voice you're hearing isn't the protagonist's; it's a friend trying to convince us this really happened. Genre fiction lives or dies on that kind of small framing choice.",
+        "suggestions": [
+          "When you're introducing a strange premise, start with the room. The reader will accept a lot of weirdness if the chair they're imagining feels real first.",
+          "Watch how Wells delays the actual claim. Two long paragraphs of atmosphere before anyone says anything controversial. Slow-rolling a big idea is almost always stronger than leading with it."
+        ],
+        "reading_level": "Adult genre fiction"
+      }
+    },
+
+    {
+      "id": "mg_ya",
+      "label": "Middle grade / YA",
+      "description": "For younger readers — voice immediate, character vivid, never condescending.",
+      "excerpt": {
+        "title": "Anne of Green Gables",
+        "author": "L. M. Montgomery",
+        "year": 1908,
+        "text": "Mrs. Rachel Lynde lived just where the Avonlea main road dipped down into a little hollow, fringed with alders and ladies' eardrops and traversed by a brook that had its source away back in the woods of the old Cuthbert place; it was reputed to be an intricate, headlong brook in its earlier course through those woods, with dark secrets of pool and cascade; but by the time it reached Lynde's Hollow it was a quiet, well-conducted little stream, for not even a brook could run past Mrs. Rachel Lynde's door without due regard for decency and decorum; it probably was conscious that Mrs. Rachel was sitting at her window, keeping a sharp eye on everything that passed, from brooks and children up, and that if she noticed anything odd or out of place she would never rest until she had ferreted out the whys and wherefores thereof."
+      },
+      "thad_read": {
+        "tone_analysis": "Montgomery's voice in that paragraph is doing something subtle. It's warm enough for a child to settle into, but the joke about the brook minding its manners under Mrs. Rachel's gaze is for the adult reading aloud. That's what makes great middle-grade work — two readers laughing at the same sentence for different reasons.",
+        "style_analysis": "Look at how she introduces Mrs. Rachel without ever describing her physically. We learn everything about her through the brook — that a *body of water* would feel obligated to behave near her window. By the time the chapter ends, you know exactly who this woman is, and Montgomery hasn't told you what she looks like once. That's character through implication, and it's the gold standard.",
+        "suggestions": [
+          "When you're introducing a character to a young reader, try describing them through their effect on the world around them rather than their face. The reader will build a more vivid picture than any direct description could give them.",
+          "Long sentences are fine for young readers — they're not the enemy. What kills momentum is sentences that don't trust the reader. Montgomery's run-on works because every clause earns its place."
+        ],
+        "reading_level": "Middle grade (ages 9-13)"
+      }
+    },
+
+    {
+      "id": "memoir_nonfiction",
+      "label": "Memoir / nonfiction",
+      "description": "True stories, essays, narrative nonfiction — voice carries the weight.",
+      "excerpt": {
+        "title": "Walden",
+        "author": "Henry David Thoreau",
+        "year": 1854,
+        "text": "When I wrote the following pages, or rather the bulk of them, I lived alone, in the woods, a mile from any neighbor, in a house which I had built myself, on the shore of Walden Pond, in Concord, Massachusetts, and earned my living by the labor of my hands only. I lived there two years and two months. At present I am a sojourner in civilized life again.\n\nI should not obtrude my affairs so much on the notice of my readers if very particular inquiries had not been made by my townsmen concerning my mode of life, which some would call impertinent, though they do not appear to me at all impertinent, but, considering the circumstances, very natural and pertinent."
+      },
+      "thad_read": {
+        "tone_analysis": "Thoreau doesn't waste a word on atmosphere. The first sentence tells you where he was, how long, and how he lived — and the rhythm of those nested clauses ('alone, in the woods, a mile from any neighbor, in a house which I had built myself') reads like a man stacking facts in a row, each one earning the next. The tone is calm and slightly defensive, which is exactly right for a writer who knows his reader is skeptical.",
+        "style_analysis": "Notice the second paragraph. He starts with a justification — 'I should not obtrude...' — before he ever makes a claim. He's anticipating the eye-roll. Nonfiction openings live or die on whether the writer can convince the reader the story is worth telling, and Thoreau handles it by acknowledging the reader's doubt out loud and then refusing to apologize for it.",
+        "suggestions": [
+          "If you're writing memoir, the first paragraph isn't where you set the scene — it's where you earn the reader's permission to tell the story. Thoreau earns it by being concrete and unsentimental.",
+          "When your subject is yourself, defensive framing is sometimes the right move. 'I should not obtrude' tells the reader you've thought about why they should care. That's more powerful than just assuming they will."
+        ],
+        "reading_level": "Adult nonfiction"
+      }
+    }
+  ],
+
+  "ui_copy": {
+    "_comment": "All user-facing strings live here so they can be edited without touching component code. Keep in voice — Thad's voice rules apply throughout.",
+
+    "welcome_title": "Before you start writing.",
+    "welcome_body": "Let me show you what I do. Pick the kind of book you're working on and I'll read a passage for you. Should take a minute.",
+    "welcome_skip_label": "Skip for now",
+    "welcome_continue_label": "Show me",
+
+    "genre_picker_title": "What are you writing?",
+    "genre_picker_body": "Pick the closest fit. You can always change direction later.",
+
+    "excerpt_title_template": "From {title}, {author} ({year}).",
+    "excerpt_body": "Read this. Then I'll tell you what I see.",
+    "excerpt_continue_label": "Read it for me",
+
+    "reading_title": "Reading closely.",
+    "reading_body": "Looking at tone, voice, and the shape of the sentences.",
+
+    "analysis_continue_label": "One more thing",
+
+    "style_note_title": "Last thing.",
+    "style_note_body": "If this were your manuscript, what's one thing you'd want me to keep in mind every time I read it? It doesn't have to be clever — just true. I'll remember.",
+    "style_note_placeholder": "e.g. don't comment on dialogue tags, this is literary fiction not commercial...",
+    "style_note_skip_label": "Skip this",
+    "style_note_save_label": "Save it",
+
+    "finish_title": "Now let's read yours.",
+    "finish_body": "That was a passage I picked. The real read is on your work. Start a project and we'll get to it.",
+    "finish_continue_label": "Start my project"
+  }
+}
