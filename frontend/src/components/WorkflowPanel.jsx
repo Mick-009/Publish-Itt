@@ -3,8 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { aiApi } from "@/lib/api";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { aiApi, thadApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import LoadingState from "@/components/LoadingState";
 import {
   Sparkles,
@@ -18,6 +25,10 @@ import {
   CheckCircle2,
   ArrowRight,
   Clock,
+  Pencil,
+  History,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 // Stage IDs are backend contract — `analyzeWorkflowStage` returns one of these
@@ -61,6 +72,32 @@ const WORKFLOW_STAGES = [
   },
 ];
 
+// Try to parse Thad's regen response as JSON in the workflow shape.
+// Falls back to the original analysisData on failure (keeps the UI stable).
+function parseWorkflowRegenResponse(text) {
+  if (!text) return null;
+  let cleaned = text.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/\s*```\s*$/, "");
+  }
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    const parsed = JSON.parse(match[0]);
+    return {
+      stage: parsed.stage || "Draft",
+      message: parsed.message || "",
+      next_steps: Array.isArray(parsed.next_steps) ? parsed.next_steps : [],
+      progress_percent:
+        typeof parsed.progress_percent === "number"
+          ? parsed.progress_percent
+          : 50,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function WorkflowPanel({
   manuscriptContent = "",
   chapterCount = 0,
@@ -73,6 +110,23 @@ export default function WorkflowPanel({
   const [analysisData, setAnalysisData] = useState(null);
   const [lastAnalyzed, setLastAnalyzed] = useState(null);
   const [error, setError] = useState(null);
+
+  // Phase 2: push-back & revisions
+  const [pushbackOpen, setPushbackOpen] = useState(false);
+  const [pushbackText, setPushbackText] = useState("");
+  const [pushbackSubmitting, setPushbackSubmitting] = useState(false);
+  const [revisions, setRevisions] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Phase 2: save-as-style-note flow
+  const [savePromptOpen, setSavePromptOpen] = useState(false);
+  const [lastRevisionId, setLastRevisionId] = useState(null);
+  const [lastFeedback, setLastFeedback] = useState("");
+
+  // Workflow reads aren't tied to a chapter — they span the whole manuscript.
+  // We use the project ID as source_id so revisions group per-project, which
+  // is the right scope for "the writer pushed back on the workflow read".
+  const sourceId = projectId || "";
 
   const analyzeWorkflow = useCallback(async () => {
     if (!manuscriptContent && chapterCount === 0) {
@@ -144,6 +198,108 @@ export default function WorkflowPanel({
     }
   }, [autoAnalyzeOnMount]); // Only run on mount
 
+  // Phase 2: load revisions for this project's workflow reads.
+  useEffect(() => {
+    if (!projectId || !sourceId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await thadApi.getRevisions(
+          "workflow_recommendation",
+          sourceId,
+          projectId,
+        );
+        if (!cancelled) setRevisions(res.data || []);
+      } catch (err) {
+        console.warn("Couldn't load workflow revisions:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, sourceId]);
+
+  // Phase 2: submit a pushback and regenerate.
+  const submitPushback = async () => {
+    const feedback = pushbackText.trim();
+    if (!feedback) return;
+    if (!projectId) {
+      toast.error("No project loaded.");
+      return;
+    }
+    if (!analysisData) {
+      toast.error("Nothing to push back on yet.");
+      return;
+    }
+
+    setPushbackSubmitting(true);
+    try {
+      const previousResponse = JSON.stringify({
+        stage: analysisData.stage || "Draft",
+        message: analysisData.message || "",
+        next_steps: analysisData.next_steps || [],
+        progress_percent: analysisData.progress_percent || 50,
+      });
+
+      const res = await thadApi.regenerate(
+        "workflow_recommendation",
+        sourceId,
+        projectId,
+        feedback,
+        previousResponse,
+      );
+
+      const parsed = parseWorkflowRegenResponse(res.data.thad_response);
+      if (parsed) {
+        setAnalysisData(parsed);
+        setLastAnalyzed(Date.now());
+      } else {
+        toast.error("Couldn't make sense of Thad's response. Try again?");
+      }
+
+      // Track this revision for the save-as-note prompt
+      setLastRevisionId(res.data.revision_id);
+      setLastFeedback(feedback);
+      setSavePromptOpen(true);
+
+      // Refresh history
+      try {
+        const histRes = await thadApi.getRevisions(
+          "workflow_recommendation",
+          sourceId,
+          projectId,
+        );
+        setRevisions(histRes.data || []);
+      } catch {
+        /* non-fatal */
+      }
+
+      setPushbackText("");
+      setPushbackOpen(false);
+    } catch (err) {
+      console.error("Workflow pushback failed:", err);
+      toast.error("Couldn't reach Thad just now. Try again?");
+    } finally {
+      setPushbackSubmitting(false);
+    }
+  };
+
+  const saveLastFeedbackAsNote = async () => {
+    if (!lastFeedback || !projectId) {
+      setSavePromptOpen(false);
+      return;
+    }
+    try {
+      await thadApi.createStyleNote(projectId, lastFeedback, lastRevisionId);
+      toast.success("I'll remember.");
+    } catch (err) {
+      console.error("Save style note failed:", err);
+      toast.error("Couldn't save it. Try again?");
+    } finally {
+      setSavePromptOpen(false);
+    }
+  };
+
   const getCurrentStageInfo = () => {
     if (!analysisData) return WORKFLOW_STAGES[0];
     return (
@@ -192,8 +348,18 @@ export default function WorkflowPanel({
         />
       )}
 
+      {/* Regen loading state — different copy, signals it's a revision */}
+      {pushbackSubmitting && (
+        <LoadingState
+          size="panel"
+          title="Thinking it over."
+          body="Looking at where the manuscript sits with your read in mind."
+          testId="loading-workflow-regen"
+        />
+      )}
+
       {/* Error State */}
-      {error && !loading && (
+      {error && !loading && !pushbackSubmitting && (
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="p-4">
             <p className="text-sm text-destructive">{error}</p>
@@ -210,7 +376,7 @@ export default function WorkflowPanel({
       )}
 
       {/* Analysis Results */}
-      {analysisData && !loading && (
+      {analysisData && !loading && !pushbackSubmitting && (
         <>
           {/* Current Stage Card */}
           <Card
@@ -271,6 +437,152 @@ export default function WorkflowPanel({
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Push-back affordance */}
+          {!pushbackOpen && projectId && (
+            <div className="pt-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPushbackOpen(true)}
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                data-testid="open-pushback-btn"
+              >
+                <Pencil className="h-3 w-3 mr-1" />
+                Push back
+              </Button>
+            </div>
+          )}
+
+          {/* Push-back composer */}
+          {pushbackOpen && (
+            <div
+              className="space-y-2 p-3 rounded-sm bg-muted/30 border"
+              data-testid="pushback-composer"
+            >
+              <Textarea
+                value={pushbackText}
+                onChange={(e) => setPushbackText(e.target.value)}
+                placeholder="What did I miss?"
+                className="min-h-[80px] text-sm rounded-sm resize-none"
+                data-testid="pushback-textarea"
+                autoFocus
+                disabled={pushbackSubmitting}
+              />
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setPushbackOpen(false);
+                    setPushbackText("");
+                  }}
+                  className="h-7 text-xs rounded-sm"
+                  disabled={pushbackSubmitting}
+                  data-testid="cancel-pushback-btn"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={submitPushback}
+                  className="h-7 text-xs rounded-sm"
+                  disabled={pushbackSubmitting || !pushbackText.trim()}
+                  data-testid="send-pushback-btn"
+                >
+                  {pushbackSubmitting ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Sending.
+                    </>
+                  ) : (
+                    "Send"
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Save-as-style-note prompt */}
+          {savePromptOpen && (
+            <div
+              className="space-y-2 p-3 rounded-sm bg-accent/5 border border-accent/20"
+              data-testid="save-note-prompt"
+            >
+              <p className="text-xs text-muted-foreground">
+                Want me to remember this for future reads?
+              </p>
+              <p className="text-xs italic text-muted-foreground line-clamp-2">
+                "{lastFeedback}"
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSavePromptOpen(false)}
+                  className="h-7 text-xs rounded-sm"
+                  data-testid="dismiss-save-prompt-btn"
+                >
+                  Just this once
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={saveLastFeedbackAsNote}
+                  className="h-7 text-xs rounded-sm"
+                  data-testid="save-as-note-btn"
+                >
+                  Save it
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Earlier takes — collapsed by default, only renders if any */}
+          {revisions.length > 0 && (
+            <Collapsible
+              open={showHistory}
+              onOpenChange={setShowHistory}
+              data-testid="revisions-history"
+            >
+              <CollapsibleTrigger asChild>
+                <button className="w-full flex items-center justify-between p-2 rounded-sm text-xs text-muted-foreground hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <History className="h-3 w-3" />
+                    <span>
+                      Earlier {revisions.length === 1 ? "take" : "takes"} (
+                      {revisions.length})
+                    </span>
+                  </div>
+                  {showHistory ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-2 mt-2 pl-2">
+                  {revisions.map((rev) => (
+                    <div
+                      key={rev.id}
+                      className="space-y-1 p-2 rounded-sm bg-muted/20 text-xs"
+                      data-testid={`revision-${rev.id}`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>You said:</span>
+                        <span>
+                          {new Date(rev.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="italic text-muted-foreground">
+                        "{rev.user_feedback}"
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
 
           {/* Stage Timeline */}

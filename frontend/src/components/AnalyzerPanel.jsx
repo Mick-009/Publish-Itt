@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { aiApi, notesApi, importAnalysisApi } from "@/lib/api";
+import { aiApi, notesApi, importAnalysisApi, thadApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EmptyState from "@/components/EmptyState";
@@ -33,6 +34,9 @@ import {
   MessageSquare,
   Lightbulb,
   GraduationCap,
+  Pencil,
+  History,
+  Bookmark,
 } from "lucide-react";
 
 const CATEGORY_CONFIG = {
@@ -68,6 +72,44 @@ const CATEGORY_CONFIG = {
   },
 };
 
+// Try to parse Thad's regen response as JSON in the analysis shape.
+// Falls back to a single tone_analysis blob if parsing fails — at least
+// the writer sees what Thad said.
+function parseAnalysisRegenResponse(text) {
+  if (!text) return null;
+  // Strip code fences if Thad wrapped the JSON in them
+  let cleaned = text.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/\s*```\s*$/, "");
+  }
+  // Pull the first {...} block
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) {
+    return {
+      tone_analysis: cleaned,
+      style_analysis: "",
+      suggestions: [],
+      reading_level: "",
+    };
+  }
+  try {
+    const parsed = JSON.parse(match[0]);
+    return {
+      tone_analysis: parsed.tone_analysis || "",
+      style_analysis: parsed.style_analysis || "",
+      suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+      reading_level: parsed.reading_level || "",
+    };
+  } catch {
+    return {
+      tone_analysis: cleaned,
+      style_analysis: "",
+      suggestions: [],
+      reading_level: "",
+    };
+  }
+}
+
 export default function AnalyzerPanel({
   content,
   chapterId,
@@ -91,6 +133,22 @@ export default function AnalyzerPanel({
     new Set(["structure", "formatting", "issues"]),
   );
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+
+  // Phase 2: push-back & revisions
+  const [pushbackOpen, setPushbackOpen] = useState(false);
+  const [pushbackText, setPushbackText] = useState("");
+  const [pushbackSubmitting, setPushbackSubmitting] = useState(false);
+  const [revisions, setRevisions] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Phase 2: save-as-style-note flow
+  const [savePromptOpen, setSavePromptOpen] = useState(false);
+  const [lastRevisionId, setLastRevisionId] = useState(null);
+  const [lastFeedback, setLastFeedback] = useState("");
+
+  // Phase 2: project-wide standing notes
+  const [styleNotes, setStyleNotes] = useState([]);
+  const [styleNotesOpen, setStyleNotesOpen] = useState(false);
 
   // Group findings by category
   const groupedFindings = findings.reduce((acc, finding) => {
@@ -171,6 +229,153 @@ export default function AnalyzerPanel({
     toneStyleLoading,
     runToneStyleAnalysis,
   ]);
+
+  // Phase 2: load revisions for this chapter, and project-wide style notes
+  useEffect(() => {
+    if (!chapterId || !projectId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await thadApi.getRevisions(
+          "analysis",
+          chapterId,
+          projectId,
+        );
+        if (!cancelled) setRevisions(res.data || []);
+      } catch (err) {
+        // Silent: empty history is the same as a missing one for the UI.
+        console.warn("Couldn't load revisions:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [chapterId, projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await thadApi.listStyleNotes(projectId);
+        if (!cancelled) setStyleNotes(res.data || []);
+      } catch (err) {
+        console.warn("Couldn't load style notes:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  // Phase 2: submit a pushback and regenerate.
+  const submitPushback = async () => {
+    const feedback = pushbackText.trim();
+    if (!feedback) return;
+    if (!chapterId || !projectId) {
+      toast.error("Open a chapter first.");
+      return;
+    }
+    if (!toneStyleData) {
+      toast.error("Nothing to push back on yet.");
+      return;
+    }
+
+    setPushbackSubmitting(true);
+    try {
+      // The backend wants the previous response as a string. We send the
+      // current displayed analysis as JSON so Thad can match the shape.
+      const previousResponse = JSON.stringify({
+        tone_analysis: toneStyleData.tone_analysis || "",
+        style_analysis: toneStyleData.style_analysis || "",
+        suggestions: toneStyleData.suggestions || [],
+        reading_level: toneStyleData.reading_level || "",
+      });
+
+      const res = await thadApi.regenerate(
+        "analysis",
+        chapterId,
+        projectId,
+        feedback,
+        previousResponse,
+      );
+
+      const parsed = parseAnalysisRegenResponse(res.data.thad_response);
+      if (parsed) {
+        setToneStyleData(parsed);
+        setLastAnalyzed(Date.now());
+      }
+
+      // Track this revision for the save-as-note prompt
+      setLastRevisionId(res.data.revision_id);
+      setLastFeedback(feedback);
+      setSavePromptOpen(true);
+
+      // Refresh the history list
+      try {
+        const histRes = await thadApi.getRevisions(
+          "analysis",
+          chapterId,
+          projectId,
+        );
+        setRevisions(histRes.data || []);
+      } catch {
+        /* non-fatal */
+      }
+
+      // Close the composer
+      setPushbackText("");
+      setPushbackOpen(false);
+    } catch (err) {
+      console.error("Pushback failed:", err);
+      toast.error("Couldn't reach Thad just now. Try again?");
+    } finally {
+      setPushbackSubmitting(false);
+    }
+  };
+
+  const saveLastFeedbackAsNote = async () => {
+    if (!lastFeedback || !projectId) {
+      setSavePromptOpen(false);
+      return;
+    }
+    try {
+      const res = await thadApi.createStyleNote(
+        projectId,
+        lastFeedback,
+        lastRevisionId,
+      );
+      setStyleNotes((prev) => [...prev, res.data]);
+      toast.success("I'll remember.");
+    } catch (err) {
+      console.error("Save style note failed:", err);
+      toast.error("Couldn't save it. Try again?");
+    } finally {
+      setSavePromptOpen(false);
+    }
+  };
+
+  const retireStyleNote = async (noteId) => {
+    try {
+      await thadApi.setStyleNoteActive(noteId, false);
+      setStyleNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast.success("Set aside.");
+    } catch (err) {
+      console.error("Retire style note failed:", err);
+      toast.error("Couldn't update it. Try again?");
+    }
+  };
+
+  const deleteStyleNote = async (noteId) => {
+    try {
+      await thadApi.deleteStyleNote(noteId);
+      setStyleNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast.success("Removed.");
+    } catch (err) {
+      console.error("Delete style note failed:", err);
+      toast.error("Couldn't remove it. Try again?");
+    }
+  };
 
   // Detailed Import Analysis (existing functionality)
   const runDetailedAnalysis = async () => {
@@ -368,6 +573,67 @@ export default function AnalyzerPanel({
 
   return (
     <div className="space-y-4" data-testid="analyzer-panel">
+      {/* Standing notes — collapsed by default, only renders if any exist */}
+      {styleNotes.length > 0 && (
+        <Collapsible
+          open={styleNotesOpen}
+          onOpenChange={setStyleNotesOpen}
+          data-testid="standing-notes-section"
+        >
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between p-2 rounded-sm bg-muted/30 hover:bg-muted/50 transition-colors text-xs">
+              <div className="flex items-center gap-2">
+                <Bookmark className="h-3.5 w-3.5 text-accent" />
+                <span className="font-medium">What you've told me</span>
+                <Badge variant="secondary" className="text-[10px] h-4">
+                  {styleNotes.length}
+                </Badge>
+              </div>
+              {styleNotesOpen ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="space-y-1.5 mt-2 pl-2">
+              {styleNotes.map((note) => (
+                <div
+                  key={note.id}
+                  className="flex items-start gap-2 p-2 rounded-sm bg-muted/20 text-xs"
+                  data-testid={`style-note-${note.id}`}
+                >
+                  <span className="flex-1 text-muted-foreground leading-relaxed">
+                    {note.note}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-[10px] rounded-sm shrink-0"
+                    onClick={() => retireStyleNote(note.id)}
+                    title="Set aside (keeps the history)"
+                    data-testid={`retire-note-${note.id}`}
+                  >
+                    Set aside
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 rounded-sm shrink-0"
+                    onClick={() => deleteStyleNote(note.id)}
+                    title="Remove"
+                    data-testid={`delete-note-${note.id}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
       {/* Header with Refresh */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -403,8 +669,18 @@ export default function AnalyzerPanel({
         />
       )}
 
+      {/* Regen loading state — different copy, signals it's a revision */}
+      {pushbackSubmitting && (
+        <LoadingState
+          size="panel"
+          title="Thinking it over."
+          body="Looking at it again with your read in mind."
+          testId="loading-analyzer-regen"
+        />
+      )}
+
       {/* Tone & Style Analysis Results */}
-      {toneStyleData && !toneStyleLoading && (
+      {toneStyleData && !toneStyleLoading && !pushbackSubmitting && (
         <ScrollArea className="h-[400px]">
           <div className="space-y-3 pr-2">
             {/* Tone Analysis Card */}
@@ -500,11 +776,156 @@ export default function AnalyzerPanel({
                 </Card>
               )}
 
-            {/* Last Analyzed */}
-            {lastAnalyzed && (
-              <div className="text-[10px] text-muted-foreground text-center pt-2">
-                Last read: {new Date(lastAnalyzed).toLocaleTimeString()}
+            {/* Push-back affordance */}
+            {!pushbackOpen && (
+              <div className="flex items-center justify-between pt-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPushbackOpen(true)}
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  data-testid="open-pushback-btn"
+                >
+                  <Pencil className="h-3 w-3 mr-1" />
+                  Push back
+                </Button>
+                {lastAnalyzed && (
+                  <div className="text-[10px] text-muted-foreground">
+                    Last read: {new Date(lastAnalyzed).toLocaleTimeString()}
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* Push-back composer */}
+            {pushbackOpen && (
+              <div
+                className="space-y-2 p-3 rounded-sm bg-muted/30 border"
+                data-testid="pushback-composer"
+              >
+                <Textarea
+                  value={pushbackText}
+                  onChange={(e) => setPushbackText(e.target.value)}
+                  placeholder="What did I miss?"
+                  className="min-h-[80px] text-sm rounded-sm resize-none"
+                  data-testid="pushback-textarea"
+                  autoFocus
+                  disabled={pushbackSubmitting}
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPushbackOpen(false);
+                      setPushbackText("");
+                    }}
+                    className="h-7 text-xs rounded-sm"
+                    disabled={pushbackSubmitting}
+                    data-testid="cancel-pushback-btn"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={submitPushback}
+                    className="h-7 text-xs rounded-sm"
+                    disabled={pushbackSubmitting || !pushbackText.trim()}
+                    data-testid="send-pushback-btn"
+                  >
+                    {pushbackSubmitting ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Sending.
+                      </>
+                    ) : (
+                      "Send"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Save-as-style-note prompt — appears once after a regen */}
+            {savePromptOpen && (
+              <div
+                className="space-y-2 p-3 rounded-sm bg-accent/5 border border-accent/20"
+                data-testid="save-note-prompt"
+              >
+                <p className="text-xs text-muted-foreground">
+                  Want me to remember this for future reads?
+                </p>
+                <p className="text-xs italic text-muted-foreground line-clamp-2">
+                  "{lastFeedback}"
+                </p>
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSavePromptOpen(false)}
+                    className="h-7 text-xs rounded-sm"
+                    data-testid="dismiss-save-prompt-btn"
+                  >
+                    Just this once
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={saveLastFeedbackAsNote}
+                    className="h-7 text-xs rounded-sm"
+                    data-testid="save-as-note-btn"
+                  >
+                    Save it
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Earlier takes — collapsed by default, only renders if any */}
+            {revisions.length > 0 && (
+              <Collapsible
+                open={showHistory}
+                onOpenChange={setShowHistory}
+                data-testid="revisions-history"
+              >
+                <CollapsibleTrigger asChild>
+                  <button className="w-full flex items-center justify-between p-2 rounded-sm text-xs text-muted-foreground hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <History className="h-3 w-3" />
+                      <span>
+                        Earlier{" "}
+                        {revisions.length === 1 ? "take" : "takes"} (
+                        {revisions.length})
+                      </span>
+                    </div>
+                    {showHistory ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-2 mt-2 pl-2">
+                    {revisions.map((rev) => (
+                      <div
+                        key={rev.id}
+                        className="space-y-1 p-2 rounded-sm bg-muted/20 text-xs"
+                        data-testid={`revision-${rev.id}`}
+                      >
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>You said:</span>
+                          <span>
+                            {new Date(rev.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="italic text-muted-foreground">
+                          "{rev.user_feedback}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
 
             <Separator className="my-4" />
@@ -681,7 +1102,7 @@ export default function AnalyzerPanel({
       )}
 
       {/* Initial State - No Analysis Yet */}
-      {!toneStyleData && !toneStyleLoading && (
+      {!toneStyleData && !toneStyleLoading && !pushbackSubmitting && (
         <EmptyState
           size="panel"
           art={<AnalyzeLoopArt size={72} />}

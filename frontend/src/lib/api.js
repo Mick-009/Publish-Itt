@@ -47,6 +47,7 @@ export const projectApi = {
     projectId,
     includeTitlePage = true,
     includeChapterNumbers = true,
+    authorOverride = null,
   ) =>
     api.post(
       "/export/docx",
@@ -54,6 +55,7 @@ export const projectApi = {
         project_id: projectId,
         include_title_page: includeTitlePage,
         include_chapter_numbers: includeChapterNumbers,
+        author_override: authorOverride,
       },
       { responseType: "blob" },
     ),
@@ -65,22 +67,6 @@ export const projectApi = {
   ) =>
     api.post(
       "/export/pdf",
-      {
-        project_id: projectId,
-        include_title_page: includeTitlePage,
-        include_chapter_numbers: includeChapterNumbers,
-        author_override: authorOverride,
-      },
-      { responseType: "blob" },
-    ),
-  exportDocx: (
-    projectId,
-    includeTitlePage = true,
-    includeChapterNumbers = true,
-    authorOverride = null,
-  ) =>
-    api.post(
-      "/export/docx",
       {
         project_id: projectId,
         include_title_page: includeTitlePage,
@@ -308,6 +294,52 @@ export const aiApi = {
       device_type: deviceType,
       current_step: currentStep,
     }),
+};
+
+// Phase 2: regenerate-with-feedback for Thad outputs.
+//
+// All endpoints sit under /api/thad/* and require auth.
+// source_type is one of "analysis" or "workflow_recommendation".
+// source_id is the chapter ID for analysis sources, a stable workflow ID
+// (or the project ID) for workflow recommendations.
+export const thadApi = {
+  // Send writer feedback. Thad returns a new response in the same shape
+  // as the previous one (parse it on the frontend).
+  regenerate: (sourceType, sourceId, projectId, userFeedback, previousResponse) =>
+    api.post("/thad/regenerate", {
+      source_type: sourceType,
+      source_id: sourceId,
+      project_id: projectId,
+      user_feedback: userFeedback,
+      previous_response: previousResponse,
+    }),
+
+  // Get all revisions for a given source, newest first.
+  getRevisions: (sourceType, sourceId, projectId) =>
+    api.get(`/thad/revisions/${sourceType}/${sourceId}`, {
+      params: { project_id: projectId },
+    }),
+
+  // List active style notes for a project.
+  // Pass includeInactive=true to also get retired ones.
+  listStyleNotes: (projectId, includeInactive = false) =>
+    api.get("/thad/style-notes", {
+      params: { project_id: projectId, include_inactive: includeInactive },
+    }),
+
+  createStyleNote: (projectId, note, sourceRevisionId = null) =>
+    api.post("/thad/style-notes", {
+      project_id: projectId,
+      note,
+      source_revision_id: sourceRevisionId,
+    }),
+
+  // Toggle active/inactive — keeps history, hides from future analyses.
+  setStyleNoteActive: (noteId, active) =>
+    api.patch(`/thad/style-notes/${noteId}`, { active }),
+
+  // Hard delete — gone for good.
+  deleteStyleNote: (noteId) => api.delete(`/thad/style-notes/${noteId}`),
 };
 
 // Market Intelligence APIs
