@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { stylePresetApi, userApi } from "@/lib/api";
+import { stylePresetApi, userApi, onboardingApi } from "@/lib/api";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -45,9 +45,6 @@ import {
 } from "lucide-react";
 import ThadTour from "@/components/ThadTour";
 import LoadingState from "@/components/LoadingState";
-import { useNavigate } from "react-router-dom";
-import { onboardingApi } from "@/lib/api";
-import { stylePresetApi, userApi, onboardingApi } from "@/lib/api";
 
 const THEME_ICONS = {
   default: Sun,
@@ -327,7 +324,7 @@ export default function Settings() {
                 Reset
               </Button>
             </div>
-            
+
             {/* Replay Wow-Moment Onboarding */}
             <div className="flex items-center justify-between p-4 border border-border rounded-sm hover:border-accent/30 transition-colors">
               <div className="flex items-center gap-4">

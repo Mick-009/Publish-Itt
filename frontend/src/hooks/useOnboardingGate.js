@@ -26,7 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export function useOnboardingGate() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function useOnboardingGate() {
       path.startsWith("/auth") ||
       path.startsWith("/onboarding");
 
-    if (!isAuthenticated) {
+    if (!user) {
       // Unauthenticated routes don't need gating — assume the auth router
       // will handle whatever's needed.
       setReady(true);
@@ -69,7 +69,7 @@ export function useOnboardingGate() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, location.pathname]);
+  }, [user, location.pathname]);
 
   return { ready };
 }
