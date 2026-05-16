@@ -25,7 +25,6 @@ import { GENRES, AGE_GROUPS, WRITING_STYLES, getGenresByCategory } from "@/lib/c
 import { cn, statusColors, formatDate, formatWordCount, calculateProgress } from "@/lib/utils";
 import { toast } from "sonner";
 import ImportAnalysisDialog from "@/components/ImportAnalysisDialog";
-import ThadOnboarding from "@/components/ThadOnboarding";
 import MomentumStrip from "@/components/MomentumStrip";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -270,7 +269,6 @@ export default function Dashboard() {
     style_notes: "", summary: "",
   });
   const [creating, setCreating] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Upload
   const [isDragging, setIsDragging] = useState(false);
@@ -297,8 +295,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadProjects();
-    const onboardingComplete = localStorage.getItem("thad_onboarding_complete");
-    if (!onboardingComplete) setShowOnboarding(true);
 
     const params = new URLSearchParams(window.location.search);
     const action = params.get("action");
@@ -347,14 +343,13 @@ export default function Dashboard() {
     setUploading(true);
     try {
       const projRes = await projectApi.create({ title: importProjectTitle, type: "novel", status: "draft", summary: `Imported from ${uploadedFile.name}` });
-      const projId = projRes.data.id; setNewProjectId(projId);
+      const projId = projRes.data.id;
+      setNewProjectId(projId);
+      // Consume any stashed onboarding style note now that there's a real project to attach it to
+      await consumePendingStyleNote(projId);
       const upRes = await uploadApi.uploadManuscript(uploadedFile, projId, importChapterTitle || importProjectTitle);
       await loadProjects();
       toast.success(`Imported "${importChapterTitle}" (${upRes.data.word_count?.toLocaleString()} words)`);
-      // ...after the project is created successfully...
-      const newProject = projRes.data;
-      await consumePendingStyleNote(newProject.id);
-      // then navigate/refresh as you normally would
       setImportedContent(uploadPreview?.full_content || upRes.data.content);
       setImportedFilename(uploadedFile.name);
       handleUploadClose(); setImportAnalysisOpen(true);
@@ -375,6 +370,8 @@ export default function Dashboard() {
     setCreating(true);
     try {
       const res = await projectApi.create(newProject);
+      // Consume any stashed onboarding style note now that there's a real project to attach it to
+      await consumePendingStyleNote(res.data.id);
       setProjects([...projects, res.data]);
       setDialogOpen(false);
       resetNewProject();
@@ -740,9 +737,6 @@ export default function Dashboard() {
         projectId={newProjectId}
         onActionComplete={() => { if (newProjectId) navigate(`/manuscript/${newProjectId}`); }}
       />
-
-      {/* ── Onboarding ── */}
-      <ThadOnboarding open={showOnboarding} onComplete={() => setShowOnboarding(false)} />
     </div>
   );
 }

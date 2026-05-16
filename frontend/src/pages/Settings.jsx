@@ -40,7 +40,6 @@ import {
   Check,
   Map,
   Sparkles,
-  RotateCcw,
   Target,
 } from "lucide-react";
 import ThadTour from "@/components/ThadTour";
@@ -116,8 +115,11 @@ export default function Settings() {
     }
   };
 
-  // Get user context from localStorage (set during onboarding)
-  const userName = localStorage.getItem("thad_user_name") || "Writer";
+  // User name for ThadTour — pulled from the user record (set during onboarding).
+  // Falls back to the email-local-part if no display name is set, matching the
+  // dashboard greeting's behaviour.
+  const userName =
+    user?.display_name || user?.email?.split("@")[0] || "Writer";
 
   const handleStartTour = () => {
     setShowTour(true);
@@ -126,22 +128,6 @@ export default function Settings() {
   const handleTourComplete = () => {
     setShowTour(false);
     toast.success("That's the tour. Now go write something.");
-  };
-
-  const handleResetOnboarding = () => {
-    // Clear all onboarding-related localStorage keys
-    localStorage.removeItem("thad_onboarding_complete");
-    localStorage.removeItem("thad_user_name");
-    localStorage.removeItem("thad_tour_complete");
-
-    toast.success("Reset. Heading back to the start.");
-
-    // Navigate to Dashboard which will trigger the onboarding flow
-    setTimeout(() => {
-      navigate("/");
-      // Force page reload to ensure fresh state
-      window.location.reload();
-    }, 500);
   };
 
   const handleReplayIntro = async () => {
@@ -297,31 +283,6 @@ export default function Settings() {
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 Start tour
-              </Button>
-            </div>
-
-            {/* Reset Onboarding Button */}
-            <div className="flex items-center justify-between p-4 border border-border rounded-sm hover:border-accent/30 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="p-2 rounded-sm bg-orange-500/10">
-                  <RotateCcw className="h-5 w-5 text-orange-500" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-sm">Start over</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Clear the welcome and run through it again from the top.
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleResetOnboarding}
-                className="rounded-sm border-orange-500/30 text-orange-600 hover:bg-orange-500/10 hover:text-orange-600"
-                data-testid="reset-onboarding-btn"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reset
               </Button>
             </div>
 
