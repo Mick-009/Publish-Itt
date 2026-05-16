@@ -68,10 +68,11 @@ class OnboardingStatusResponse(BaseModel):
 
 
 class OnboardingCompleteRequest(BaseModel):
-    # Optional metadata — what genre they picked, whether they skipped.
-    # Stored on the user doc so we can analyze the funnel later if we want.
+    # Optional metadata — what genre they picked, whether they skipped,
+    # and the name they want to be called. Stored on the user doc.
     chosen_genre: Optional[str] = None
     skipped: bool = False
+    display_name: Optional[str] = None
 
 
 # ============================================================================
@@ -138,6 +139,11 @@ def build_router(
             update["onboarding_chosen_genre"] = request.chosen_genre
         if request.skipped:
             update["onboarding_skipped"] = True
+        # display_name gets set on the user record itself so the dashboard
+        # greeting and everything else that reads user.display_name picks it
+        # up. Only overwrite if they actually typed something.
+        if request.display_name and request.display_name.strip():
+            update["display_name"] = request.display_name.strip()
         await db.users.update_one(
             {"id": current_user.id}, {"$set": update}
         )

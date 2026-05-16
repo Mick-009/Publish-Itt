@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -9,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import LoadingState from "@/components/LoadingState";
 import { onboardingApi, thadApi } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sparkles,
   ArrowRight,
@@ -73,6 +76,7 @@ const READING_DELAY_MS = 2200;
 
 export default function OnboardingFlow({ onFinish }) {
   const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
 
   const [samples, setSamples] = useState(null);
   const [samplesError, setSamplesError] = useState(null);
@@ -80,6 +84,11 @@ export default function OnboardingFlow({ onFinish }) {
   const [chosenGenreId, setChosenGenreId] = useState(null);
   const [styleNoteText, setStyleNoteText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Optional name harvest — empty by default so the placeholder shows.
+  // If the user already has a display_name (returning from a reset),
+  // pre-fill so they don't have to retype it.
+  const [displayName, setDisplayName] = useState(user?.display_name || "");
 
   // Pull the samples on mount.
   useEffect(() => {
@@ -118,10 +127,17 @@ export default function OnboardingFlow({ onFinish }) {
     async ({ skipped = false } = {}) => {
       setSubmitting(true);
       try {
+        const trimmedName = (displayName || "").trim();
         await onboardingApi.complete({
           chosen_genre: chosenGenreId || null,
           skipped,
+          display_name: trimmedName || null,
         });
+        // Sync the AuthContext so the dashboard greeting picks up the new
+        // name without needing a full reload.
+        if (trimmedName && updateUser) {
+          updateUser({ display_name: trimmedName });
+        }
         if (onFinish) {
           onFinish();
         } else {
@@ -136,7 +152,7 @@ export default function OnboardingFlow({ onFinish }) {
         setSubmitting(false);
       }
     },
-    [chosenGenreId, navigate, onFinish],
+    [chosenGenreId, displayName, navigate, onFinish, updateUser],
   );
 
   // Skip button — same effect as completing, just flagged.
@@ -236,6 +252,26 @@ export default function OnboardingFlow({ onFinish }) {
             <p className="text-muted-foreground leading-relaxed">
               {ui.welcome_body}
             </p>
+
+            {/* Optional name field — quiet enough that it doesn't feel like a form */}
+            <div className="space-y-1.5 pt-1">
+              <Label
+                htmlFor="onboarding-name"
+                className="text-xs uppercase tracking-wider text-muted-foreground"
+              >
+                What should I call you?
+              </Label>
+              <Input
+                id="onboarding-name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your name, or a pen name. Optional."
+                className="rounded-sm"
+                data-testid="onboarding-name-input"
+                maxLength={80}
+              />
+            </div>
+
             <div className="flex justify-end pt-2">
               <Button
                 size="lg"
