@@ -409,6 +409,7 @@ export default function ManuscriptWorkspace() {
     setSessionWordCount(0);
 
     const logWritingSession = async () => {
+      console.log("[stats] logWritingSession called", { sessionStartTime });
       // No session was opened = no typing happened. Don't log.
       if (!sessionStartTime) return;
 
@@ -449,17 +450,21 @@ export default function ManuscriptWorkspace() {
       const currentWordCount = editor.storage.characterCount?.words() || 0;
       const delta = currentWordCount - lastWordCountRef.current;
 
-      // Big jump means programmatic content load (chapter switch, paste,
-      // AI rewrite, version restore). Silently rebase and don't open a
-      // session.
+      console.log("[stats] update event", {
+        currentWordCount,
+        lastBaseline: lastWordCountRef.current,
+        delta,
+        sessionOpen: !!sessionStartTime,
+      });
+
       if (Math.abs(delta) > TYPING_DELTA_LIMIT) {
+        console.log("[stats] FILTERED — delta over limit, rebasing");
         lastWordCountRef.current = currentWordCount;
         return;
       }
 
-      // Real typing. Open a session if we don't have one, and track the
-      // running word count for the stats panel display.
       if (!sessionStartTime) {
+        console.log("[stats] session opening");
         setSessionStartTime(Date.now());
       }
       setSessionWordCount(currentWordCount);
