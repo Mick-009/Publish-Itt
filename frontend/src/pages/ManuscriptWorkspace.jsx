@@ -453,6 +453,8 @@ export default function ManuscriptWorkspace() {
         return;
       }
 
+      if (delta === 0) return;
+
       // Real typing. Open a session if we don't have one.
       if (!sessionStartRef.current) {
         console.log("[stats] session opening");
