@@ -392,7 +392,7 @@ export default function ManuscriptWorkspace() {
     // ceiling for "this might still be typing" — a fast typist with auto-
     // correct can occasionally produce ~10-word jumps; nothing legitimate
     // produces 50+ word jumps in a single update event.
-    const TYPING_DELTA_LIMIT = 50;
+    const TYPING_DELTA_LIMIT = 10;
 
     // The minimum we'll bother logging: at least 5 words of net progress
     // or 60 seconds of held session time. Below that, it's not worth a
