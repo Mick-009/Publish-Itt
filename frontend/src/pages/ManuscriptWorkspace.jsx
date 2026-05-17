@@ -192,6 +192,7 @@ export default function ManuscriptWorkspace() {
   const [sessionWordCount, setSessionWordCount] = useState(0);
   const [showStatsPanel, setShowStatsPanel] = useState(true);
   const lastWordCountRef = useRef(0);
+  const sessionStartRef = useRef(null);
   const statsIntervalRef = useRef(null);
 
   // ── Export state ─────────────────────────────────────────────────────────
@@ -391,7 +392,6 @@ export default function ManuscriptWorkspace() {
     // working memory — we read AND write them inside handleEditorUpdate, so
     // they have to be refs, not state.
     lastWordCountRef.current = editor.storage.characterCount?.words() || 0;
-    const sessionStartRef = { current: null };
     setSessionWordCount(0);
 
     const logWritingSession = async () => {
