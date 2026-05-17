@@ -370,56 +370,45 @@ export default function ManuscriptWorkspace() {
   // to typing from the listener's point of view — so we have to be careful
   // not to count programmatic content loads as writing.
   //
-  // Approach:
-  // - Reset the word-count baseline ourselves when the chapter changes,
-  //   before any update events have a chance to fire.
-  // - Threshold the per-event delta: anything bigger than TYPING_DELTA_LIMIT
-  //   isn't typing, it's a content swap. Update the baseline silently and
-  //   don't open a session.
-  // - Only call logSession if a session was actually opened AND there are
-  //   net-positive words. No typing, no log.
-  //
-  // The dep array is [editor, selectedChapter?.id] — passing the whole
-  // chapter object would tear down and rebuild the effect on every chapter
-  // metadata refresh from autosave, which was a contributing source of the
-  // original bug.
+  // We use refs (not state) for sessionStartTime and word-count baseline
+  // because the editor.on("update", ...) closure captures these values at
+  // effect-mount time. State would be stale; refs always read the latest.
   useEffect(() => {
     if (!editor || !selectedChapter) return;
 
     // Real typing events change the word count by at most a few words at a
     // time. Programmatic content loads (chapter switches, large pastes, AI
-    // rewrites) change it by tens, hundreds, or thousands. 50 is a generous
-    // ceiling for "this might still be typing" — a fast typist with auto-
-    // correct can occasionally produce ~10-word jumps; nothing legitimate
-    // produces 50+ word jumps in a single update event.
-    const TYPING_DELTA_LIMIT = 50;
+    // rewrites) change it by tens, hundreds, or thousands.
+    const TYPING_DELTA_LIMIT = 10;
 
     // The minimum we'll bother logging: at least 5 words of net progress
-    // or 60 seconds of held session time. Below that, it's not worth a
-    // round-trip and not statistically meaningful.
+    // or 10 seconds of held session time. Lowered from 60s for now while
+    // we validate the fix; can move back to 60 once stable.
     const MIN_WORDS_TO_LOG = 5;
-    const MIN_SECONDS_TO_LOG = 60;
+    const MIN_SECONDS_TO_LOG = 10;
 
-    // Reset our baseline explicitly when the chapter changes. The autosave
-    // hook will swap the editor's content in a moment, which will fire an
-    // update event — we want our baseline to already reflect that target
-    // word count, not the previous chapter's.
+    // Reset baseline. lastWordCountRef and sessionStartRef are this effect's
+    // working memory — we read AND write them inside handleEditorUpdate, so
+    // they have to be refs, not state.
     lastWordCountRef.current = editor.storage.characterCount?.words() || 0;
-    setSessionStartTime(null);
+    const sessionStartRef = { current: null };
     setSessionWordCount(0);
 
     const logWritingSession = async () => {
-      console.log("[stats] logWritingSession called", { sessionStartTime });
-      // No session was opened = no typing happened. Don't log.
-      if (!sessionStartTime) return;
+      console.log("[stats] logWritingSession called", {
+        sessionStart: sessionStartRef.current,
+      });
+
+      if (!sessionStartRef.current) return;
 
       const currentWordCount = editor.storage.characterCount?.words() || 0;
       const wordDiff = currentWordCount - lastWordCountRef.current;
-      const timeSpent = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const timeSpent = Math.floor(
+        (Date.now() - sessionStartRef.current) / 1000,
+      );
 
-      // Threshold: only log if it crosses one of the minimums. This means a
-      // ten-second flurry of typing that doesn't add many words won't spam
-      // logs; a longer quiet session of editing will eventually log.
+      console.log("[stats] would log", { wordDiff, timeSpent });
+
       if (
         Math.abs(wordDiff) < MIN_WORDS_TO_LOG &&
         timeSpent < MIN_SECONDS_TO_LOG
@@ -439,7 +428,7 @@ export default function ManuscriptWorkspace() {
         });
         // Reset session tracking so the next typing burst starts fresh.
         lastWordCountRef.current = currentWordCount;
-        setSessionStartTime(null);
+        sessionStartRef.current = null;
         setSessionWordCount(0);
       } catch (error) {
         console.error("Couldn't log writing session:", error);
@@ -454,26 +443,27 @@ export default function ManuscriptWorkspace() {
         currentWordCount,
         lastBaseline: lastWordCountRef.current,
         delta,
-        sessionOpen: !!sessionStartTime,
+        sessionOpen: !!sessionStartRef.current,
       });
 
+      // Big jump means programmatic content load. Silently rebase.
       if (Math.abs(delta) > TYPING_DELTA_LIMIT) {
         console.log("[stats] FILTERED — delta over limit, rebasing");
         lastWordCountRef.current = currentWordCount;
         return;
       }
 
-      if (!sessionStartTime) {
+      // Real typing. Open a session if we don't have one.
+      if (!sessionStartRef.current) {
         console.log("[stats] session opening");
-        setSessionStartTime(Date.now());
+        sessionStartRef.current = Date.now();
       }
       setSessionWordCount(currentWordCount);
     };
 
     editor.on("update", handleEditorUpdate);
 
-    // Periodic flush — every 5 minutes the held session gets logged so the
-    // dashboard sees fresh data without waiting for a chapter switch.
+    // Periodic flush.
     statsIntervalRef.current = setInterval(logWritingSession, 5 * 60 * 1000);
 
     return () => {
@@ -481,15 +471,9 @@ export default function ManuscriptWorkspace() {
       if (statsIntervalRef.current) {
         clearInterval(statsIntervalRef.current);
       }
-      // One last flush on chapter change / unmount. This is the only place
-      // a half-completed session of real typing gets logged, so we want it.
+      // One last flush on chapter change / unmount.
       logWritingSession();
     };
-    // We intentionally do NOT depend on selectedProject or sessionStartTime
-    // here. selectedProject changing means the chapter is changing too, so
-    // the chapter dep covers it. Depending on sessionStartTime would tear
-    // down and rebuild this effect on every typed word, which would lose
-    // the in-flight session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, selectedChapter?.id]);
 
