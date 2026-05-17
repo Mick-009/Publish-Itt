@@ -363,68 +363,130 @@ export default function ManuscriptWorkspace() {
     }
   }, [projectId, projects]);
 
-  // ── Writing stats: log sessions every 5 minutes ──────────────────────────
+  // ── Writing stats: log sessions only when real typing happens ────────────
+  //
+  // The autosave hook calls editor.commands.setContent(...) when you switch
+  // chapters, which fires Tiptap's "update" event. That event looks identical
+  // to typing from the listener's point of view — so we have to be careful
+  // not to count programmatic content loads as writing.
+  //
+  // Approach:
+  // - Reset the word-count baseline ourselves when the chapter changes,
+  //   before any update events have a chance to fire.
+  // - Threshold the per-event delta: anything bigger than TYPING_DELTA_LIMIT
+  //   isn't typing, it's a content swap. Update the baseline silently and
+  //   don't open a session.
+  // - Only call logSession if a session was actually opened AND there are
+  //   net-positive words. No typing, no log.
+  //
+  // The dep array is [editor, selectedChapter?.id] — passing the whole
+  // chapter object would tear down and rebuild the effect on every chapter
+  // metadata refresh from autosave, which was a contributing source of the
+  // original bug.
   useEffect(() => {
     if (!editor || !selectedChapter) return;
 
+    // Real typing events change the word count by at most a few words at a
+    // time. Programmatic content loads (chapter switches, large pastes, AI
+    // rewrites) change it by tens, hundreds, or thousands. 50 is a generous
+    // ceiling for "this might still be typing" — a fast typist with auto-
+    // correct can occasionally produce ~10-word jumps; nothing legitimate
+    // produces 50+ word jumps in a single update event.
+    const TYPING_DELTA_LIMIT = 50;
+
+    // The minimum we'll bother logging: at least 5 words of net progress
+    // or 60 seconds of held session time. Below that, it's not worth a
+    // round-trip and not statistically meaningful.
+    const MIN_WORDS_TO_LOG = 5;
+    const MIN_SECONDS_TO_LOG = 60;
+
+    // Reset our baseline explicitly when the chapter changes. The autosave
+    // hook will swap the editor's content in a moment, which will fire an
+    // update event — we want our baseline to already reflect that target
+    // word count, not the previous chapter's.
+    lastWordCountRef.current = editor.storage.characterCount?.words() || 0;
+    setSessionStartTime(null);
+    setSessionWordCount(0);
+
     const logWritingSession = async () => {
+      // No session was opened = no typing happened. Don't log.
+      if (!sessionStartTime) return;
+
       const currentWordCount = editor.storage.characterCount?.words() || 0;
       const wordDiff = currentWordCount - lastWordCountRef.current;
+      const timeSpent = Math.floor((Date.now() - sessionStartTime) / 1000);
 
-      // Only log if there's been writing activity
-      if (wordDiff === 0 && !sessionStartTime) return;
+      // Threshold: only log if it crosses one of the minimums. This means a
+      // ten-second flurry of typing that doesn't add many words won't spam
+      // logs; a longer quiet session of editing will eventually log.
+      if (
+        Math.abs(wordDiff) < MIN_WORDS_TO_LOG &&
+        timeSpent < MIN_SECONDS_TO_LOG
+      ) {
+        return;
+      }
 
-      const timeSpent = sessionStartTime
-        ? Math.floor((Date.now() - sessionStartTime) / 1000)
-        : 0;
-
-      // Only log if significant activity (at least 10 words or 60 seconds)
-      if (Math.abs(wordDiff) >= 10 || timeSpent >= 60) {
-        try {
-          const today = new Date().toISOString().split("T")[0];
-          await statsApi.logSession({
-            project_id: selectedProject?.id,
-            chapter_id: selectedChapter?.id,
-            date: today,
-            words_added: Math.max(0, wordDiff),
-            words_deleted: Math.max(0, -wordDiff),
-            time_spent_seconds: timeSpent,
-          });
-
-          // Reset session tracking
-          lastWordCountRef.current = currentWordCount;
-          setSessionStartTime(null);
-          setSessionWordCount(0);
-        } catch (error) {
-          console.error("Failed to log writing session:", error);
-        }
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        await statsApi.logSession({
+          project_id: selectedProject?.id,
+          chapter_id: selectedChapter?.id,
+          date: today,
+          words_added: Math.max(0, wordDiff),
+          words_deleted: Math.max(0, -wordDiff),
+          time_spent_seconds: timeSpent,
+        });
+        // Reset session tracking so the next typing burst starts fresh.
+        lastWordCountRef.current = currentWordCount;
+        setSessionStartTime(null);
+        setSessionWordCount(0);
+      } catch (error) {
+        console.error("Couldn't log writing session:", error);
       }
     };
 
-    // Track when editing starts
     const handleEditorUpdate = () => {
+      const currentWordCount = editor.storage.characterCount?.words() || 0;
+      const delta = currentWordCount - lastWordCountRef.current;
+
+      // Big jump means programmatic content load (chapter switch, paste,
+      // AI rewrite, version restore). Silently rebase and don't open a
+      // session.
+      if (Math.abs(delta) > TYPING_DELTA_LIMIT) {
+        lastWordCountRef.current = currentWordCount;
+        return;
+      }
+
+      // Real typing. Open a session if we don't have one, and track the
+      // running word count for the stats panel display.
       if (!sessionStartTime) {
         setSessionStartTime(Date.now());
-        lastWordCountRef.current = editor.storage.characterCount?.words() || 0;
       }
-      setSessionWordCount(editor.storage.characterCount?.words() || 0);
+      setSessionWordCount(currentWordCount);
     };
 
     editor.on("update", handleEditorUpdate);
 
-    // Log session every 5 minutes
+    // Periodic flush — every 5 minutes the held session gets logged so the
+    // dashboard sees fresh data without waiting for a chapter switch.
     statsIntervalRef.current = setInterval(logWritingSession, 5 * 60 * 1000);
 
-    // Also log on unmount/chapter change
     return () => {
       editor.off("update", handleEditorUpdate);
       if (statsIntervalRef.current) {
         clearInterval(statsIntervalRef.current);
       }
-      // Log final session
+      // One last flush on chapter change / unmount. This is the only place
+      // a half-completed session of real typing gets logged, so we want it.
       logWritingSession();
     };
-  }, [editor, selectedChapter, selectedProject, sessionStartTime]);
+    // We intentionally do NOT depend on selectedProject or sessionStartTime
+    // here. selectedProject changing means the chapter is changing too, so
+    // the chapter dep covers it. Depending on sessionStartTime would tear
+    // down and rebuild this effect on every typed word, which would lose
+    // the in-flight session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, selectedChapter?.id]);
 
   // ── Data loaders ─────────────────────────────────────────────────────────
   const loadProjects = async () => {
