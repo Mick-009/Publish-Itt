@@ -2,16 +2,10 @@
  * WritingStats — full-page writing statistics dashboard.
  * Route: /stats. Linked from the dashboard's MomentumStrip ("Full stats").
  *
- * Pulls three endpoints once on mount:
- *   GET /api/stats/overview  — totals + averages
- *   GET /api/stats/weekly    — last 7 days, oldest-first
- *   GET /api/stats/streak    — current + longest + last writing date
- *
- * Auth attaches via the shared api.js axios instance (Bearer interceptor).
+ * Data via useStats — auto-refreshes when sessions are logged or goals change.
  */
 
-import { useState, useEffect, useRef } from "react";
-import { statsApi } from "@/lib/api";
+import { useStats } from "@/hooks/useStats";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import EmptyState from "@/components/EmptyState";
@@ -58,7 +52,6 @@ function StatCard({ label, value, sub, icon: Icon, delay = 0 }) {
           <div className="text-xs text-muted-foreground mt-2">{sub}</div>
         )}
       </CardContent>
-      {/* Accent bar across the bottom */}
       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent/60" />
     </Card>
   );
@@ -67,7 +60,6 @@ function StatCard({ label, value, sub, icon: Icon, delay = 0 }) {
 // ── Weekly bar chart ──────────────────────────────────────────────────────
 function BarChart({ data }) {
   if (!data || data.length === 0) return null;
-
   const max = Math.max(...data.map((d) => d.words || 0), 1);
 
   return (
@@ -82,11 +74,9 @@ function BarChart({ data }) {
                 key={d.date}
                 className="flex-1 flex flex-col items-center h-full"
               >
-                {/* Word count label */}
                 <div className="h-4 mb-1 text-[10px] text-muted-foreground/80 tabular-nums">
                   {d.words > 0 ? fmtNum(d.words) : ""}
                 </div>
-                {/* Bar */}
                 <div className="flex-1 w-full flex items-end justify-center">
                   <div
                     className={cn(
@@ -105,13 +95,10 @@ function BarChart({ data }) {
                     title={`${d.day}: ${fmtNum(d.words || 0)} words`}
                   />
                 </div>
-                {/* Day label */}
                 <div
                   className={cn(
                     "text-[11px] mt-2 font-medium uppercase tracking-wider",
-                    isToday
-                      ? "text-accent"
-                      : "text-muted-foreground",
+                    isToday ? "text-accent" : "text-muted-foreground",
                   )}
                 >
                   {d.day}
@@ -125,14 +112,14 @@ function BarChart({ data }) {
   );
 }
 
-// ── Streak flame stack — N flame icons, growing in size/opacity ──────────
+// ── Streak flame stack ────────────────────────────────────────────────────
 function StreakFlames({ streak }) {
   const flames = Math.min(streak, 14);
   return (
     <div className="flex items-end gap-1 flex-wrap">
       {Array.from({ length: flames }).map((_, i) => {
         const opacity = 0.45 + (i / Math.max(flames - 1, 1)) * 0.55;
-        const size = 16 + Math.min(i, 6); // grow up to 22px for 7+ streak
+        const size = 16 + Math.min(i, 6);
         return (
           <Flame
             key={i}
@@ -206,7 +193,6 @@ function StreakCard({ streak }) {
   );
 }
 
-// ── Section heading (used for chart + streak sections) ───────────────────
 function SectionHeading({ children }) {
   return (
     <h2 className="font-serif text-lg md:text-xl tracking-tight text-foreground/85 mb-4">
@@ -215,7 +201,6 @@ function SectionHeading({ children }) {
   );
 }
 
-// ── KPI grid skeleton ─────────────────────────────────────────────────────
 function KpiSkeletons() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -234,46 +219,13 @@ function KpiSkeletons() {
 
 // ── Main component ────────────────────────────────────────────────────────
 export default function WritingStats() {
-  const [overview, setOverview] = useState(null);
-  const [weekly, setWeekly] = useState([]);
-  const [streak, setStreak] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const mountedRef = useRef(true);
+  const { overview, weekly, streak, loading, error } = useStats({
+    surfaces: ["overview", "weekly", "streak"],
+  });
 
-  useEffect(() => {
-    mountedRef.current = true;
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const [ovRes, wkRes, stRes] = await Promise.all([
-          statsApi.getOverview(),
-          statsApi.getWeekly(),
-          statsApi.getStreak(),
-        ]);
-        if (cancelled || !mountedRef.current) return;
-        setOverview(ovRes.data);
-        setWeekly(Array.isArray(wkRes.data) ? wkRes.data : []);
-        setStreak(stRes.data);
-      } catch (e) {
-        if (!cancelled && mountedRef.current) {
-          setError(e?.message || "Couldn't load stats");
-        }
-      } finally {
-        if (!cancelled && mountedRef.current) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-      mountedRef.current = false;
-    };
-  }, []);
-
-  // While loading, the page chrome renders immediately and per-section
-  // skeletons fill in. Empty state only counts once data has actually landed.
+  const weeklyData = weekly || [];
+  // Empty state: data has loaded successfully but the user has never logged
+  // a session.
   const isEmpty =
     !loading && !error && overview && (overview.total_sessions || 0) === 0;
 
@@ -386,8 +338,8 @@ export default function WritingStats() {
           <SectionHeading>Last seven days</SectionHeading>
           {loading ? (
             <Skeleton className="h-52 w-full" />
-          ) : weekly.length > 0 ? (
-            <BarChart data={weekly} />
+          ) : weeklyData.length > 0 ? (
+            <BarChart data={weeklyData} />
           ) : (
             <p className="text-sm text-muted-foreground italic">
               No data for this week yet.

@@ -6,30 +6,18 @@
  *   2. Streak        → current streak with a scaled flame
  *   3. Week sparkline → last 7 days at a glance
  *
- * Single API call: GET /stats/today + the user's existing weekly cache.
- * Dismissable via the "Set goal" link → DailyGoalDialog.
+ * Data via useStats; refreshes automatically when a session is logged or
+ * the goal changes. Goal edits go through the shared DailyGoalDialog.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { statsApi, userApi } from "@/lib/api";
+import { useStats } from "@/hooks/useStats";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
+import DailyGoalDialog from "@/components/DailyGoalDialog";
 import { cn } from "@/lib/utils";
 import {
   Flame,
-  Target,
   BarChart2,
   Pencil,
   ArrowRight,
@@ -45,8 +33,6 @@ const formatTime = (seconds) => {
   const rem = m % 60;
   return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
 };
-
-const PRESET_GOALS = [250, 500, 1000, 2000];
 
 // ── Goal arc — circular progress ───────────────────────────────────────────
 function GoalArc({ words, goal, size = 132 }) {
@@ -67,7 +53,6 @@ function GoalArc({ words, goal, size = 132 }) {
         className="-rotate-90"
         aria-hidden="true"
       >
-        {/* Track */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -76,7 +61,6 @@ function GoalArc({ words, goal, size = 132 }) {
           stroke="hsl(var(--border))"
           strokeWidth={stroke}
         />
-        {/* Progress */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -161,157 +145,12 @@ function MomentumSkeleton() {
   );
 }
 
-// ── Daily goal dialog ──────────────────────────────────────────────────────
-function DailyGoalDialog({ open, onOpenChange, currentGoal, onSaved }) {
-  const { updateUser } = useAuth();
-  const [value, setValue] = useState(currentGoal || 500);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open) setValue(currentGoal || 500);
-  }, [open, currentGoal]);
-
-  const save = async (newGoal) => {
-    if (newGoal == null || isNaN(newGoal) || newGoal < 0 || newGoal > 100000) {
-      toast.error("Please enter a number between 0 and 100,000");
-      return;
-    }
-    setSaving(true);
-    try {
-      const res = await userApi.updatePreferences({ daily_word_goal: newGoal });
-      updateUser({ daily_word_goal: res.data.daily_word_goal });
-      toast.success(
-        newGoal === 0
-          ? "Daily goal turned off"
-          : `Daily goal set to ${newGoal.toLocaleString()} words`,
-      );
-      onSaved?.(res.data.daily_word_goal);
-      onOpenChange(false);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Could not update goal");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-2xl flex items-center gap-2">
-            <Target className="h-5 w-5 text-accent" />
-            Daily writing goal
-          </DialogTitle>
-          <DialogDescription>
-            A target you can quietly aim for. Set it to 0 to turn it off.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-5 pt-2">
-          {/* Preset chips */}
-          <div className="flex flex-wrap gap-2">
-            {PRESET_GOALS.map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setValue(g)}
-                className={cn(
-                  "px-3.5 py-1.5 rounded-full text-sm border transition-colors",
-                  value === g
-                    ? "bg-accent text-accent-foreground border-accent"
-                    : "border-border hover:border-accent/50 hover:bg-accent/5",
-                )}
-              >
-                {g.toLocaleString()}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom input */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="goal-input"
-              className="text-xs uppercase tracking-wider text-muted-foreground"
-            >
-              Or set a custom amount
-            </Label>
-            <div className="relative">
-              <Input
-                id="goal-input"
-                type="number"
-                min={0}
-                max={100000}
-                step={50}
-                value={value}
-                onChange={(e) => setValue(parseInt(e.target.value, 10) || 0)}
-                className="pr-16"
-                data-testid="daily-goal-input"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                words
-              </span>
-            </div>
-          </div>
-
-          <p className="text-xs text-muted-foreground italic">
-            Stephen King writes ~2,000 words a day. Hemingway aimed for 500.
-            Whatever feels sustainable for you is the right number.
-          </p>
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            disabled={saving}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={() => save(value)}
-            disabled={saving}
-            className="rounded-sm"
-            data-testid="save-daily-goal-btn"
-          >
-            {saving ? "Saving…" : "Save goal"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ── Main component ─────────────────────────────────────────────────────────
 export default function MomentumStrip() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [today, setToday] = useState(null);
-  const [weekly, setWeekly] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { today, weekly, loading } = useStats({ surfaces: ["today", "weekly"] });
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const [todayRes, weeklyRes] = await Promise.all([
-        statsApi.getToday(),
-        statsApi.getWeekly(),
-      ]);
-      setToday(todayRes.data);
-      setWeekly(Array.isArray(weeklyRes.data) ? weeklyRes.data : []);
-    } catch (err) {
-      // Silent fail — Dashboard still works without the strip
-      // eslint-disable-next-line no-console
-      console.warn("Could not load momentum stats:", err);
-      setToday(null);
-      setWeekly([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   if (loading) return <MomentumSkeleton />;
   if (!today) return null; // backend not reachable — hide quietly
@@ -335,6 +174,8 @@ export default function MomentumStrip() {
   } else {
     headline = `${remaining.toLocaleString()} more to hit today’s goal`;
   }
+
+  const weeklyData = weekly || [];
 
   return (
     <>
@@ -452,14 +293,14 @@ export default function MomentumStrip() {
           {/* ── Cell 3: Week sparkline ── */}
           <div className="bg-card p-6 flex items-center gap-5">
             <div className="shrink-0">
-              <WeekSparkline data={weekly || []} todayKey={today.date} />
+              <WeekSparkline data={weeklyData} todayKey={today.date} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-semibold mb-1">
                 Last 7 days
               </p>
               <p className="font-serif text-xl tracking-tight">
-                {(weekly || [])
+                {weeklyData
                   .reduce((s, d) => s + (d.words || 0), 0)
                   .toLocaleString()}
                 <span className="text-sm text-muted-foreground ml-2 font-sans">
@@ -485,7 +326,6 @@ export default function MomentumStrip() {
         open={goalDialogOpen}
         onOpenChange={setGoalDialogOpen}
         currentGoal={goal}
-        onSaved={() => load()}
       />
     </>
   );

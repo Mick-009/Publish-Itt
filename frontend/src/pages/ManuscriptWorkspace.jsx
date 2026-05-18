@@ -61,6 +61,7 @@ import {
   QuillMarkArt,
 } from "@/components/EmptyStateArt";
 import { useChapterAutosave } from "@/hooks/useChapterAutosave";
+import { useWritingSession } from "@/hooks/useWritingSession";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Plus,
@@ -184,16 +185,6 @@ export default function ManuscriptWorkspace() {
   const [importAnalysisOpen, setImportAnalysisOpen] = useState(false);
   const [importedContent, setImportedContent] = useState("");
   const [importedFilename, setImportedFilename] = useState("");
-
-  // ── Writing stats tracking ───────────────────────────────────────────────
-  // Logs sessions every 5 min via statsApi. Separate concern from autosave —
-  // the autosave hook does NOT cover this.
-  const [sessionStartTime, setSessionStartTime] = useState(null);
-  const [sessionWordCount, setSessionWordCount] = useState(0);
-  const [showStatsPanel, setShowStatsPanel] = useState(true);
-  const lastWordCountRef = useRef(0);
-  const sessionStartRef = useRef(null);
-  const statsIntervalRef = useRef(null);
 
   // ── Export state ─────────────────────────────────────────────────────────
   const { user } = useAuth();
@@ -364,120 +355,16 @@ export default function ManuscriptWorkspace() {
     }
   }, [projectId, projects]);
 
-  // ── Writing stats: log sessions only when real typing happens ────────────
-  //
-  // The autosave hook calls editor.commands.setContent(...) when you switch
-  // chapters, which fires Tiptap's "update" event. That event looks identical
-  // to typing from the listener's point of view — so we have to be careful
-  // not to count programmatic content loads as writing.
-  //
-  // We use refs (not state) for sessionStartTime and word-count baseline
-  // because the editor.on("update", ...) closure captures these values at
-  // effect-mount time. State would be stale; refs always read the latest.
-  useEffect(() => {
-    if (!editor || !selectedChapter) return;
-
-    // Real typing events change the word count by at most a few words at a
-    // time. Programmatic content loads (chapter switches, large pastes, AI
-    // rewrites) change it by tens, hundreds, or thousands.
-    const TYPING_DELTA_LIMIT = 10;
-
-    // The minimum we'll bother logging: at least 5 words of net progress
-    // or 10 seconds of held session time. Lowered from 60s for now while
-    // we validate the fix; can move back to 60 once stable.
-    const MIN_WORDS_TO_LOG = 5;
-    const MIN_SECONDS_TO_LOG = 10;
-
-    // Reset baseline. lastWordCountRef and sessionStartRef are this effect's
-    // working memory — we read AND write them inside handleEditorUpdate, so
-    // they have to be refs, not state.
-    lastWordCountRef.current = editor.storage.characterCount?.words() || 0;
-    setSessionWordCount(0);
-
-    const logWritingSession = async () => {
-      console.log("[stats] logWritingSession called", {
-        sessionStart: sessionStartRef.current,
-      });
-
-      if (!sessionStartRef.current) return;
-
-      const currentWordCount = editor.storage.characterCount?.words() || 0;
-      const wordDiff = currentWordCount - lastWordCountRef.current;
-      const timeSpent = Math.floor(
-        (Date.now() - sessionStartRef.current) / 1000,
-      );
-
-      console.log("[stats] would log", { wordDiff, timeSpent });
-
-      if (
-        Math.abs(wordDiff) < MIN_WORDS_TO_LOG &&
-        timeSpent < MIN_SECONDS_TO_LOG
-      ) {
-        return;
-      }
-
-      try {
-        const today = new Date().toISOString().split("T")[0];
-        await statsApi.logSession({
-          project_id: selectedProject?.id,
-          chapter_id: selectedChapter?.id,
-          date: today,
-          words_added: Math.max(0, wordDiff),
-          words_deleted: Math.max(0, -wordDiff),
-          time_spent_seconds: timeSpent,
-        });
-        // Reset session tracking so the next typing burst starts fresh.
-        lastWordCountRef.current = currentWordCount;
-        sessionStartRef.current = null;
-        setSessionWordCount(0);
-      } catch (error) {
-        console.error("Couldn't log writing session:", error);
-      }
-    };
-
-    const handleEditorUpdate = () => {
-      const currentWordCount = editor.storage.characterCount?.words() || 0;
-      const delta = currentWordCount - lastWordCountRef.current;
-
-      console.log("[stats] update event", {
-        currentWordCount,
-        lastBaseline: lastWordCountRef.current,
-        delta,
-        sessionOpen: !!sessionStartRef.current,
-      });
-
-      // Big jump means programmatic content load. Silently rebase.
-      if (Math.abs(delta) > TYPING_DELTA_LIMIT) {
-        console.log("[stats] FILTERED — delta over limit, rebasing");
-        lastWordCountRef.current = currentWordCount;
-        return;
-      }
-
-      if (delta === 0) return;
-
-      // Real typing. Open a session if we don't have one.
-      if (!sessionStartRef.current) {
-        console.log("[stats] session opening");
-        sessionStartRef.current = Date.now();
-      }
-      setSessionWordCount(currentWordCount);
-    };
-
-    editor.on("update", handleEditorUpdate);
-
-    // Periodic flush.
-    statsIntervalRef.current = setInterval(logWritingSession, 5 * 60 * 1000);
-
-    return () => {
-      editor.off("update", handleEditorUpdate);
-      if (statsIntervalRef.current) {
-        clearInterval(statsIntervalRef.current);
-      }
-      // One last flush on chapter change / unmount.
-      logWritingSession();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, selectedChapter?.id]);
+  // ── Writing stats tracking ───────────────────────────────────────────────
+  // Owns its own session lifecycle — opens on real typing (delta > 0),
+  // flushes on chapter change / idle / unmount / tab close. Sub-threshold
+  // sessions (< 3 words AND < 30s) are dropped quietly. Successful flushes
+  // dispatch `publishitt:stats-changed` so the three UI surfaces refresh.
+  useWritingSession({
+    editor,
+    projectId: selectedProject?.id,
+    chapterId: selectedChapter?.id,
+  });
 
   // ── Data loaders ─────────────────────────────────────────────────────────
   const loadProjects = async () => {
