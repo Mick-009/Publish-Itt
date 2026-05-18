@@ -154,7 +154,7 @@ export default function AuthPage() {
                 <Label htmlFor="displayName">What should we call you?</Label>
                 <Input
                   id="displayName"
-                  placeholder="e.g., J.K. Rowling"
+                  placeholder="e.g., Orson Welles"
                   value={form.displayName}
                   onChange={set("displayName")}
                   className={cn("rounded-sm", errors.displayName && "border-destructive")}
