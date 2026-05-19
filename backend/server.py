@@ -30,6 +30,7 @@ import prompts as P
 import exports as E
 import thad_revisions
 import onboarding
+import shares
 
 # Document parsing imports
 from docx import Document as DocxDocument
@@ -4088,6 +4089,13 @@ onboarding_router = onboarding.build_router(
 )
 app.include_router(onboarding_router)
 
+# Phase 3b: share-a-chapter (author + public reader endpoints)
+shares_router = shares.build_router(
+    db=db,
+    get_current_user_dep=Depends(get_current_user),
+)
+app.include_router(shares_router)
+
 # CORS — reads from CORS_ORIGINS env var; falls back to localhost:3000 for safety
 app.add_middleware(
     CORSMiddleware,
@@ -4108,10 +4116,12 @@ async def create_indexes():
     await db.users.create_index([("email", 1)], unique=True)
     await db.notes.create_index([("user_id", 1)])
     await db.notes.create_index([("user_id", 1), ("parent_id", 1)])
+    await db.notes.create_index([("share_id", 1)])
     await db.versions.create_index([("user_id", 1)])
     await db.versions.create_index([("user_id", 1), ("parent_id", 1)])
     await db.style_presets.create_index([("user_id", 1)])
     await thad_revisions.ensure_indexes(db)
+    await shares.ensure_indexes(db)
     logger.info("MongoDB indexes created/verified.")
 
 

@@ -305,7 +305,13 @@ export const aiApi = {
 export const thadApi = {
   // Send writer feedback. Thad returns a new response in the same shape
   // as the previous one (parse it on the frontend).
-  regenerate: (sourceType, sourceId, projectId, userFeedback, previousResponse) =>
+  regenerate: (
+    sourceType,
+    sourceId,
+    projectId,
+    userFeedback,
+    previousResponse,
+  ) =>
     api.post("/thad/regenerate", {
       source_type: sourceType,
       source_id: sourceId,
@@ -549,6 +555,75 @@ export const statsApi = {
 // User Preferences API
 export const userApi = {
   updatePreferences: (data) => api.patch("/auth/me/preferences", data),
+};
+
+// Share-a-chapter — author side (authenticated).
+//
+// Mirrors the patterns used by projectApi / notesApi. Uses the shared
+// axios instance so JWT auth attaches automatically.
+export const sharesApi = {
+  // Create a share. v1: chapterIds is always a single-element array.
+  create: ({ projectId, chapterIds, title, expiresAt }) =>
+    api.post("/shares", {
+      project_id: projectId,
+      chapter_ids: chapterIds,
+      title: title || null,
+      expires_at: expiresAt || null,
+    }),
+
+  // List the user's shares. Optional projectId filter.
+  list: (projectId = null) =>
+    api.get("/shares", {
+      params: projectId ? { project_id: projectId } : {},
+    }),
+
+  // Single share by id.
+  getById: (shareId) => api.get(`/shares/${shareId}`),
+
+  // PATCH — v1 only supports `{ revoked: true }`. Modeled as `revoke` to
+  // make the call site read clearly: "sharesApi.revoke(id)".
+  revoke: (shareId) => api.patch(`/shares/${shareId}`, { revoked: true }),
+
+  // Reader notes that came in through this share.
+  getNotes: (shareId) => api.get(`/shares/${shareId}/notes`),
+};
+
+// Public reader endpoints — explicitly NOT authenticated.
+//
+// These bypass the shared `api` axios instance (which always attaches the
+// JWT token) because they're meant to be hit by anonymous readers. We use
+// a separate axios call that goes to BACKEND_URL directly with no headers.
+//
+// The path under `/api/public/*` makes the unauthenticated nature obvious
+// from the URL alone.
+import axios from "axios";
+const PUBLIC_API = `${BACKEND_URL}/api/public`;
+
+export const publicApi = {
+  // Fetch the share's content. Returns is_revoked / is_expired flags rather
+  // than 4xx errors so the UI can show a friendly "no longer active" page.
+  getShare: (shareId) =>
+    axios.get(`${PUBLIC_API}/shares/${shareId}`, {
+      // Defensive: ensure no stale auth header rides along.
+      headers: { Authorization: "" },
+    }),
+
+  // Reader leaves a note. Anonymous — name comes from the cookie-stashed
+  // value set on first visit.
+  postNote: (
+    shareId,
+    { readerName, noteText, locationReference, isGeneralImpression },
+  ) =>
+    axios.post(
+      `${PUBLIC_API}/shares/${shareId}/notes`,
+      {
+        reader_name: readerName,
+        note_text: noteText,
+        location_reference: locationReference || "",
+        is_general_impression: !!isGeneralImpression,
+      },
+      { headers: { Authorization: "" } },
+    ),
 };
 
 // Import Manuscript Action

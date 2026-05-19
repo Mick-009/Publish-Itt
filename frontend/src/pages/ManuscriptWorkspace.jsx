@@ -53,6 +53,7 @@ import WritingStatsPanel from "@/components/WritingStatsPanel";
 import AnalyzerPanel from "@/components/AnalyzerPanel";
 import WorkflowPanel from "@/components/WorkflowPanel";
 import ThadChatPanel from "@/components/ThadChatPanel";
+import SharesPanel from "@/components/SharesPanel";
 import EmptyState from "@/components/EmptyState";
 import LoadingState from "@/components/LoadingState";
 import {
@@ -101,6 +102,7 @@ import {
   Download,
   FileDown,
   MessageSquare,
+  Send,
 } from "lucide-react";
 
 export default function ManuscriptWorkspace() {
@@ -1184,6 +1186,14 @@ export default function ManuscriptWorkspace() {
                     Read
                   </TabsTrigger>
                   <TabsTrigger
+                    value="shares"
+                    className="whitespace-nowrap"
+                    data-testid="shares-tab"
+                  >
+                    <Send className="h-3.5 w-3.5 mr-1" />
+                    Shares
+                  </TabsTrigger>
+                  <TabsTrigger
                     value="thad"
                     className="whitespace-nowrap"
                     data-testid="thad-tab"
@@ -1434,6 +1444,22 @@ export default function ManuscriptWorkspace() {
                           }
                         }
                       }}
+                    />
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+
+              {/* Shares Tab */}
+              <TabsContent
+                value="shares"
+                className="flex-1 mt-0 overflow-hidden"
+              >
+                <ScrollArea className="h-full">
+                  <div className="p-4">
+                    <SharesPanel
+                      projectId={selectedProject?.id}
+                      chapterId={selectedChapter?.id}
+                      chapterTitle={selectedChapter?.title}
                     />
                   </div>
                 </ScrollArea>
