@@ -596,7 +596,6 @@ export const sharesApi = {
 //
 // The path under `/api/public/*` makes the unauthenticated nature obvious
 // from the URL alone.
-import axios from "axios";
 const PUBLIC_API = `${BACKEND_URL}/api/public`;
 
 export const publicApi = {
