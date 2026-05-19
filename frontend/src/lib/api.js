@@ -2,6 +2,7 @@ import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+const PUBLIC_API = `${BACKEND_URL}/api/public`;
 
 const api = axios.create({
   baseURL: API,
@@ -596,7 +597,6 @@ export const sharesApi = {
 //
 // The path under `/api/public/*` makes the unauthenticated nature obvious
 // from the URL alone.
-const PUBLIC_API = `${BACKEND_URL}/api/public`;
 
 export const publicApi = {
   // Fetch the share's content. Returns is_revoked / is_expired flags rather
