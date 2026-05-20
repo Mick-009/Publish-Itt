@@ -1399,14 +1399,14 @@ export default function ManuscriptWorkspace() {
                 value="notes"
                 className="flex-1 mt-0 overflow-hidden"
               >
-                <ScrollArea className="h-full">
+                <div className="h-full w-full overflow-y-auto overflow-x-hidden">
                   <div className="p-4">
                     <NotesPanel
                       parentType="chapter"
                       parentId={selectedChapter?.id}
                     />
                   </div>
-                </ScrollArea>
+                </div>
               </TabsContent>
 
               {/* Analyzer Tab */}
