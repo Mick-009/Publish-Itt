@@ -244,7 +244,7 @@ export default function NotesPanel({ parentType, parentId }) {
         />
       ) : (
         <ScrollArea className="h-[300px] w-full overflow-y-auto overflow-x-auto pr-2">
-          <div className="space-y-2 pr-2 w-full">
+          <div className="space-y-2">
             {notes.map((note) => {
               const typeConfig = getNoteTypeConfig(note.note_type);
               const TypeIcon = typeConfig.icon;
