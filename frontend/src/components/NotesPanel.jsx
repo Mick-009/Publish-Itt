@@ -243,7 +243,7 @@ export default function NotesPanel({ parentType, parentId }) {
           testId="empty-notes-panel"
         />
       ) : (
-        <ScrollArea className="h-[300px] w-full overflow-y-auto overflow-x-auto pr-2">
+        <div className="h-[300px] w-full overflow-y-auto overflow-x-auto pr-2">
           <div className="space-y-2">
             {notes.map((note) => {
               const typeConfig = getNoteTypeConfig(note.note_type);
@@ -309,7 +309,7 @@ export default function NotesPanel({ parentType, parentId }) {
               );
             })}
           </div>
-        </ScrollArea>
+        </div>
       )}
 
       {/* Create Note Dialog */}
