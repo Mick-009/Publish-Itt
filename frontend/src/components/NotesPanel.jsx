@@ -243,8 +243,8 @@ export default function NotesPanel({ parentType, parentId }) {
           testId="empty-notes-panel"
         />
       ) : (
-        <ScrollArea className="h-[300px]">
-          <div className="space-y-2 pr-2">
+        <ScrollArea className="h-[300px] w-full">
+          <div className="space-y-2 pr-2 w-full">
             {notes.map((note) => {
               const typeConfig = getNoteTypeConfig(note.note_type);
               const TypeIcon = typeConfig.icon;
@@ -269,7 +269,9 @@ export default function NotesPanel({ parentType, parentId }) {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm line-clamp-3 break-words">{note.note_text}</p>
+                        <p className="text-sm line-clamp-3 break-words">
+                          {note.note_text}
+                        </p>
                         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           <span>{formatDate(note.created_at)}</span>
