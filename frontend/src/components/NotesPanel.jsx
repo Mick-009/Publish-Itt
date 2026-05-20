@@ -36,9 +36,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EmptyState from "@/components/EmptyState";
 import { PinnedNoteArt } from "@/components/EmptyStateArt";
-import { 
-  Plus, 
-  StickyNote, 
+import {
+  Plus,
+  StickyNote,
   Trash2,
   Loader2,
   Pencil,
@@ -46,14 +46,34 @@ import {
   MessageSquare,
   CheckSquare,
   AlertCircle,
-  Lightbulb
+  Lightbulb,
 } from "lucide-react";
 
 const NOTE_TYPES = [
-  { value: "comment", label: "Comment", icon: MessageSquare, color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  { value: "todo", label: "To-do", icon: CheckSquare, color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  { value: "revision", label: "Revision", icon: AlertCircle, color: "bg-red-500/10 text-red-600 border-red-500/20" },
-  { value: "author_intent", label: "Intent", icon: Lightbulb, color: "bg-green-500/10 text-green-600 border-green-500/20" },
+  {
+    value: "comment",
+    label: "Comment",
+    icon: MessageSquare,
+    color: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  },
+  {
+    value: "todo",
+    label: "To-do",
+    icon: CheckSquare,
+    color: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  },
+  {
+    value: "revision",
+    label: "Revision",
+    icon: AlertCircle,
+    color: "bg-red-500/10 text-red-600 border-red-500/20",
+  },
+  {
+    value: "author_intent",
+    label: "Intent",
+    icon: Lightbulb,
+    color: "bg-green-500/10 text-green-600 border-green-500/20",
+  },
 ];
 
 export default function NotesPanel({ parentType, parentId }) {
@@ -67,7 +87,7 @@ export default function NotesPanel({ parentType, parentId }) {
   const [newNote, setNewNote] = useState({
     note_text: "",
     note_type: "comment",
-    location_reference: ""
+    location_reference: "",
   });
 
   useEffect(() => {
@@ -82,8 +102,8 @@ export default function NotesPanel({ parentType, parentId }) {
     try {
       const res = await notesApi.getByParent(parentType, parentId);
       // Newest first.
-      const sortedNotes = [...res.data].sort((a, b) => 
-        new Date(b.created_at) - new Date(a.created_at)
+      const sortedNotes = [...res.data].sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at),
       );
       setNotes(sortedNotes);
     } catch (error) {
@@ -104,11 +124,15 @@ export default function NotesPanel({ parentType, parentId }) {
       await notesApi.create({
         parent_type: parentType,
         parent_id: parentId,
-        ...newNote
+        ...newNote,
       });
       toast.success("Pinned.");
       setCreateDialogOpen(false);
-      setNewNote({ note_text: "", note_type: "comment", location_reference: "" });
+      setNewNote({
+        note_text: "",
+        note_type: "comment",
+        location_reference: "",
+      });
       loadNotes();
     } catch (error) {
       toast.error("Couldn't pin it. Try again?");
@@ -128,7 +152,7 @@ export default function NotesPanel({ parentType, parentId }) {
       await notesApi.update(selectedNote.id, {
         note_text: selectedNote.note_text,
         note_type: selectedNote.note_type,
-        location_reference: selectedNote.location_reference
+        location_reference: selectedNote.location_reference,
       });
       toast.success("Updated.");
       setEditDialogOpen(false);
@@ -143,7 +167,7 @@ export default function NotesPanel({ parentType, parentId }) {
 
   const handleDeleteNote = async () => {
     if (!selectedNote) return;
-    
+
     try {
       await notesApi.delete(selectedNote.id);
       toast.success("Removed.");
@@ -156,15 +180,15 @@ export default function NotesPanel({ parentType, parentId }) {
   };
 
   const getNoteTypeConfig = (type) => {
-    return NOTE_TYPES.find(t => t.value === type) || NOTE_TYPES[0];
+    return NOTE_TYPES.find((t) => t.value === type) || NOTE_TYPES[0];
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -188,8 +212,8 @@ export default function NotesPanel({ parentType, parentId }) {
             {notes.length}
           </Badge>
         </div>
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           onClick={() => setCreateDialogOpen(true)}
           className="rounded-sm h-8"
           data-testid="create-note-btn"
@@ -224,10 +248,10 @@ export default function NotesPanel({ parentType, parentId }) {
             {notes.map((note) => {
               const typeConfig = getNoteTypeConfig(note.note_type);
               const TypeIcon = typeConfig.icon;
-              
+
               return (
-                <Card 
-                  key={note.id} 
+                <Card
+                  key={note.id}
                   className={cn("card-hover", typeConfig.color)}
                   data-testid={`note-item-${note.id}`}
                 >
@@ -240,12 +264,12 @@ export default function NotesPanel({ parentType, parentId }) {
                             {typeConfig.label}
                           </Badge>
                           {note.location_reference && (
-                            <span className="text-xs text-muted-foreground truncate">
+                            <span className="text-xs text-muted-foreground truncate min-w-0 flex-1">
                               @ {note.location_reference}
                             </span>
                           )}
                         </div>
-                        <p className="text-sm line-clamp-3">{note.note_text}</p>
+                        <p className="text-sm line-clamp-3 break-words">{note.note_text}</p>
                         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           <span>{formatDate(note.created_at)}</span>
@@ -300,9 +324,14 @@ export default function NotesPanel({ parentType, parentId }) {
               <Label htmlFor="noteType">Type</Label>
               <Select
                 value={newNote.note_type}
-                onValueChange={(value) => setNewNote({ ...newNote, note_type: value })}
+                onValueChange={(value) =>
+                  setNewNote({ ...newNote, note_type: value })
+                }
               >
-                <SelectTrigger className="rounded-sm" data-testid="note-type-select">
+                <SelectTrigger
+                  className="rounded-sm"
+                  data-testid="note-type-select"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -322,7 +351,9 @@ export default function NotesPanel({ parentType, parentId }) {
               <Input
                 id="noteLocation"
                 value={newNote.location_reference}
-                onChange={(e) => setNewNote({ ...newNote, location_reference: e.target.value })}
+                onChange={(e) =>
+                  setNewNote({ ...newNote, location_reference: e.target.value })
+                }
                 placeholder="e.g. paragraph 3, line 42"
                 className="rounded-sm"
                 data-testid="note-location-input"
@@ -333,7 +364,9 @@ export default function NotesPanel({ parentType, parentId }) {
               <Textarea
                 id="noteText"
                 value={newNote.note_text}
-                onChange={(e) => setNewNote({ ...newNote, note_text: e.target.value })}
+                onChange={(e) =>
+                  setNewNote({ ...newNote, note_text: e.target.value })
+                }
                 placeholder="Write the note..."
                 className="rounded-sm resize-none"
                 rows={4}
@@ -342,15 +375,15 @@ export default function NotesPanel({ parentType, parentId }) {
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setCreateDialogOpen(false)} 
+            <Button
+              variant="outline"
+              onClick={() => setCreateDialogOpen(false)}
               className="rounded-sm"
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleCreateNote} 
+            <Button
+              onClick={handleCreateNote}
               disabled={creating}
               className="rounded-sm"
               data-testid="save-note-submit"
@@ -373,9 +406,7 @@ export default function NotesPanel({ parentType, parentId }) {
         <DialogContent data-testid="edit-note-dialog">
           <DialogHeader>
             <DialogTitle className="font-serif">Edit note</DialogTitle>
-            <DialogDescription>
-              Change the note.
-            </DialogDescription>
+            <DialogDescription>Change the note.</DialogDescription>
           </DialogHeader>
           {selectedNote && (
             <div className="space-y-4 py-4">
@@ -383,7 +414,9 @@ export default function NotesPanel({ parentType, parentId }) {
                 <Label htmlFor="editNoteType">Type</Label>
                 <Select
                   value={selectedNote.note_type}
-                  onValueChange={(value) => setSelectedNote({ ...selectedNote, note_type: value })}
+                  onValueChange={(value) =>
+                    setSelectedNote({ ...selectedNote, note_type: value })
+                  }
                 >
                   <SelectTrigger className="rounded-sm">
                     <SelectValue />
@@ -405,7 +438,12 @@ export default function NotesPanel({ parentType, parentId }) {
                 <Input
                   id="editNoteLocation"
                   value={selectedNote.location_reference || ""}
-                  onChange={(e) => setSelectedNote({ ...selectedNote, location_reference: e.target.value })}
+                  onChange={(e) =>
+                    setSelectedNote({
+                      ...selectedNote,
+                      location_reference: e.target.value,
+                    })
+                  }
                   placeholder="e.g. paragraph 3, line 42"
                   className="rounded-sm"
                 />
@@ -415,7 +453,12 @@ export default function NotesPanel({ parentType, parentId }) {
                 <Textarea
                   id="editNoteText"
                   value={selectedNote.note_text}
-                  onChange={(e) => setSelectedNote({ ...selectedNote, note_text: e.target.value })}
+                  onChange={(e) =>
+                    setSelectedNote({
+                      ...selectedNote,
+                      note_text: e.target.value,
+                    })
+                  }
                   className="rounded-sm resize-none"
                   rows={4}
                   data-testid="edit-note-text-input"
@@ -424,15 +467,15 @@ export default function NotesPanel({ parentType, parentId }) {
             </div>
           )}
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setEditDialogOpen(false)} 
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
               className="rounded-sm"
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleUpdateNote} 
+            <Button
+              onClick={handleUpdateNote}
               disabled={creating}
               className="rounded-sm"
               data-testid="update-note-submit"
@@ -461,7 +504,7 @@ export default function NotesPanel({ parentType, parentId }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-sm">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteNote}
               className="rounded-sm bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="confirm-delete-note-btn"
