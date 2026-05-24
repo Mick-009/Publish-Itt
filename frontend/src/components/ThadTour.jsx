@@ -1,16 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { aiApi } from "@/lib/api";
 import LoadingState from "@/components/LoadingState";
-import { 
-  Sparkles, 
-  ArrowRight, 
+import {
+  Sparkles,
+  ArrowRight,
   LayoutDashboard,
   FileText,
   List,
@@ -20,7 +17,7 @@ import {
   BookOpen,
   Users,
   Palette,
-  X
+  X,
 } from "lucide-react";
 
 const STEP_ICONS = {
@@ -29,16 +26,16 @@ const STEP_ICONS = {
   chapters: List,
   ai_assistant: Bot,
   versions: History,
-  import: Upload
+  import: Upload,
 };
 
-export default function ThadTour({ 
-  open, 
-  onComplete, 
+export default function ThadTour({
+  open,
+  onComplete,
   userName = "Writer",
   bookTitle = null,
   ageGroup = null,
-  theme = null 
+  theme = null,
 }) {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
@@ -61,7 +58,7 @@ export default function ThadTour({
         ageGroup,
         theme,
         getDeviceType(),
-        stepIndex
+        stepIndex,
       );
       setTourData(res.data);
     } catch (error) {
@@ -73,7 +70,10 @@ export default function ThadTour({
         area: "Feature",
         message: "Let me show you around.",
         is_final: stepIndex >= 5,
-        final_actions: stepIndex >= 5 ? ["Start writing", "Make a character", "Set the look"] : null
+        final_actions:
+          stepIndex >= 5
+            ? ["Start writing", "Make a character", "Set the look"]
+            : null,
       });
     } finally {
       setLoading(false);
@@ -90,7 +90,7 @@ export default function ThadTour({
     if (tourData?.is_final) {
       handleComplete("explore");
     } else {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     }
   };
 
@@ -106,7 +106,7 @@ export default function ThadTour({
     if (onComplete) {
       onComplete();
     }
-    
+
     if (action === "start_writing") {
       navigate("/?action=new_project");
     } else if (action === "create_character") {
@@ -116,17 +116,26 @@ export default function ThadTour({
     }
   };
 
-  const StepIcon = tourData?.area ? STEP_ICONS[
-    Object.keys(STEP_ICONS).find(key => 
-      tourData.area.toLowerCase().includes(key.replace('_', ' '))
-    ) || 'dashboard'
-  ] : Sparkles;
+  const StepIcon = tourData?.area
+    ? STEP_ICONS[
+        Object.keys(STEP_ICONS).find((key) =>
+          tourData.area.toLowerCase().includes(key.replace("_", " ")),
+        ) || "dashboard"
+      ]
+    : Sparkles;
 
-  const progressPercent = tourData ? (tourData.step_number / tourData.total_steps) * 100 : 0;
+  const progressPercent = tourData
+    ? (tourData.step_number / tourData.total_steps) * 100
+    : 0;
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent 
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) handleSkip();
+      }}
+    >
+      <DialogContent
         className="sm:max-w-md overflow-hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
@@ -137,7 +146,8 @@ export default function ThadTour({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground">
-                Step {tourData?.step_number || 1} of {tourData?.total_steps || 6}
+                Step {tourData?.step_number || 1} of{" "}
+                {tourData?.total_steps || 6}
               </span>
               <Button
                 variant="ghost"
@@ -159,77 +169,79 @@ export default function ThadTour({
               title="One moment."
               testId="loading-tour-step"
             />
-          ) : tourData && (
-            <>
-              {/* Step Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                  <StepIcon className="h-5 w-5 text-accent" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-base">{tourData.area}</h3>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    Thad
-                  </p>
-                </div>
-              </div>
-
-              {/* Message Box */}
-              <div className="bg-muted/30 border rounded-lg p-4 mb-6">
-                <p className="text-sm text-foreground leading-relaxed break-words">
-                  {tourData.message}
-                </p>
-              </div>
-
-              {/* Actions */}
-              {tourData.is_final ? (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-center text-muted-foreground mb-3">
-                    That's the tour. Where would you like to start?
-                  </p>
-                  <div className="grid gap-2">
-                    <Button
-                      className="w-full rounded-sm justify-start h-auto py-3"
-                      onClick={() => handleComplete("start_writing")}
-                      data-testid="tour-start-writing"
-                    >
-                      <BookOpen className="h-4 w-4 mr-3 shrink-0" />
-                      <span>Start writing</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-sm justify-start h-auto py-3"
-                      onClick={() => handleComplete("create_character")}
-                      data-testid="tour-create-character"
-                    >
-                      <Users className="h-4 w-4 mr-3 shrink-0" />
-                      <span>Make a character</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-sm justify-start h-auto py-3"
-                      onClick={() => handleComplete("book_style")}
-                      data-testid="tour-book-style"
-                    >
-                      <Palette className="h-4 w-4 mr-3 shrink-0" />
-                      <span>Set the look</span>
-                    </Button>
+          ) : (
+            tourData && (
+              <>
+                {/* Step Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                    <StepIcon className="h-5 w-5 text-accent" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-base">{tourData.area}</h3>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      Thad
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleNext}
-                    className="rounded-sm"
-                    data-testid="tour-next"
-                  >
-                    Next
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
+
+                {/* Message Box */}
+                <div className="bg-muted/30 border rounded-lg p-4 mb-6">
+                  <p className="text-sm text-foreground leading-relaxed break-words">
+                    {tourData.message}
+                  </p>
                 </div>
-              )}
-            </>
+
+                {/* Actions */}
+                {tourData.is_final ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-center text-muted-foreground mb-3">
+                      That's the tour. Where would you like to start?
+                    </p>
+                    <div className="grid gap-2">
+                      <Button
+                        className="w-full rounded-sm justify-start h-auto py-3"
+                        onClick={() => handleComplete("start_writing")}
+                        data-testid="tour-start-writing"
+                      >
+                        <BookOpen className="h-4 w-4 mr-3 shrink-0" />
+                        <span>Start writing</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full rounded-sm justify-start h-auto py-3"
+                        onClick={() => handleComplete("create_character")}
+                        data-testid="tour-create-character"
+                      >
+                        <Users className="h-4 w-4 mr-3 shrink-0" />
+                        <span>Make a character</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full rounded-sm justify-start h-auto py-3"
+                        onClick={() => handleComplete("book_style")}
+                        data-testid="tour-book-style"
+                      >
+                        <Palette className="h-4 w-4 mr-3 shrink-0" />
+                        <span>Set the look</span>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleNext}
+                      className="rounded-sm"
+                      data-testid="tour-next"
+                    >
+                      Next
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                )}
+              </>
+            )
           )}
         </div>
       </DialogContent>
