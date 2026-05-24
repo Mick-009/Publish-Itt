@@ -1942,71 +1942,74 @@ export default function ManuscriptWorkspace() {
 
                             {/* Insert / Replace actions */}
                             <div className="space-y-2 pt-2">
-                              {/* Primary Actions */}
-                              <div className="flex flex-col gap-2">
-                                <Button
-                                  size="sm"
-                                  className="flex-1 rounded-sm"
-                                  onClick={handleInsertIntoEditor}
-                                  disabled={applyingAi}
-                                  data-testid="insert-into-editor-btn"
-                                >
-                                  <Check className="h-4 w-4 mr-2" />
-                                  {applyingAi
-                                    ? "Applying."
-                                    : "Insert into the chapter"}
-                                </Button>
-
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1 rounded-sm"
-                                  onClick={handleReplaceSelection}
-                                  disabled={!hasStoredSelection || applyingAi}
-                                  data-testid="replace-selection-btn"
-                                >
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  {applyingAi
-                                    ? "Applying."
-                                    : "Replace what's selected"}
-                                </Button>
-                              </div>
-                              {/* Secondary Actions */}
+                              {/* Primary — the two "apply" actions, equal weight, stacked */}
                               <Button
                                 size="sm"
-                                variant="secondary"
-                                className="w-full rounded-sm"
-                                onClick={handleCopyAiResponse}
-                                data-testid="copy-ai-response-btn"
+                                className="w-full rounded-sm justify-center"
+                                onClick={handleInsertIntoEditor}
+                                disabled={applyingAi}
+                                data-testid="insert-into-editor-btn"
                               >
-                                <Copy className="h-4 w-4 mr-2" />
-                                Copy
+                                <Check className="h-4 w-4 mr-2" />
+                                {applyingAi
+                                  ? "Applying."
+                                  : "Insert into the chapter"}
                               </Button>
 
-                              {/* Deny / Clear Action */}
-                              {aiResponseType === "rewrite" ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="w-full rounded-sm"
-                                  onClick={handleDenyRewrite}
-                                  data-testid="deny-rewrite-btn"
-                                >
-                                  <X className="h-4 w-4 mr-2" />
-                                  Dismiss
-                                </Button>
-                              ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full rounded-sm justify-center"
+                                onClick={handleReplaceSelection}
+                                disabled={!hasStoredSelection || applyingAi}
+                                data-testid="replace-selection-btn"
+                              >
+                                <Pencil className="h-4 w-4 mr-2" />
+                                {applyingAi
+                                  ? "Applying."
+                                  : "Replace what's selected"}
+                              </Button>
+
+                              {/* Divider — separates "apply" from "utility" */}
+                              <div className="h-px bg-border my-1" />
+
+                              {/* Secondary row — Copy and Dismiss side by side, quiet, ghost weight */}
+                              <div className="flex gap-2">
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="w-full rounded-sm text-muted-foreground"
-                                  onClick={clearAiResponse}
-                                  data-testid="dismiss-ai-btn"
+                                  className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
+                                  onClick={handleCopyAiResponse}
+                                  data-testid="copy-ai-response-btn"
                                 >
-                                  <X className="h-4 w-4 mr-2" />
-                                  Dismiss
+                                  <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                  Copy
                                 </Button>
-                              )}
+
+                                {aiResponseType === "rewrite" ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
+                                    onClick={handleDenyRewrite}
+                                    data-testid="deny-rewrite-btn"
+                                  >
+                                    <X className="h-3.5 w-3.5 mr-1.5" />
+                                    Dismiss
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
+                                    onClick={clearAiResponse}
+                                    data-testid="dismiss-ai-btn"
+                                  >
+                                    <X className="h-3.5 w-3.5 mr-1.5" />
+                                    Dismiss
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             <p className="text-xs text-muted-foreground">
                               Insert leaves what's there. Replace swaps your
