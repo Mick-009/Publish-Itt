@@ -137,9 +137,6 @@ export default function ThadTour({
     >
       <DialogContent
         className="sm:max-w-md overflow-hidden"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        hideCloseButton
       >
         <div className="py-2">
           {/* Progress Bar */}
