@@ -117,8 +117,8 @@ export default function ThadChatPanel({
           <h3 className="text-sm font-medium">Ask Thad</h3>
         </div>
         <p className="text-xs leading-5 text-muted-foreground">
-          Ask about a passage, a beat, the whole chapter. I'll use what's on
-          the page and anything you've highlighted.
+          Ask about a passage, a beat, the whole chapter. I'll use what's on the
+          page and anything you've highlighted.
         </p>
         {selectedText?.trim() ? (
           <Badge variant="outline" className="text-xs">
@@ -129,7 +129,7 @@ export default function ThadChatPanel({
       <div className="min-h-0 flex-1 overflow-hidden">
         <ScrollArea
           ref={scrollAreaRef}
-          className="h-full rounded-sm border bg-muted/30"
+          className="h-full rounded-sm border bg-muted/30 [&>[data-radix-scroll-area-viewport]>div]:!block [&>[data-radix-scroll-area-viewport]>div]:!min-w-0"
         >
           <div className="space-y-3 p-3">
             {messages.map((message) => (
