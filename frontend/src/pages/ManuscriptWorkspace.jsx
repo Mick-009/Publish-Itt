@@ -1889,7 +1889,7 @@ export default function ManuscriptWorkspace() {
                       </div>
                     </div>
 
-                    <ScrollArea className="flex-1 min-h-0">
+                    <ScrollArea className="flex-1 min-h-0 [&>[data-radix-scroll-area-viewport]>div]:!block [&>[data-radix-scroll-area-viewport]>div]:!min-w-0">
                       <div className="p-3">
                         {aiLoading ? (
                           <div className="flex items-center justify-center py-8">
@@ -1907,7 +1907,7 @@ export default function ManuscriptWorkspace() {
 
                             {/* AI Response Content */}
                             {aiResponseType === "rewrite" ? (
-                              <div className="grid gap-3 md:grid-cols-2">
+                              <div className="grid gap-3 grid-cols-1">
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                     <span>Original</span>
