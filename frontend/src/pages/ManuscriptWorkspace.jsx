@@ -405,7 +405,7 @@ export default function ManuscriptWorkspace() {
     loadChapters(projId);
   };
 
-// Move the selected project to a new workflow stage. Used by the Stage
+  // Move the selected project to a new workflow stage. Used by the Stage
   // tab's arc (tap a stage) and Thad's nudge ("move to Draft"). Optimistic:
   // we update local state immediately, then persist. On failure we revert.
   const handleStageChange = async (newStatus) => {
@@ -1392,8 +1392,8 @@ export default function ManuscriptWorkspace() {
                 value="workflow"
                 className="flex-1 mt-0 overflow-hidden"
               >
-                <ScrollArea className="h-full">
-                  <div className="p-4">
+                <ScrollArea className="h-full w-full [&>[data-radix-scroll-area-viewport]>div]:!block [&>[data-radix-scroll-area-viewport]>div]:!min-w-0">
+                  <div className="p-4 w-full min-w-0 overflow-x-hidden">
                     <WorkflowPanel
                       manuscriptContent={editor?.getText() || ""}
                       chapterCount={chapters.length}
