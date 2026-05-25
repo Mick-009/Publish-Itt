@@ -752,7 +752,7 @@ export default function WorkflowPanel({
             <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
               The arc
             </h5>
-            <div className="flex items-center justify-between gap-1">
+            <div className="grid grid-cols-5 gap-y-3 gap-x-1">
               {WORKFLOW_STAGES.map((stage, index) => {
                 const isActive = stage.id === currentStatus;
                 const isPast =
@@ -788,7 +788,7 @@ export default function WorkflowPanel({
                 return (
                   <div
                     key={stage.id}
-                    className="flex flex-col items-center flex-1"
+                    className="flex flex-col items-center min-w-0"
                     title={`${stage.label} — ${stage.description}`}
                   >
                     {onStageChange ? (
@@ -806,7 +806,7 @@ export default function WorkflowPanel({
                     )}
                     <span
                       className={cn(
-                        "text-[10px] mt-1 text-center",
+                        "text-[10px] mt-1 text-center leading-tight break-words w-full",
                         isActive ? "font-medium" : "text-muted-foreground",
                       )}
                     >
