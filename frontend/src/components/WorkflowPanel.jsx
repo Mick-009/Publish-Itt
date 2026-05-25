@@ -492,9 +492,9 @@ export default function WorkflowPanel({
           className="space-y-2 p-3 rounded-sm bg-accent/5 border border-accent/20"
           data-testid="stage-nudge"
         >
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-2 min-w-0">
             <Sparkles className="h-4 w-4 text-accent mt-0.5 shrink-0" />
-            <p className="text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed min-w-0 break-words">
               You're marked as{" "}
               <span className="font-medium">{stageLabels[currentStatus]}</span>,
               but this reads like{" "}
@@ -570,10 +570,10 @@ export default function WorkflowPanel({
               twice. */}
           {!showNudge && analysisData.message && (
             <div className="bg-muted/30 border rounded-lg p-3">
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2 min-w-0">
                 <Sparkles className="h-4 w-4 text-accent mt-0.5 shrink-0" />
                 <p
-                  className="text-sm leading-relaxed"
+                  className="text-sm leading-relaxed min-w-0 break-words"
                   data-testid="workflow-message"
                 >
                   {analysisData.message}
