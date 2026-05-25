@@ -6,43 +6,103 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-  DialogFooter, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-  SelectGroup, SelectLabel,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from "@/components/ui/select";
 import { projectApi, uploadApi } from "@/lib/api";
-import { GENRES, AGE_GROUPS, WRITING_STYLES, getGenresByCategory } from "@/lib/constants";
-import { cn, statusColors, formatDate, formatWordCount, calculateProgress } from "@/lib/utils";
+import {
+  GENRES,
+  AGE_GROUPS,
+  WRITING_STYLES,
+  getGenresByCategory,
+} from "@/lib/constants";
+import {
+  cn,
+  statusColors,
+  formatDate,
+  formatWordCount,
+  calculateProgress,
+} from "@/lib/utils";
 import { toast } from "sonner";
 import ImportAnalysisDialog from "@/components/ImportAnalysisDialog";
 import MomentumStrip from "@/components/MomentumStrip";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Plus, FileText, GitBranch, Palette, ImageIcon, BookOpen, Loader2,
-  Upload, FileUp, X, Sparkles, Pencil, MoreHorizontal, Trash2,
-  Clock, BookMarked, ArrowRight, TrendingUp, Feather,
+  Plus,
+  FileText,
+  GitBranch,
+  Palette,
+  ImageIcon,
+  BookOpen,
+  Loader2,
+  Upload,
+  FileUp,
+  X,
+  Sparkles,
+  Pencil,
+  MoreHorizontal,
+  Trash2,
+  Clock,
+  BookMarked,
+  ArrowRight,
+  TrendingUp,
+  Feather,
 } from "lucide-react";
 import { consumePendingStyleNote } from "@/lib/onboardingStash";
 
 // ── Status config ──────────────────────────────────────────────────────────
 const STATUS_META = {
-  concept:    { label: "Concept",    color: "bg-slate-100 text-slate-600 border-slate-200" },
-  outline:    { label: "Outline",    color: "bg-blue-50 text-blue-600 border-blue-200" },
-  draft:      { label: "Draft",      color: "bg-amber-50 text-amber-700 border-amber-200" },
-  revisions:  { label: "Revisions",  color: "bg-orange-50 text-orange-700 border-orange-200" },
-  editing:    { label: "Editing",    color: "bg-violet-50 text-violet-700 border-violet-200" },
-  complete:   { label: "Complete",   color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  published:  { label: "Published",  color: "bg-green-50 text-green-700 border-green-200" },
+  concept: {
+    label: "Concept",
+    color: "bg-slate-100 text-slate-600 border-slate-200",
+  },
+  outline: {
+    label: "Outline",
+    color: "bg-blue-50 text-blue-600 border-blue-200",
+  },
+  draft: {
+    label: "Draft",
+    color: "bg-amber-50 text-amber-700 border-amber-200",
+  },
+  revisions: {
+    label: "Revisions",
+    color: "bg-orange-50 text-orange-700 border-orange-200",
+  },
+  editing: {
+    label: "Editing",
+    color: "bg-violet-50 text-violet-700 border-violet-200",
+  },
+  complete: {
+    label: "Complete",
+    color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  },
+  published: {
+    label: "Published",
+    color: "bg-green-50 text-green-700 border-green-200",
+  },
 };
 
 function getStatusMeta(status) {
@@ -71,7 +131,15 @@ function ProjectSkeleton() {
 }
 
 // ── Empty state ────────────────────────────────────────────────────────────
-function EmptyState({ onNew, onImport, uploading, isDragging, onDragOver, onDragLeave, onDrop }) {
+function EmptyState({
+  onNew,
+  onImport,
+  uploading,
+  isDragging,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+}) {
   return (
     <div
       className={cn(
@@ -88,25 +156,42 @@ function EmptyState({ onNew, onImport, uploading, isDragging, onDragOver, onDrag
             <div className="w-16 h-16 rounded-full bg-accent/15 flex items-center justify-center mb-5 animate-bounce">
               <FileUp className="h-8 w-8 text-accent" />
             </div>
-            <h3 className="font-serif text-2xl mb-2 text-accent">Drop it here</h3>
-            <p className="text-muted-foreground text-sm">.txt, .docx, .pdf, or .md</p>
+            <h3 className="font-serif text-2xl mb-2 text-accent">
+              Drop it here
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              .txt, .docx, .pdf, or .md
+            </p>
           </>
         ) : (
           <>
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-6">
               <Feather className="h-7 w-7 text-muted-foreground" />
             </div>
-            <h3 className="font-serif text-2xl font-medium mb-2">Where would you like to begin?</h3>
+            <h3 className="font-serif text-2xl font-medium mb-2">
+              Where would you like to begin?
+            </h3>
             <p className="text-muted-foreground text-sm mb-8 max-w-xs">
-              Start something new, or bring in a manuscript you've been carrying around.
+              Start something new, or bring in a manuscript you've been carrying
+              around.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-3">
               <Button onClick={onNew} className="rounded-sm px-6" size="lg">
                 <Plus className="h-4 w-4 mr-2" />
                 New project
               </Button>
-              <Button variant="outline" onClick={onImport} disabled={uploading} className="rounded-sm px-6" size="lg">
-                {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+              <Button
+                variant="outline"
+                onClick={onImport}
+                disabled={uploading}
+                className="rounded-sm px-6"
+                size="lg"
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
                 Import a manuscript
               </Button>
             </div>
@@ -142,7 +227,9 @@ function ProjectCard({ project, index, onOpen, onEdit }) {
               {project.title}
             </h3>
             {project.series_name && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">{project.series_name}</p>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                {project.series_name}
+              </p>
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -163,7 +250,12 @@ function ProjectCard({ project, index, onOpen, onEdit }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(e, project); }}>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(e, project);
+                  }}
+                >
                   <Pencil className="h-3.5 w-3.5 mr-2" /> Edit project
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -183,13 +275,17 @@ function ProjectCard({ project, index, onOpen, onEdit }) {
         {/* Metadata row */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           {project.genre && (
-            <span className="capitalize">{project.genre.replace(/-/g, " ")}</span>
+            <span className="capitalize">
+              {project.genre.replace(/-/g, " ")}
+            </span>
           )}
           {project.genre && project.word_count > 0 && (
             <span className="w-px h-3 bg-border" />
           )}
           {project.word_count > 0 && (
-            <span className="font-mono">{formatWordCount(project.word_count)} words</span>
+            <span className="font-mono">
+              {formatWordCount(project.word_count)} words
+            </span>
           )}
           {project.universe && (
             <>
@@ -219,10 +315,18 @@ function ProjectCard({ project, index, onOpen, onEdit }) {
           onClick={(e) => e.stopPropagation()}
         >
           {[
-            { icon: FileText,  label: "Write",  path: `/manuscript/${project.id}` },
-            { icon: GitBranch, label: "Stage",  path: `/workflow/${project.id}` },
-            { icon: Palette,   label: "Style",  path: `/tone/${project.id}` },
-            { icon: ImageIcon, label: "Art",    path: `/art/${project.id}` },
+            {
+              icon: FileText,
+              label: "Write",
+              path: `/manuscript/${project.id}`,
+            },
+            {
+              icon: GitBranch,
+              label: "Stage",
+              path: `/workflow/${project.id}`,
+            },
+            { icon: Palette, label: "Style", path: `/tone/${project.id}` },
+            { icon: ImageIcon, label: "Art", path: `/art/${project.id}` },
           ].map(({ icon: Icon, label, path }) => (
             <QuickAction key={label} icon={Icon} label={label} path={path} />
           ))}
@@ -244,7 +348,10 @@ function QuickAction({ icon: Icon, label, path }) {
     <Button
       variant="ghost"
       size="sm"
-      onClick={(e) => { e.stopPropagation(); navigate(path); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate(path);
+      }}
       className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-sm gap-1"
     >
       <Icon className="h-3 w-3" />
@@ -263,10 +370,19 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newProject, setNewProject] = useState({
-    title: "", series_name: "", universe: "", type: "novel",
-    genre: "", age_group: "", writing_style: "", voice_style: "",
-    tone_style: "", target_audience: "", pacing_preference: "",
-    style_notes: "", summary: "",
+    title: "",
+    series_name: "",
+    universe: "",
+    type: "novel",
+    genre: "",
+    age_group: "",
+    writing_style: "",
+    voice_style: "",
+    tone_style: "",
+    target_audience: "",
+    pacing_preference: "",
+    style_notes: "",
+    summary: "",
   });
   const [creating, setCreating] = useState(false);
 
@@ -283,8 +399,13 @@ export default function Dashboard() {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [projectToRename, setProjectToRename] = useState(null);
   const [editFields, setEditFields] = useState({
-    title: "", summary: "", voice_style: "", tone_style: "",
-    target_audience: "", pacing_preference: "", style_notes: "",
+    title: "",
+    summary: "",
+    voice_style: "",
+    tone_style: "",
+    target_audience: "",
+    pacing_preference: "",
+    style_notes: "",
   });
 
   // Import analysis
@@ -298,23 +419,38 @@ export default function Dashboard() {
 
     const params = new URLSearchParams(window.location.search);
     const action = params.get("action");
-    if (action === "new_project") { setDialogOpen(true); window.history.replaceState({}, "", window.location.pathname); }
-    else if (action === "import") { fileInputRef.current?.click(); window.history.replaceState({}, "", window.location.pathname); }
+    if (action === "new_project") {
+      setDialogOpen(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (action === "import") {
+      fileInputRef.current?.click();
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   const loadProjects = async () => {
     try {
       const res = await projectApi.getAll();
       setProjects(Array.isArray(res.data) ? res.data : []);
-    } catch { setProjects([]); }
-    finally { setLoading(false); }
+    } catch {
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Upload handlers
-  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
   const handleDrop = async (e) => {
-    e.preventDefault(); setIsDragging(false);
+    e.preventDefault();
+    setIsDragging(false);
     const f = e.dataTransfer?.files?.[0];
     if (f) await handleFileSelect(f);
   };
@@ -325,48 +461,87 @@ export default function Dashboard() {
   const handleFileSelect = async (file) => {
     const allowed = [".txt", ".docx", ".pdf", ".md"];
     const ext = "." + file.name.split(".").pop().toLowerCase();
-    if (!allowed.includes(ext)) { toast.error("That file type doesn't work here. Try .txt, .docx, .pdf, or .md."); return; }
+    if (!allowed.includes(ext)) {
+      toast.error(
+        "That file type doesn't work here. Try .txt, .docx, .pdf, or .md.",
+      );
+      return;
+    }
     setUploadedFile(file);
     const base = file.name.replace(/\.[^/.]+$/, "");
-    setImportProjectTitle(base); setImportChapterTitle(base); setUploading(true);
+    setImportProjectTitle(base);
+    setImportChapterTitle(base);
+    setUploading(true);
     try {
       const res = await uploadApi.previewManuscript(file);
-      setUploadPreview(res.data); setUploadDialogOpen(true);
+      setUploadPreview(res.data);
+      setUploadDialogOpen(true);
     } catch (err) {
-      toast.error("Couldn't read that file: " + (err.response?.data?.detail || err.message));
+      toast.error(
+        "Couldn't read that file: " +
+          (err.response?.data?.detail || err.message),
+      );
       setUploadedFile(null);
-    } finally { setUploading(false); }
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleUploadConfirm = async () => {
-    if (!uploadedFile || !importProjectTitle.trim()) { toast.error("The project needs a title."); return; }
+    if (!uploadedFile || !importProjectTitle.trim()) {
+      toast.error("The project needs a title.");
+      return;
+    }
     setUploading(true);
     try {
-      const projRes = await projectApi.create({ title: importProjectTitle, type: "novel", status: "draft", summary: `Imported from ${uploadedFile.name}` });
+      const projRes = await projectApi.create({
+        title: importProjectTitle,
+        type: "novel",
+        status: "draft",
+        summary: `Imported from ${uploadedFile.name}`,
+      });
       const projId = projRes.data.id;
       setNewProjectId(projId);
       // Consume any stashed onboarding style note now that there's a real project to attach it to
       await consumePendingStyleNote(projId);
-      const upRes = await uploadApi.uploadManuscript(uploadedFile, projId, importChapterTitle || importProjectTitle);
+      const upRes = await uploadApi.uploadManuscript(
+        uploadedFile,
+        projId,
+        importChapterTitle || importProjectTitle,
+      );
       await loadProjects();
-      toast.success(`Imported "${importChapterTitle}" (${upRes.data.word_count?.toLocaleString()} words)`);
+      toast.success(
+        `Imported "${importChapterTitle}" (${upRes.data.word_count?.toLocaleString()} words)`,
+      );
       setImportedContent(uploadPreview?.full_content || upRes.data.content);
       setImportedFilename(uploadedFile.name);
-      handleUploadClose(); setImportAnalysisOpen(true);
+      handleUploadClose();
+      setImportAnalysisOpen(true);
     } catch (err) {
-      toast.error("Couldn't bring that in: " + (err.response?.data?.detail || err.message));
-    } finally { setUploading(false); }
+      toast.error(
+        "Couldn't bring that in: " +
+          (err.response?.data?.detail || err.message),
+      );
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleUploadClose = () => {
-    setUploadDialogOpen(false); setUploadedFile(null); setUploadPreview(null);
-    setImportProjectTitle(""); setImportChapterTitle("");
+    setUploadDialogOpen(false);
+    setUploadedFile(null);
+    setUploadPreview(null);
+    setImportProjectTitle("");
+    setImportChapterTitle("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleCreateProject = async (e) => {
     e?.preventDefault();
-    if (!newProject.title.trim()) { toast.error("The book needs a title to start."); return; }
+    if (!newProject.title.trim()) {
+      toast.error("The book needs a title to start.");
+      return;
+    }
     setCreating(true);
     try {
       const res = await projectApi.create(newProject);
@@ -377,43 +552,71 @@ export default function Dashboard() {
       resetNewProject();
       toast.success("Project started.");
       navigate(`/manuscript/${res.data.id}`);
-    } catch { toast.error("Couldn't start that project. Try again?"); }
-    finally { setCreating(false); }
+    } catch {
+      toast.error("Couldn't start that project. Try again?");
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const resetNewProject = () => setNewProject({
-    title: "", series_name: "", universe: "", type: "novel",
-    genre: "", age_group: "", writing_style: "", voice_style: "",
-    tone_style: "", target_audience: "", pacing_preference: "",
-    style_notes: "", summary: "",
-  });
+  const resetNewProject = () =>
+    setNewProject({
+      title: "",
+      series_name: "",
+      universe: "",
+      type: "novel",
+      genre: "",
+      age_group: "",
+      writing_style: "",
+      voice_style: "",
+      tone_style: "",
+      target_audience: "",
+      pacing_preference: "",
+      style_notes: "",
+      summary: "",
+    });
 
   const handleOpenEdit = (e, project) => {
     e.stopPropagation();
     setProjectToRename(project);
     setEditFields({
-      title: project.title, summary: project.summary || "",
-      voice_style: project.voice_style || "", tone_style: project.tone_style || "",
-      target_audience: project.target_audience || "", pacing_preference: project.pacing_preference || "",
+      title: project.title,
+      summary: project.summary || "",
+      voice_style: project.voice_style || "",
+      tone_style: project.tone_style || "",
+      target_audience: project.target_audience || "",
+      pacing_preference: project.pacing_preference || "",
       style_notes: project.style_notes || "",
     });
     setRenameDialogOpen(true);
   };
 
   const handleSaveEdit = async () => {
-    if (!editFields.title.trim()) { toast.error("Title can't be blank."); return; }
+    if (!editFields.title.trim()) {
+      toast.error("Title can't be blank.");
+      return;
+    }
     try {
       await projectApi.update(projectToRename.id, editFields);
-      setProjects(projects.map((p) => p.id === projectToRename.id ? { ...p, ...editFields } : p));
-      setRenameDialogOpen(false); setProjectToRename(null);
+      setProjects(
+        projects.map((p) =>
+          p.id === projectToRename.id ? { ...p, ...editFields } : p,
+        ),
+      );
+      setRenameDialogOpen(false);
+      setProjectToRename(null);
       toast.success("Updated.");
-    } catch { toast.error("Couldn't save those changes. Try again?"); }
+    } catch {
+      toast.error("Couldn't save those changes. Try again?");
+    }
   };
 
   // Greeting
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const displayName = user?.display_name || user?.email?.split("@")[0] || "Writer";
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const displayName =
+    user?.display_name || user?.email?.split("@")[0] || "Writer";
 
   return (
     <div
@@ -439,7 +642,7 @@ export default function Dashboard() {
             {greeting}, {displayName}
           </p>
           <h1 className="text-4xl md:text-5xl font-serif font-semibold tracking-tight">
-            Your projects
+            Your shelf
           </h1>
           {!loading && (
             <p className="mt-2 text-muted-foreground">
@@ -456,10 +659,19 @@ export default function Dashboard() {
             disabled={uploading}
             className="rounded-sm hidden sm:flex"
           >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
             Import
           </Button>
-          <Button onClick={() => setDialogOpen(true)} className="rounded-sm shadow-sm" size="default" data-testid="new-project-btn">
+          <Button
+            onClick={() => setDialogOpen(true)}
+            className="rounded-sm shadow-sm"
+            size="default"
+            data-testid="new-project-btn"
+          >
             <Plus className="h-4 w-4 mr-2" />
             New project
           </Button>
@@ -472,7 +684,9 @@ export default function Dashboard() {
       {/* ── Content ── */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((n) => <ProjectSkeleton key={n} />)}
+          {[1, 2, 3].map((n) => (
+            <ProjectSkeleton key={n} />
+          ))}
         </div>
       ) : projects.length === 0 ? (
         <EmptyState
@@ -511,13 +725,18 @@ export default function Dashboard() {
 
       {/* ── New Project Dialog ── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh]" data-testid="new-project-dialog">
+        <DialogContent
+          className="sm:max-w-lg max-h-[90vh]"
+          data-testid="new-project-dialog"
+        >
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-accent" />
               Start a new book
             </DialogTitle>
-            <DialogDescription>Begin from scratch, or bring in something you've already started.</DialogDescription>
+            <DialogDescription>
+              Begin from scratch, or bring in something you've already started.
+            </DialogDescription>
           </DialogHeader>
 
           {/* Import strip */}
@@ -529,19 +748,43 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <h4 className="font-medium text-sm">Import a manuscript</h4>
-                  <p className="text-xs text-muted-foreground">.txt, .docx, .pdf, or .md</p>
+                  <p className="text-xs text-muted-foreground">
+                    .txt, .docx, .pdf, or .md
+                  </p>
                 </div>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => { fileInputRef.current?.click(); setDialogOpen(false); }} disabled={uploading} className="rounded-sm" data-testid="import-manuscript-btn">
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileUp className="h-4 w-4 mr-2" />Browse</>}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setDialogOpen(false);
+                }}
+                disabled={uploading}
+                className="rounded-sm"
+                data-testid="import-manuscript-btn"
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <FileUp className="h-4 w-4 mr-2" />
+                    Browse
+                  </>
+                )}
               </Button>
             </div>
           </div>
 
           <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or start fresh</span>
+              <span className="bg-background px-2 text-muted-foreground">
+                Or start fresh
+              </span>
             </div>
           </div>
 
@@ -550,62 +793,154 @@ export default function Dashboard() {
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title *</Label>
-                  <Input id="title" placeholder="What's it called?" value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })} className="rounded-sm" data-testid="new-project-title" autoFocus />
+                  <Input
+                    id="title"
+                    placeholder="What's it called?"
+                    value={newProject.title}
+                    onChange={(e) =>
+                      setNewProject({ ...newProject, title: e.target.value })
+                    }
+                    className="rounded-sm"
+                    data-testid="new-project-title"
+                    autoFocus
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="series">Series name</Label>
-                    <Input id="series" placeholder="e.g., The Dragon Chronicles" value={newProject.series_name} onChange={(e) => setNewProject({ ...newProject, series_name: e.target.value })} className="rounded-sm" />
+                    <Input
+                      id="series"
+                      placeholder="e.g., The Dragon Chronicles"
+                      value={newProject.series_name}
+                      onChange={(e) =>
+                        setNewProject({
+                          ...newProject,
+                          series_name: e.target.value,
+                        })
+                      }
+                      className="rounded-sm"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="universe">Universe</Label>
-                    <Input id="universe" placeholder="e.g., Evergreen Forest" value={newProject.universe} onChange={(e) => setNewProject({ ...newProject, universe: e.target.value })} className="rounded-sm" />
+                    <Input
+                      id="universe"
+                      placeholder="e.g., Evergreen Forest"
+                      value={newProject.universe}
+                      onChange={(e) =>
+                        setNewProject({
+                          ...newProject,
+                          universe: e.target.value,
+                        })
+                      }
+                      className="rounded-sm"
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Type</Label>
-                    <Select value={newProject.type} onValueChange={(v) => setNewProject({ ...newProject, type: v })}>
-                      <SelectTrigger className="rounded-sm"><SelectValue /></SelectTrigger>
+                    <Select
+                      value={newProject.type}
+                      onValueChange={(v) =>
+                        setNewProject({ ...newProject, type: v })
+                      }
+                    >
+                      <SelectTrigger className="rounded-sm">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
-                        {["novel","novella","short-story","anthology","childrens","picture-book","non-fiction","memoir","poetry","screenplay"].map((t) => (
-                          <SelectItem key={t} value={t}>{t.replace(/-/g," ").replace(/\b\w/g,(c)=>c.toUpperCase())}</SelectItem>
+                        {[
+                          "novel",
+                          "novella",
+                          "short-story",
+                          "anthology",
+                          "childrens",
+                          "picture-book",
+                          "non-fiction",
+                          "memoir",
+                          "poetry",
+                          "screenplay",
+                        ].map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t
+                              .replace(/-/g, " ")
+                              .replace(/\b\w/g, (c) => c.toUpperCase())}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Age group</Label>
-                    <Select value={newProject.age_group} onValueChange={(v) => setNewProject({ ...newProject, age_group: v })}>
-                      <SelectTrigger className="rounded-sm"><SelectValue placeholder="Pick one" /></SelectTrigger>
+                    <Select
+                      value={newProject.age_group}
+                      onValueChange={(v) =>
+                        setNewProject({ ...newProject, age_group: v })
+                      }
+                    >
+                      <SelectTrigger className="rounded-sm">
+                        <SelectValue placeholder="Pick one" />
+                      </SelectTrigger>
                       <SelectContent>
-                        {AGE_GROUPS.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
+                        {AGE_GROUPS.map((a) => (
+                          <SelectItem key={a.value} value={a.value}>
+                            {a.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Genre</Label>
-                  <Select value={newProject.genre} onValueChange={(v) => setNewProject({ ...newProject, genre: v })}>
-                    <SelectTrigger className="rounded-sm"><SelectValue placeholder="Pick a genre" /></SelectTrigger>
+                  <Select
+                    value={newProject.genre}
+                    onValueChange={(v) =>
+                      setNewProject({ ...newProject, genre: v })
+                    }
+                  >
+                    <SelectTrigger className="rounded-sm">
+                      <SelectValue placeholder="Pick a genre" />
+                    </SelectTrigger>
                     <SelectContent className="max-h-[300px]">
-                      {Object.entries(getGenresByCategory()).map(([cat, genres]) => (
-                        <SelectGroup key={cat}>
-                          <SelectLabel className="text-xs font-semibold text-muted-foreground">{cat}</SelectLabel>
-                          {genres.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
-                        </SelectGroup>
-                      ))}
+                      {Object.entries(getGenresByCategory()).map(
+                        ([cat, genres]) => (
+                          <SelectGroup key={cat}>
+                            <SelectLabel className="text-xs font-semibold text-muted-foreground">
+                              {cat}
+                            </SelectLabel>
+                            {genres.map((g) => (
+                              <SelectItem key={g.value} value={g.value}>
+                                {g.label}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Writing style</Label>
-                  <Select value={newProject.writing_style} onValueChange={(v) => setNewProject({ ...newProject, writing_style: v })}>
-                    <SelectTrigger className="rounded-sm"><SelectValue placeholder="Pick a style" /></SelectTrigger>
+                  <Select
+                    value={newProject.writing_style}
+                    onValueChange={(v) =>
+                      setNewProject({ ...newProject, writing_style: v })
+                    }
+                  >
+                    <SelectTrigger className="rounded-sm">
+                      <SelectValue placeholder="Pick a style" />
+                    </SelectTrigger>
                     <SelectContent>
                       {WRITING_STYLES.map((s) => (
                         <SelectItem key={s.value} value={s.value}>
-                          <div className="flex flex-col"><span>{s.label}</span><span className="text-xs text-muted-foreground">{s.description}</span></div>
+                          <div className="flex flex-col">
+                            <span>{s.label}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {s.description}
+                            </span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -613,24 +948,98 @@ export default function Dashboard() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="summary">Summary</Label>
-                  <Textarea id="summary" placeholder="A few sentences on what it's about." value={newProject.summary} onChange={(e) => setNewProject({ ...newProject, summary: e.target.value })} className="rounded-sm resize-none" rows={3} />
+                  <Textarea
+                    id="summary"
+                    placeholder="A few sentences on what it's about."
+                    value={newProject.summary}
+                    onChange={(e) =>
+                      setNewProject({ ...newProject, summary: e.target.value })
+                    }
+                    className="rounded-sm resize-none"
+                    rows={3}
+                  />
                 </div>
                 <div className="space-y-4 rounded-lg border border-border p-4">
                   <div>
                     <h4 className="text-sm font-medium">Voice & tone</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Optional. I'll keep these in mind when reading.</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Optional. I'll keep these in mind when reading.
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Voice style</Label><Input placeholder="e.g., lyrical" value={newProject.voice_style} onChange={(e) => setNewProject({ ...newProject, voice_style: e.target.value })} className="rounded-sm" /></div>
-                    <div className="space-y-2"><Label>Tone</Label><Input placeholder="e.g., warm, adventurous" value={newProject.tone_style} onChange={(e) => setNewProject({ ...newProject, tone_style: e.target.value })} className="rounded-sm" /></div>
+                    <div className="space-y-2">
+                      <Label>Voice style</Label>
+                      <Input
+                        placeholder="e.g., lyrical"
+                        value={newProject.voice_style}
+                        onChange={(e) =>
+                          setNewProject({
+                            ...newProject,
+                            voice_style: e.target.value,
+                          })
+                        }
+                        className="rounded-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tone</Label>
+                      <Input
+                        placeholder="e.g., warm, adventurous"
+                        value={newProject.tone_style}
+                        onChange={(e) =>
+                          setNewProject({
+                            ...newProject,
+                            tone_style: e.target.value,
+                          })
+                        }
+                        className="rounded-sm"
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Audience</Label><Input placeholder="e.g., middle grade readers" value={newProject.target_audience} onChange={(e) => setNewProject({ ...newProject, target_audience: e.target.value })} className="rounded-sm" /></div>
-                    <div className="space-y-2"><Label>Pacing</Label><Input placeholder="e.g., fast, reflective" value={newProject.pacing_preference} onChange={(e) => setNewProject({ ...newProject, pacing_preference: e.target.value })} className="rounded-sm" /></div>
+                    <div className="space-y-2">
+                      <Label>Audience</Label>
+                      <Input
+                        placeholder="e.g., middle grade readers"
+                        value={newProject.target_audience}
+                        onChange={(e) =>
+                          setNewProject({
+                            ...newProject,
+                            target_audience: e.target.value,
+                          })
+                        }
+                        className="rounded-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Pacing</Label>
+                      <Input
+                        placeholder="e.g., fast, reflective"
+                        value={newProject.pacing_preference}
+                        onChange={(e) =>
+                          setNewProject({
+                            ...newProject,
+                            pacing_preference: e.target.value,
+                          })
+                        }
+                        className="rounded-sm"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Notes on style</Label>
-                    <Textarea placeholder="Anything specific to your voice." value={newProject.style_notes} onChange={(e) => setNewProject({ ...newProject, style_notes: e.target.value })} className="rounded-sm resize-none" rows={3} />
+                    <Textarea
+                      placeholder="Anything specific to your voice."
+                      value={newProject.style_notes}
+                      onChange={(e) =>
+                        setNewProject({
+                          ...newProject,
+                          style_notes: e.target.value,
+                        })
+                      }
+                      className="rounded-sm resize-none"
+                      rows={3}
+                    />
                   </div>
                 </div>
               </div>
@@ -638,9 +1047,33 @@ export default function Dashboard() {
           </ScrollArea>
 
           <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => { setDialogOpen(false); resetNewProject(); }} className="rounded-sm">Cancel</Button>
-            <Button onClick={handleCreateProject} disabled={creating || !newProject.title} className="rounded-sm" data-testid="create-project-submit">
-              {creating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Starting.</> : <><Plus className="h-4 w-4 mr-2" />Start it</>}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDialogOpen(false);
+                resetNewProject();
+              }}
+              className="rounded-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateProject}
+              disabled={creating || !newProject.title}
+              className="rounded-sm"
+              data-testid="create-project-submit"
+            >
+              {creating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Starting.
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Start it
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -648,12 +1081,18 @@ export default function Dashboard() {
 
       {/* ── Import Preview Dialog ── */}
       <Dialog open={uploadDialogOpen} onOpenChange={handleUploadClose}>
-        <DialogContent className="sm:max-w-2xl" data-testid="import-project-dialog">
+        <DialogContent
+          className="sm:max-w-2xl"
+          data-testid="import-project-dialog"
+        >
           <DialogHeader>
             <DialogTitle className="font-serif flex items-center gap-2 text-2xl">
-              <FileUp className="h-6 w-6" />Bring in a manuscript
+              <FileUp className="h-6 w-6" />
+              Bring in a manuscript
             </DialogTitle>
-            <DialogDescription>Take a look. Make a project around it.</DialogDescription>
+            <DialogDescription>
+              Take a look. Make a project around it.
+            </DialogDescription>
           </DialogHeader>
           {uploadPreview && (
             <div className="space-y-4 py-4">
@@ -661,32 +1100,81 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   <FileText className="h-8 w-8 text-muted-foreground" />
                   <div>
-                    <p className="font-medium text-sm">{uploadPreview.filename}</p>
-                    <p className="text-xs text-muted-foreground">{uploadPreview.file_type?.toUpperCase()} · {uploadPreview.word_count?.toLocaleString()} words</p>
+                    <p className="font-medium text-sm">
+                      {uploadPreview.filename}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {uploadPreview.file_type?.toUpperCase()} ·{" "}
+                      {uploadPreview.word_count?.toLocaleString()} words
+                    </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleUploadClose} className="h-8 w-8"><X className="h-4 w-4" /></Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleUploadClose}
+                  className="h-8 w-8"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="importProjectTitle">Project title *</Label>
-                <Input id="importProjectTitle" value={importProjectTitle} onChange={(e) => setImportProjectTitle(e.target.value)} placeholder="What's it called?" className="rounded-sm" data-testid="import-project-title-input" />
+                <Input
+                  id="importProjectTitle"
+                  value={importProjectTitle}
+                  onChange={(e) => setImportProjectTitle(e.target.value)}
+                  placeholder="What's it called?"
+                  className="rounded-sm"
+                  data-testid="import-project-title-input"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="importChapterTitle">Chapter title</Label>
-                <Input id="importChapterTitle" value={importChapterTitle} onChange={(e) => setImportChapterTitle(e.target.value)} placeholder="Chapter title" className="rounded-sm" data-testid="import-chapter-title-input" />
+                <Input
+                  id="importChapterTitle"
+                  value={importChapterTitle}
+                  onChange={(e) => setImportChapterTitle(e.target.value)}
+                  placeholder="Chapter title"
+                  className="rounded-sm"
+                  data-testid="import-chapter-title-input"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Preview</Label>
                 <ScrollArea className="h-[150px] border border-border rounded-sm p-3">
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{uploadPreview.preview}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {uploadPreview.preview}
+                  </p>
                 </ScrollArea>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={handleUploadClose} className="rounded-sm">Cancel</Button>
-            <Button onClick={handleUploadConfirm} disabled={uploading || !importProjectTitle.trim()} className="rounded-sm" data-testid="confirm-import-project-btn">
-              {uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Bringing it in.</> : <><Upload className="h-4 w-4 mr-2" />Bring it in</>}
+            <Button
+              variant="outline"
+              onClick={handleUploadClose}
+              className="rounded-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUploadConfirm}
+              disabled={uploading || !importProjectTitle.trim()}
+              className="rounded-sm"
+              data-testid="confirm-import-project-btn"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Bringing it in.
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Bring it in
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -694,36 +1182,145 @@ export default function Dashboard() {
 
       {/* ── Edit Project Dialog ── */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent className="sm:max-w-md" data-testid="rename-project-dialog">
+        <DialogContent
+          className="sm:max-w-md"
+          data-testid="rename-project-dialog"
+        >
           <DialogHeader>
             <DialogTitle className="font-serif text-xl flex items-center gap-2">
-              <Pencil className="h-4 w-4 text-accent" />Edit project
+              <Pencil className="h-4 w-4 text-accent" />
+              Edit project
             </DialogTitle>
-            <DialogDescription>Update the details and the voice profile.</DialogDescription>
+            <DialogDescription>
+              Update the details and the voice profile.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Title *</Label>
-              <Input value={editFields.title} onChange={(e) => setEditFields({ ...editFields, title: e.target.value })} className="rounded-sm" autoFocus onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveEdit(); } }} />
+              <Input
+                value={editFields.title}
+                onChange={(e) =>
+                  setEditFields({ ...editFields, title: e.target.value })
+                }
+                className="rounded-sm"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSaveEdit();
+                  }
+                }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Summary</Label>
-              <Textarea value={editFields.summary} onChange={(e) => setEditFields({ ...editFields, summary: e.target.value })} placeholder="A few sentences on what it's about." className="rounded-sm resize-none" rows={3} />
+              <Textarea
+                value={editFields.summary}
+                onChange={(e) =>
+                  setEditFields({ ...editFields, summary: e.target.value })
+                }
+                placeholder="A few sentences on what it's about."
+                className="rounded-sm resize-none"
+                rows={3}
+              />
             </div>
             <div className="space-y-3 rounded-lg border border-border p-4">
               <h4 className="text-sm font-medium">Voice & tone</h4>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label className="text-xs">Voice style</Label><Input value={editFields.voice_style} onChange={(e) => setEditFields({ ...editFields, voice_style: e.target.value })} placeholder="e.g., lyrical" className="rounded-sm h-8 text-sm" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Tone</Label><Input value={editFields.tone_style} onChange={(e) => setEditFields({ ...editFields, tone_style: e.target.value })} placeholder="e.g., warm" className="rounded-sm h-8 text-sm" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Audience</Label><Input value={editFields.target_audience} onChange={(e) => setEditFields({ ...editFields, target_audience: e.target.value })} placeholder="e.g., MG readers" className="rounded-sm h-8 text-sm" /></div>
-                <div className="space-y-1.5"><Label className="text-xs">Pacing</Label><Input value={editFields.pacing_preference} onChange={(e) => setEditFields({ ...editFields, pacing_preference: e.target.value })} placeholder="e.g., balanced" className="rounded-sm h-8 text-sm" /></div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Voice style</Label>
+                  <Input
+                    value={editFields.voice_style}
+                    onChange={(e) =>
+                      setEditFields({
+                        ...editFields,
+                        voice_style: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., lyrical"
+                    className="rounded-sm h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Tone</Label>
+                  <Input
+                    value={editFields.tone_style}
+                    onChange={(e) =>
+                      setEditFields({
+                        ...editFields,
+                        tone_style: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., warm"
+                    className="rounded-sm h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Audience</Label>
+                  <Input
+                    value={editFields.target_audience}
+                    onChange={(e) =>
+                      setEditFields({
+                        ...editFields,
+                        target_audience: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., MG readers"
+                    className="rounded-sm h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Pacing</Label>
+                  <Input
+                    value={editFields.pacing_preference}
+                    onChange={(e) =>
+                      setEditFields({
+                        ...editFields,
+                        pacing_preference: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., balanced"
+                    className="rounded-sm h-8 text-sm"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5"><Label className="text-xs">Notes on style</Label><Textarea value={editFields.style_notes} onChange={(e) => setEditFields({ ...editFields, style_notes: e.target.value })} placeholder="Anything specific to your voice." className="rounded-sm resize-none text-sm" rows={3} /></div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Notes on style</Label>
+                <Textarea
+                  value={editFields.style_notes}
+                  onChange={(e) =>
+                    setEditFields({
+                      ...editFields,
+                      style_notes: e.target.value,
+                    })
+                  }
+                  placeholder="Anything specific to your voice."
+                  className="rounded-sm resize-none text-sm"
+                  rows={3}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setRenameDialogOpen(false); setProjectToRename(null); }} className="rounded-sm">Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={!editFields.title.trim()} className="rounded-sm" data-testid="confirm-rename-btn">Save</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRenameDialogOpen(false);
+                setProjectToRename(null);
+              }}
+              className="rounded-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={!editFields.title.trim()}
+              className="rounded-sm"
+              data-testid="confirm-rename-btn"
+            >
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -735,7 +1332,9 @@ export default function Dashboard() {
         content={importedContent}
         filename={importedFilename}
         projectId={newProjectId}
-        onActionComplete={() => { if (newProjectId) navigate(`/manuscript/${newProjectId}`); }}
+        onActionComplete={() => {
+          if (newProjectId) navigate(`/manuscript/${newProjectId}`);
+        }}
       />
     </div>
   );
