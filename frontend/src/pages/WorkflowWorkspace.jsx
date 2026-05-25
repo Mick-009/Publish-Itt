@@ -18,6 +18,7 @@ import {
   statusColors,
   workflowStages,
   calculateProgress,
+  stageDescriptions,
 } from "@/lib/utils";
 import { toast } from "sonner";
 import EmptyState from "@/components/EmptyState";
@@ -33,19 +34,6 @@ import {
   Plus,
   Upload,
 } from "lucide-react";
-
-const stageDescriptions = {
-  concept: "An idea, taking shape.",
-  outline: "Chapters mapped, plot sketched.",
-  draft: "Words on the page, end to end.",
-  revisions: "The big moves — structure, arc.",
-  editing: "Line by line, sentence by sentence.",
-  layout: "Format, design, the way it sits.",
-  art: "Cover, illustrations, what readers see first.",
-  proofing: "The last read, hunting for what slipped past.",
-  final: "Ready to send.",
-  published: "Out in the world.",
-};
 
 export default function WorkflowWorkspace() {
   const { projectId } = useParams();
@@ -282,7 +270,8 @@ export default function WorkflowWorkspace() {
                   {stageDescriptions[selectedProject.status]}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {calculateProgress(selectedProject.status)}% of the way through.
+                  {calculateProgress(selectedProject.status)}% of the way
+                  through.
                 </p>
               </div>
             </CardContent>
@@ -299,7 +288,8 @@ export default function WorkflowWorkspace() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Describe what you've got and what you're stuck on. I'll tell you what stage that sounds like — and what comes next.
+                  Describe what you've got and what you're stuck on. I'll tell
+                  you what stage that sounds like — and what comes next.
                 </p>
                 <Textarea
                   placeholder="e.g. Finished the first draft, did one revision pass on feedback. The plot holds, but the middle three chapters drag."
@@ -346,7 +336,8 @@ export default function WorkflowWorkspace() {
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                       <GitBranch className="h-12 w-12 mb-4 opacity-50" />
                       <p className="text-sm text-center">
-                        Tell me where you are. I'll point at the stage and the next step.
+                        Tell me where you are. I'll point at the stage and the
+                        next step.
                       </p>
                     </div>
                   )}

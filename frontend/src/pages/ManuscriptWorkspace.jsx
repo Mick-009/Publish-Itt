@@ -405,6 +405,39 @@ export default function ManuscriptWorkspace() {
     loadChapters(projId);
   };
 
+// Move the selected project to a new workflow stage. Used by the Stage
+  // tab's arc (tap a stage) and Thad's nudge ("move to Draft"). Optimistic:
+  // we update local state immediately, then persist. On failure we revert.
+  const handleStageChange = async (newStatus) => {
+    if (!selectedProject || selectedProject.status === newStatus) return;
+
+    const previous = selectedProject.status;
+
+    // Optimistic update — the arc moves right away.
+    setSelectedProject({ ...selectedProject, status: newStatus });
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === selectedProject.id ? { ...p, status: newStatus } : p,
+      ),
+    );
+
+    try {
+      await projectApi.update(selectedProject.id, { status: newStatus });
+      toast.success(`Moved to ${newStatus}.`);
+    } catch (error) {
+      // Revert on failure.
+      setSelectedProject((prev) =>
+        prev ? { ...prev, status: previous } : prev,
+      );
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === selectedProject.id ? { ...p, status: previous } : p,
+        ),
+      );
+      toast.error("Couldn't change the stage. Try again?");
+    }
+  };
+
   const handleCreateChapter = async () => {
     if (!newChapterTitle.trim() || !selectedProject) return;
 
@@ -1368,6 +1401,8 @@ export default function ManuscriptWorkspace() {
                       projectTitle={selectedProject?.title}
                       ageGroup={selectedProject?.age_group}
                       autoAnalyzeOnMount={true}
+                      projectStatus={selectedProject?.status || "concept"}
+                      onStageChange={handleStageChange}
                     />
                   </div>
                 </ScrollArea>

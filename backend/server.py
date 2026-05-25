@@ -2676,20 +2676,39 @@ async def analyze_workflow_stage(request: WorkflowStageAnalysisRequest, current_
             message = response
             next_steps = ["Continue writing", "Review your progress"]
 
-        # Map stage to progress percentage
-        stage_progress = {
-            "Idea Drop": 10,
-            "Outline": 25,
-            "Draft": 50,
-            "Revise": 70,
-            "Polish": 90,
-            "Complete": 100,
+        # The AI answers in a coarse six-stage vocabulary. Translate to the
+        # canonical nine-stage taxonomy the rest of the app uses, and compute
+        # progress against the nine-stage scale so the percentage matches the
+        # arc the writer sees.
+        #
+        # "Polish" maps to "editing" (sentence-level work). "Complete" maps to
+        # "published". Anything unexpected falls back to "draft".
+        AI_STAGE_TO_STATUS = {
+            "Idea Drop": "concept",
+            "Outline": "outline",
+            "Draft": "draft",
+            "Revise": "revisions",
+            "Polish": "editing",
+            "Complete": "published",
         }
+        CANONICAL_STAGES = [
+            "concept",
+            "outline",
+            "draft",
+            "revisions",
+            "editing",
+            "layout",
+            "art",
+            "proofing",
+            "published",
+        ]
 
-        progress = stage_progress.get(stage, 50)
+        canonical_stage = AI_STAGE_TO_STATUS.get(stage, "draft")
+        stage_index = CANONICAL_STAGES.index(canonical_stage)
+        progress = round(((stage_index + 1) / len(CANONICAL_STAGES)) * 100)
 
         return WorkflowStageAnalysisResponse(
-            stage=stage,
+            stage=canonical_stage,
             message=message,
             next_steps=next_steps[:2],  # Limit to 2 steps
             progress_percent=progress,
@@ -2697,12 +2716,15 @@ async def analyze_workflow_stage(request: WorkflowStageAnalysisRequest, current_
 
     except Exception as e:
         logger.error(f"Workflow stage analysis failed: {e}")
-        # Return sensible defaults
+        # Return sensible defaults — stage must be a canonical id since the
+        # happy path now returns canonical ids. Hardcode "draft" rather than
+        # trusting P.FALLBACK_WORKFLOW_STAGE, which is in the old six-stage
+        # vocabulary.
         return WorkflowStageAnalysisResponse(
-            stage=P.FALLBACK_WORKFLOW_STAGE,
+            stage="draft",
             message=P.FALLBACK_WORKFLOW_MESSAGE,
             next_steps=P.FALLBACK_WORKFLOW_NEXT_STEPS,
-            progress_percent=50,
+            progress_percent=33,
         )
 
 
