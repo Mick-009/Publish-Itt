@@ -459,11 +459,30 @@ export default function ImportAnalysisDialog({
           onActionComplete(actionId, res.data, true);
         }
       } else if (actionId === "split_chapters" && projectId) {
-        toast.success(
-          "Split suggestions saved. Create the chapters from the manuscript view when you're ready.",
+        // Call the real splitter — the same endpoint "Fix everything" uses.
+        // This creates chapter records from the detected breaks; it doesn't
+        // just save a suggestion.
+        const splitRes = await importAnalysisApi.splitAndCreateChapters(
+          content,
+          projectId,
+          null,
         );
+        const created = splitRes.data?.chapters_created || 0;
+
+        if (created > 1) {
+          toast.success(`Split into ${created} chapters.`);
+        } else if (created === 1) {
+          toast.info("Reads as one chapter — no clear breaks to split on.");
+        } else {
+          toast.info("No chapter breaks found. Reads as one piece.");
+        }
+
         if (onActionComplete) {
-          onActionComplete(actionId, actionResult.response, true);
+          // Pass the split result so the workspace can refresh its chapter
+          // list. (Previously this passed actionResult.response, the
+          // suggestion text — but nothing was created, so there was nothing
+          // to refresh.)
+          onActionComplete(actionId, splitRes.data, created > 0);
         }
       } else if (actionId === "full_qa") {
         toast.success("Saved the read for later.");
