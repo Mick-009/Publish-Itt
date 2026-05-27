@@ -1043,8 +1043,17 @@ export default function ManuscriptWorkspace() {
     }
   };
 
-  const handleImportActionComplete = (actionId, result) => {
-    // Hook for post-action behavior. Stays silent — the dialog itself speaks.
+  const handleImportActionComplete = async (actionId, result, success) => {
+    // The dialog speaks (toasts) — this hook just keeps the workspace in
+    // sync. When an action creates chapters, re-fetch so they appear
+    // without a page reload. loadChapters is the same loader used when a
+    // project opens.
+    const createsChapters =
+      actionId === "split_chapters" || actionId === "fix_everything";
+
+    if (createsChapters && success && selectedProject?.id) {
+      await loadChapters(selectedProject.id);
+    }
   };
 
   const handleUploadClose = () => {
