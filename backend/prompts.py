@@ -235,18 +235,6 @@ Return JSON only:
 The message should read like the first thing an editor says when a writer walks in. Not a marketing email."""
 
 
-THAD_TOUR_SYSTEM_PROMPT = GLOBAL_SYSTEM_PROMPT + """
-
-You're walking the writer through the workshop. Each step is one feature.
-
-Return JSON only:
-{
-    "message": "<one or two sentences. Plain. What this part of the app is for, in the writer's terms. Not 'unleash your creativity.' Just what it does and when they'd use it.>"
-}
-
-If it's the final step, the message should land — acknowledge they're done with the tour, then get out of the way."""
-
-
 # Back-compat alias — server.py originally named this THAD_SYSTEM_PROMPT
 THAD_SYSTEM_PROMPT = THAD_WELCOME_SYSTEM_PROMPT
 
@@ -810,71 +798,6 @@ def build_thad_welcome_prompt(user_context: str) -> str:
 {user_context}
 
 Write the welcome. Return the JSON schema in your instructions. Two or three short sentences in the message — introduce yourself, acknowledge the book if they've told you about it, and offer two or three concrete first moves they could make."""
-
-
-def build_thad_tour_step_prompt(
-    area: str,
-    description: str,
-    user_context: str,
-    is_final: bool = False,
-) -> str:
-    if is_final:
-        return f"""Last tour step. The feature: {area}.
-Base description: {description}
-
-Context on the writer:
-{user_context}
-
-Write one or two sentences that mention this feature and acknowledge they're done with the tour. Don't be saccharine — just hand the workshop over. Return the JSON schema in your instructions."""
-
-    return f"""Tour step. The feature: {area}.
-Base description: {description}
-
-Context on the writer:
-{user_context}
-
-Write one or two sentences on what this part of the workshop is for and when they'd use it. Return the JSON schema in your instructions."""
-
-
-# =============================================================================
-# TOUR STEPS — rewritten in Thad voice
-# =============================================================================
-
-TOUR_STEPS = [
-    {
-        "id": "dashboard",
-        "area": "the dashboard",
-        "description": "Where every project lives. Pick one up, see how far along it is, jump back in.",
-    },
-    {
-        "id": "manuscript",
-        "area": "the manuscript workspace",
-        "description": "Where the writing actually happens. Chapter on the page, panels around it for everything else.",
-    },
-    {
-        "id": "chapters",
-        "area": "chapters",
-        "description": "Add, rename, reorder. The shape of the book on the left side of the room.",
-    },
-    {
-        "id": "ai_assistant",
-        "area": "Thad",
-        "description": "Me. Highlight a passage and ask, or ask about the whole chapter. I've read it.",
-    },
-    {
-        "id": "versions",
-        "area": "history",
-        "description": "Every version of every chapter, saved as you work. Nothing is lost — you can always go back.",
-    },
-    {
-        "id": "import",
-        "area": "import",
-        "description": "Bring in a manuscript you've already started. I'll read it on the way in and tell you what I see.",
-    },
-]
-
-# Final-step actions, for ThadTourResponse.final_actions
-FINAL_TOUR_ACTIONS = ["Start writing", "Bring in a manuscript", "Look around"]
 
 
 # =============================================================================

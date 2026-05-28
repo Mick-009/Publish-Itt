@@ -286,15 +286,6 @@ export const aiApi = {
       theme: theme,
       device_type: deviceType,
     }),
-  thadTour: (userName, bookTitle, ageGroup, theme, deviceType, currentStep) =>
-    api.post("/ai/thad/tour", {
-      user_name: userName,
-      book_title: bookTitle,
-      age_group: ageGroup,
-      theme: theme,
-      device_type: deviceType,
-      current_step: currentStep,
-    }),
 };
 
 // Phase 2: regenerate-with-feedback for Thad outputs.
