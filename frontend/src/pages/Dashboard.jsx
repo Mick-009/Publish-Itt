@@ -432,17 +432,17 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Auto-open the tour for first-time visitors. The tour manages the
-  // `thad_tour_complete` flag (set on finish and on skip), so we just check
-  // it here. A short beat lets the dashboard render first so the tour lands
-  // on top of the shelf, not a blank loading screen.
+  // Auto-open the tour for first-time visitors. The flag lives on the user
+  // record (set via userApi.completeTour on finish or skip), so it persists
+  // across logins. We also wait for user to be loaded — otherwise the first
+  // render sees user as null and would wrongly open the tour for everyone.
   useEffect(() => {
-    const seen = localStorage.getItem("thad_tour_complete") === "true";
-    if (seen) return;
+    if (!user) return;
+    if (user.tour_complete) return;
 
     const timer = setTimeout(() => setTourOpen(true), 400);
     return () => clearTimeout(timer);
-  }, []);
+  }, [user]);
 
   const loadProjects = async () => {
     try {

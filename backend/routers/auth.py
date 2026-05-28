@@ -43,6 +43,7 @@ class UserOut(BaseModel):
     created_at: str
     daily_word_goal: int = 500
     onboarding_complete: bool = False
+    tourcomplete: bool = False
 
 
 class UserPreferencesUpdate(BaseModel):
@@ -228,6 +229,25 @@ async def update_preferences(
 
     await db.users.update_one({"id": current_user.id}, {"$set": updates})
 
+    refreshed = await db.users.find_one(
+        {"id": current_user.id}, {"_id": 0, "hashed_password": 0}
+    )
+    refreshed.setdefault("daily_word_goal", 500)
+    return UserOut(**refreshed)
+
+@auth_router.post("/tour/complete", response_model=UserOut)
+async def complete_tour(current_user: UserOut = Depends(get_current_user)):
+    """Mark the current user's Thad tour as complete.
+
+    Called when the writer finishes or skips the tour. The flag lives on the
+    user record so it persists across logins and devices — the tour is a
+    one-time experience, not a per-browser one.
+    """
+    db = get_db()
+    await db.users.update_one(
+        {"id": current_user.id},
+        {"$set": {"tour_complete": True}},
+    )
     refreshed = await db.users.find_one(
         {"id": current_user.id}, {"_id": 0, "hashed_password": 0}
     )

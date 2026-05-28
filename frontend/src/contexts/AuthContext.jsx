@@ -67,7 +67,6 @@ export function AuthProvider({ children }) {
     // Clear onboarding state tied to the session
     localStorage.removeItem("thad_onboarding_complete");
     localStorage.removeItem("thad_user_name");
-    localStorage.removeItem("thad_tour_complete");
   }, []);
 
   // Optimistically merge updates into the user object — used after a

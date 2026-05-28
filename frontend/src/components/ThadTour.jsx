@@ -18,6 +18,8 @@ import {
   Palette,
   X,
 } from "lucide-react";
+import { userApi } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Per-step icon, keyed by the `icon` field on each tour step. The steps
 // carry their own key (set in tourSteps.js), so there's no fragile
@@ -44,6 +46,7 @@ export default function ThadTour({
   theme = null,
 }) {
   const navigate = useNavigate();
+  const { updateUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
 
   // The whole tour, built once per (name, title). No API, no loading.
@@ -65,15 +68,30 @@ export default function ThadTour({
     }
   };
 
-  const handleSkip = () => {
-    localStorage.setItem("thad_tour_complete", "true");
+  const handleSkip = async () => {
+    // Persist on the user record so it survives logout and follows the
+    // writer across devices. Optimistic local update so the UI doesn't lag.
+    try {
+      await userApi.completeTour();
+      updateUser({ tour_complete: true });
+    } catch (err) {
+      console.error("Couldn't mark tour complete:", err);
+      // Close the dialog anyway — refusing to close on a save failure
+      // would be more annoying than the unlikely re-open on next login.
+    }
     if (onComplete) {
       onComplete();
     }
   };
 
-  const handleComplete = (action) => {
-    localStorage.setItem("thad_tour_complete", "true");
+  const handleComplete = async (action) => {
+    // Persist on the user record (see handleSkip note).
+    try {
+      await userApi.completeTour();
+      updateUser({ tour_complete: true });
+    } catch (err) {
+      console.error("Couldn't mark tour complete:", err);
+    }
     if (onComplete) {
       onComplete();
     }

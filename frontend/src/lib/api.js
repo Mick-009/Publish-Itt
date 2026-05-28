@@ -547,6 +547,7 @@ export const statsApi = {
 // User Preferences API
 export const userApi = {
   updatePreferences: (data) => api.patch("/auth/me/preferences", data),
+  completeTour: () => api.post("/auth/tour/complete"),
 };
 
 // Share-a-chapter — author side (authenticated).
