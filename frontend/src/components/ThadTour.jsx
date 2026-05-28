@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { userApi } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -18,8 +20,7 @@ import {
   Palette,
   X,
 } from "lucide-react";
-import { userApi } from "@/lib/api";
-import { useAuth } from "@/contexts/AuthContext";
+
 
 // Per-step icon, keyed by the `icon` field on each tour step. The steps
 // carry their own key (set in tourSteps.js), so there's no fragile
