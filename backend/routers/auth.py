@@ -142,15 +142,15 @@ async def register(body: UserRegister):
     await db.users.insert_one(user.model_dump())
 
     token = create_access_token({"sub": user.id})
+    # Splat the user dict through Pydantic so every field declared on
+    # UserOut is populated from the document. Mirrors get_current_user's
+    # pattern. Future fields on UserOut "just work" without touching this.
+    user_dict = user.model_dump()
+    user_dict.pop("hashed_password", None)
+    user_dict.setdefault("daily_word_goal", 500)
     return TokenResponse(
         access_token=token,
-        user=UserOut(
-            id=user.id,
-            email=user.email,
-            display_name=user.display_name,
-            created_at=user.created_at,
-            daily_word_goal=user.daily_word_goal,
-        ),
+        user=UserOut(**user_dict),
     )
 
 
@@ -163,15 +163,12 @@ async def login(body: UserLogin):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_access_token({"sub": user_doc["id"]})
+    user_doc.pop("_id", None)
+    user_doc.pop("hashed_password", None)
+    user_doc.setdefault("daily_word_goal", 500)
     return TokenResponse(
         access_token=token,
-        user=UserOut(
-            id=user_doc["id"],
-            email=user_doc["email"],
-            display_name=user_doc.get("display_name"),
-            created_at=user_doc["created_at"],
-            daily_word_goal=user_doc.get("daily_word_goal", 500),
-        ),
+        user=UserOut(**user_doc),
     )
 
 
@@ -184,15 +181,12 @@ async def login_form(form_data: OAuth2PasswordRequestForm = Depends()):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_access_token({"sub": user_doc["id"]})
+    user_doc.pop("_id", None)
+    user_doc.pop("hashed_password", None)
+    user_doc.setdefault("daily_word_goal", 500)
     return TokenResponse(
         access_token=token,
-        user=UserOut(
-            id=user_doc["id"],
-            email=user_doc["email"],
-            display_name=user_doc.get("display_name"),
-            created_at=user_doc["created_at"],
-            daily_word_goal=user_doc.get("daily_word_goal", 500),
-        ),
+        user=UserOut(**user_doc),
     )
 
 
