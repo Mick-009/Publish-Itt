@@ -43,7 +43,7 @@ class UserOut(BaseModel):
     created_at: str
     daily_word_goal: int = 500
     onboarding_complete: bool = False
-    tourcomplete: bool = False
+    tour_complete: bool = False
 
 
 class UserPreferencesUpdate(BaseModel):
