@@ -49,6 +49,7 @@ import {
 import { toast } from "sonner";
 import ImportAnalysisDialog from "@/components/ImportAnalysisDialog";
 import MomentumStrip from "@/components/MomentumStrip";
+import ThadTour from "@/components/ThadTour";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Plus,
@@ -414,6 +415,9 @@ export default function Dashboard() {
   const [importedFilename, setImportedFilename] = useState("");
   const [newProjectId, setNewProjectId] = useState(null);
 
+  // Tour auto-open on first visit (state goes here, with the other dialog flags)
+  const [tourOpen, setTourOpen] = useState(false);
+
   useEffect(() => {
     loadProjects();
 
@@ -426,6 +430,18 @@ export default function Dashboard() {
       fileInputRef.current?.click();
       window.history.replaceState({}, "", window.location.pathname);
     }
+  }, []);
+
+  // Auto-open the tour for first-time visitors. The tour manages the
+  // `thad_tour_complete` flag (set on finish and on skip), so we just check
+  // it here. A short beat lets the dashboard render first so the tour lands
+  // on top of the shelf, not a blank loading screen.
+  useEffect(() => {
+    const seen = localStorage.getItem("thad_tour_complete") === "true";
+    if (seen) return;
+
+    const timer = setTimeout(() => setTourOpen(true), 400);
+    return () => clearTimeout(timer);
   }, []);
 
   const loadProjects = async () => {
@@ -1335,6 +1351,12 @@ export default function Dashboard() {
         onActionComplete={() => {
           if (newProjectId) navigate(`/manuscript/${newProjectId}`);
         }}
+      />
+      <ThadTour
+        open={tourOpen}
+        onComplete={() => setTourOpen(false)}
+        userName={displayName}
+        bookTitle={null}
       />
     </div>
   );
