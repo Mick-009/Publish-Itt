@@ -314,12 +314,15 @@ def build_router(db, get_current_user_dep) -> APIRouter:
         # their email if display_name was never set.
         author = await db.users.find_one(
             {"id": share["user_id"]},
-            {"_id": 0, "display_name": 1, "email": 1},
+            {"_id": 0, "display_name": 1, "email": 1, "pen_name": 1, "use_pen_name": 1},
         )
         author_name = ""
         if author:
-            author_name = author.get("display_name") or ""
-            if not author_name and author.get("email"):
+            if author.get("use_pen_name") and (author.get("pen_name") or "").strip():
+                author_name = author["pen_name"].strip()
+            elif author.get("display_name"):
+                author_name = author["display_name"]
+            else:
                 author_name = author["email"].split("@")[0].replace(".", " ").title()
 
         # Fetch chapters in the order specified by chapter_ids. Mongo's $in

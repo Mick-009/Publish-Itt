@@ -548,6 +548,8 @@ export const statsApi = {
 export const userApi = {
   updatePreferences: (data) => api.patch("/auth/me/preferences", data),
   completeTour: () => api.post("/auth/tour/complete"),
+  deleteAccount: (confirmation) =>
+    api.delete("/auth/me", { data: { confirmation } }),
 };
 
 // Share-a-chapter — author side (authenticated).

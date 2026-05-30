@@ -44,11 +44,21 @@ class UserOut(BaseModel):
     daily_word_goal: int = 500
     onboarding_complete: bool = False
     tour_complete: bool = False
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    pen_name: Optional[str] = None
+    use_pen_name: bool = False
+    avatar: Optional[str] = None
 
 
 class UserPreferencesUpdate(BaseModel):
     daily_word_goal: Optional[int] = None
     display_name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    pen_name: Optional[str] = None
+    use_pen_name: Optional[bool] = None
+    avatar: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -66,6 +76,11 @@ class UserInDB(BaseModel):
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    pen_name: Optional[str] = None
+    use_pen_name: bool = False
+    avatar: Optional[str] = None
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -217,6 +232,30 @@ async def update_preferences(
         if not name:
             raise HTTPException(status_code=422, detail="display_name cannot be blank")
         updates["display_name"] = name
+
+    if body.first_name is not None:
+        updates["first_name"] = body.first_name.strip()
+
+    if body.last_name is not None:
+        updates["last_name"] = body.last_name.strip()
+
+    if body.pen_name is not None:
+        updates["pen_name"] = body.pen_name.strip()
+
+    if body.use_pen_name is not None:
+        updates["use_pen_name"] = body.use_pen_name
+
+    if body.avatar is not None:
+        ALLOWED_AVATARS = {
+            "", "quill", "books", "typewriter", "coffee",
+            "owl", "moon", "lantern", "anchor",
+        }
+        if body.avatar not in ALLOWED_AVATARS:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unknown avatar: {body.avatar}",
+            )
+        updates["avatar"] = body.avatar
 
     if not updates:
         return current_user
