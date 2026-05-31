@@ -12,15 +12,16 @@ export function AvatarQuill({ size = 48, className }) {
       className={className}
       aria-hidden="true"
     >
-      {/* Feather vane — pointed oval, tilted ~50° */}
-      <path d="M 36 6 C 44 12 42 32 30 42 L 10 44 C 16 36 18 22 10 14 Z" />
-      {/* Central spine */}
-      <line x1="33" y1="9" x2="10" y2="44" />
-      {/* Nib fork at tip */}
-      <path d="M 10 44 L 6 47 M 10 44 L 14 47" />
-      {/* Barb texture */}
-      <line x1="27" y1="14" x2="17" y2="28" strokeOpacity="0.45" />
-      <line x1="21" y1="23" x2="13" y2="36" strokeOpacity="0.35" />
+      {/* Asymmetric vane — wide on right, narrow on left, pointed tip */}
+      <path d="M 37 7 C 46 15 42 31 28 40 L 15 40 C 23 32 30 17 37 7 Z" />
+      {/* Shaft — runs full length, tip extends past calamus to suggest nib */}
+      <line x1="37" y1="7" x2="11" y2="44" />
+      {/* Nib fork */}
+      <path d="M 11 44 L 7 47 M 11 44 L 15 47" />
+      {/* Barbs branching from shaft toward wide side */}
+      <line x1="30" y1="17" x2="37" y2="21" strokeOpacity="0.55" />
+      <line x1="24" y1="26" x2="31" y2="30" strokeOpacity="0.45" />
+      <line x1="18" y1="34" x2="25" y2="38" strokeOpacity="0.35" />
     </svg>
   );
 }
