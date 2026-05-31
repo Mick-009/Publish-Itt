@@ -116,7 +116,7 @@ re-define stages anywhere else; everything imports from `lib/utils.js`.
 The AI workflow analysis returns a coarser six-stage vocabulary (Idea
 Drop / Outline / Draft / Revise / Polish / Complete) which is translated to
 the canonical nine via `remapAiStageToStatus()` in `lib/utils.js`. The AI is
-a *nudge* — when it reads further along than the stored status, it
+a _nudge_ — when it reads further along than the stored status, it
 surfaces "this reads like Draft, want to move it?" The nudge fires forward
 only; never tell a writer they've regressed.
 
@@ -174,7 +174,7 @@ for those, voice-refresh the placeholder text only. See examples in
 ### The `UserOut` splat pattern (load-bearing — don't violate)
 
 When returning a `UserOut` from a mongo document, **always splat the doc
-through Pydantic with `**user_doc`** rather than enumerating fields by
+through Pydantic with `**user_doc`\*\* rather than enumerating fields by
 hand:
 
 ```python
@@ -198,6 +198,11 @@ because the login endpoints didn't include them in their hand-built
 `UserOut(...)` calls. The splat pattern means future fields on `UserOut`
 "just work" with no further code changes. `get_current_user` is the
 reference implementation; align all endpoints to it.
+
+- **Account delete cascade** covers all twelve collections above
+  (verified via `backend/test_delete_cascade.py`). When adding a new
+  user-owned or project-owned collection, add it to the cascade in
+  `DELETE /auth/me` and to `test_delete_cascade.py`.
 
 ### Optimistic UI updates
 
@@ -308,14 +313,17 @@ backend/
 ## MongoDB collections (canonical list)
 
 User-scoped (every document carries `user_id`):
+
 - `projects`, `chapters` (chapters owned via `project_id` but most
   endpoints filter by user), `notes`, `versions`, `writing_sessions`,
   `style_presets`, `shares`, `users`
 
 Project-scoped only (no direct `user_id` — owned via `project_id`):
-- `thad_revisions`, `thad_style_notes`
+
+- `thad_revisions`, `thad_style_notes`, `art_assets`, `book_art_profiles`
 
 Parked / problematic (see "Known parked issues" below):
+
 - `manuscripts_collection` (the import endpoint writes here without
   user_id; not safe to remove)
 
