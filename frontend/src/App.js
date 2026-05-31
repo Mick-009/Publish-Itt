@@ -21,7 +21,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <div className="min-h-screen bg-background">
+        <div className="h-screen bg-background">
           <BrowserRouter>
             <Routes>
               {/* Public route — auth page */}
