@@ -11,7 +11,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
@@ -701,8 +700,7 @@ export default function Settings() {
             mood, or look you want to keep around.
           </p>
 
-          <ScrollArea className="h-[400px]">
-            {presets.length === 0 ? (
+          {presets.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
                 <Palette className="h-12 w-12 mb-4 opacity-50" />
                 <p className="text-sm text-center mb-4">
@@ -770,7 +768,6 @@ export default function Settings() {
                 ))}
               </div>
             )}
-          </ScrollArea>
         </CardContent>
       </Card>
 
