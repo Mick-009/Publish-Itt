@@ -20,7 +20,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { stylePresetApi, userApi, onboardingApi } from "@/lib/api";
+import { AVATAR_COMPONENTS, AVATAR_OPTIONS } from "@/components/avatars";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -41,6 +43,8 @@ import {
   Map,
   Sparkles,
   Target,
+  X,
+  User,
 } from "lucide-react";
 import ThadTour from "@/components/ThadTour";
 import LoadingState from "@/components/LoadingState";
@@ -61,10 +65,36 @@ const THEME_COLORS = {
   campfire: "bg-orange-500",
 };
 
+function FieldWithClear({ label, value, onChange, placeholder }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="relative">
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="rounded-sm pr-9"
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-sm"
+            aria-label={`Clear ${label}`}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Settings() {
   const navigate = useNavigate();
   const { theme, setTheme, themes } = useTheme();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -83,12 +113,71 @@ export default function Settings() {
   const [goalDraft, setGoalDraft] = useState(user?.daily_word_goal ?? 500);
   const [savingGoal, setSavingGoal] = useState(false);
 
-  // Keep draft in sync when user loads / changes
+  // Profile fields
+  const [profileDraft, setProfileDraft] = useState({
+    first_name: user?.first_name || "",
+    last_name: user?.last_name || "",
+    pen_name: (user?.pen_name || "").trim(),
+    use_pen_name: user?.use_pen_name || false,
+    avatar: user?.avatar || "",
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Account deletion modal
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  // Keep drafts in sync when user loads / changes
   useEffect(() => {
     if (user?.daily_word_goal != null) setGoalDraft(user.daily_word_goal);
   }, [user?.daily_word_goal]);
 
+  useEffect(() => {
+    setProfileDraft({
+      first_name: user?.first_name || "",
+      last_name: user?.last_name || "",
+      pen_name: (user?.pen_name || "").trim(),
+      use_pen_name: user?.use_pen_name || false,
+      avatar: user?.avatar || "",
+    });
+  }, [user?.first_name, user?.last_name, user?.pen_name, user?.use_pen_name, user?.avatar]);
+
   const goalDirty = goalDraft !== (user?.daily_word_goal ?? 500);
+
+  const profileDirty =
+    profileDraft.first_name !== (user?.first_name || "") ||
+    profileDraft.last_name !== (user?.last_name || "") ||
+    profileDraft.pen_name !== (user?.pen_name || "") ||
+    profileDraft.use_pen_name !== (user?.use_pen_name || false) ||
+    profileDraft.avatar !== (user?.avatar || "");
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const res = await userApi.updatePreferences({
+        first_name: profileDraft.first_name,
+        last_name: profileDraft.last_name,
+        pen_name: profileDraft.pen_name,
+        use_pen_name: profileDraft.use_pen_name,
+        avatar: profileDraft.avatar,
+      });
+      updateUser({
+        first_name: res.data.first_name,
+        last_name: res.data.last_name,
+        pen_name: res.data.pen_name,
+        use_pen_name: res.data.use_pen_name,
+        avatar: res.data.avatar,
+      });
+      toast.success("Profile saved.");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.detail || "Couldn't save that. Try again?",
+      );
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleSaveGoal = async () => {
     if (goalDraft < 0 || goalDraft > 100000) {
@@ -136,6 +225,24 @@ export default function Settings() {
       navigate("/onboarding");
     } catch (err) {
       toast.error("Couldn't reset that. Try again?");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== "DELETE") return;
+    setDeleting(true);
+    try {
+      await userApi.deleteAccount(deleteConfirmation);
+      // Order matters: toast → logout → navigate. The toast needs a frame to
+      // render before the auth context tears down the surrounding layout.
+      toast.success("Account gone. Take care.");
+      logout();
+      navigate("/");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.detail || "Couldn't delete the account. Try again?",
+      );
+      setDeleting(false);
     }
   };
 
@@ -310,6 +417,107 @@ export default function Settings() {
                 Replay
               </Button>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Profile */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="font-serif flex items-center gap-2">
+            <User className="h-5 w-5 text-accent" />
+            Profile
+          </CardTitle>
+          <CardDescription>
+            How you're known here, and how you're known to readers.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* First / Last name row */}
+          <div className="grid grid-cols-2 gap-4">
+            <FieldWithClear
+              label="First name"
+              value={profileDraft.first_name}
+              onChange={(v) =>
+                setProfileDraft({ ...profileDraft, first_name: v })
+              }
+            />
+            <FieldWithClear
+              label="Last name"
+              value={profileDraft.last_name}
+              onChange={(v) =>
+                setProfileDraft({ ...profileDraft, last_name: v })
+              }
+            />
+          </div>
+
+          {/* Pen name + toggle */}
+          <FieldWithClear
+            label="Pen name"
+            placeholder="The name readers know you by"
+            value={profileDraft.pen_name}
+            onChange={(v) =>
+              setProfileDraft({ ...profileDraft, pen_name: v })
+            }
+          />
+          <div className="flex items-center gap-3 ml-1">
+            <Switch
+              checked={profileDraft.use_pen_name}
+              onCheckedChange={(v) =>
+                setProfileDraft({ ...profileDraft, use_pen_name: v })
+              }
+              disabled={!profileDraft.pen_name.trim()}
+            />
+            <span className="text-sm text-muted-foreground">
+              Use my pen name on shared chapters and exports
+            </span>
+          </div>
+
+          {/* Avatar picker */}
+          <div className="space-y-2">
+            <Label>Avatar</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {AVATAR_OPTIONS.map((opt) => {
+                const Avatar = AVATAR_COMPONENTS[opt.key];
+                const selected = profileDraft.avatar === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() =>
+                      setProfileDraft({
+                        ...profileDraft,
+                        avatar: selected ? "" : opt.key,
+                      })
+                    }
+                    className={cn(
+                      "rounded-md border-2 p-3 flex items-center justify-center transition-colors",
+                      selected
+                        ? "border-accent text-accent bg-accent/5"
+                        : "border-border text-muted-foreground hover:border-accent/50 hover:text-foreground",
+                    )}
+                    aria-label={opt.label}
+                    title={opt.label}
+                  >
+                    <Avatar size={32} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Save */}
+          <div className="flex justify-end">
+            <Button
+              onClick={handleSaveProfile}
+              disabled={!profileDirty || savingProfile}
+              className="rounded-sm"
+            >
+              {savingProfile && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Save profile
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -671,6 +879,93 @@ export default function Settings() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Danger Zone */}
+      <div className="mt-12">
+        <div className="border-t border-border mb-6" />
+        <Card className="border-destructive/30">
+          <CardHeader>
+            <CardTitle className="text-destructive">Delete account</CardTitle>
+            <CardDescription>
+              Removes your account and everything you've written here —
+              projects, chapters, notes, shares — for good. There's no undo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteModalOpen(true)}
+              className="rounded-sm"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete my account
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Delete confirmation modal */}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={(open) => {
+          setDeleteModalOpen(open);
+          if (!open) setDeleteConfirmation("");
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">
+              Delete account?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Everything you've written here will be removed for good —
+              projects, chapters, notes, shares, the work. There's no undo.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">
+                Type{" "}
+                <span className="font-mono font-semibold">DELETE</span>{" "}
+                to confirm.
+              </Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                placeholder="DELETE"
+                autoComplete="off"
+                autoFocus
+                className="rounded-sm font-mono"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setDeleteConfirmation("");
+              }}
+              disabled={deleting}
+              className="rounded-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmation !== "DELETE" || deleting}
+              className="rounded-sm"
+            >
+              {deleting && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Delete my account
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
