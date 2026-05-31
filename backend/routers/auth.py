@@ -67,6 +67,10 @@ class TokenResponse(BaseModel):
     user: UserOut
 
 
+class AccountDeleteRequest(BaseModel):
+    confirmation: str
+
+
 class UserInDB(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
@@ -286,3 +290,66 @@ async def complete_tour(current_user: UserOut = Depends(get_current_user)):
     )
     refreshed.setdefault("daily_word_goal", 500)
     return UserOut(**refreshed)
+
+
+@auth_router.delete("/me")
+async def delete_account(
+    body: AccountDeleteRequest,
+    current_user: UserOut = Depends(get_current_user),
+):
+    """Permanently delete the current user's account and all their data.
+
+    Cascades through all collections the user owns. The deletion is hard —
+    nothing is soft-deleted, nothing is recoverable. The reader-facing
+    public share endpoints already handle missing-user gracefully (the
+    share record is deleted, so the public endpoint returns 410).
+
+    Known limitation: documents in `manuscripts_collection` written by the
+    import endpoint do not carry `user_id` and are not caught by this
+    cascade. This is documented in CLAUDE.md as a parked issue.
+    """
+    if body.confirmation != "DELETE":
+        raise HTTPException(
+            status_code=400,
+            detail="Confirmation must be exactly 'DELETE'.",
+        )
+
+    db = get_db()
+    user_id = current_user.id
+
+    # Step 1: collect project IDs for the project-scoped cascades.
+    project_docs = await db.projects.find(
+        {"user_id": user_id}, {"id": 1, "_id": 0}
+    ).to_list(10000)
+    project_ids = [p["id"] for p in project_docs]
+
+    # Step 2: cascade through project-scoped collections.
+    if project_ids:
+        await db.chapters.delete_many({"project_id": {"$in": project_ids}})
+        await db.thad_revisions.delete_many(
+            {"project_id": {"$in": project_ids}}
+        )
+        await db.thad_style_notes.delete_many(
+            {"project_id": {"$in": project_ids}}
+        )
+        await db.art_assets.delete_many({"project_id": {"$in": project_ids}})
+        await db.book_art_profiles.delete_many(
+            {"project_id": {"$in": project_ids}}
+        )
+
+    # Step 3: cascade through user-scoped collections.
+    user_scoped = [
+        "projects",
+        "notes",
+        "versions",
+        "writing_sessions",
+        "style_presets",
+        "shares",
+    ]
+    for collection_name in user_scoped:
+        await db[collection_name].delete_many({"user_id": user_id})
+
+    # Step 4: delete the user record itself.
+    await db.users.delete_one({"id": user_id})
+
+    return {"deleted": True}
