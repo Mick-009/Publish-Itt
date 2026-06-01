@@ -339,7 +339,7 @@ export default function Settings() {
 
   return (
     <div
-      className="p-8 lg:p-12 max-w-4xl mx-auto animate-fade-in"
+      className="px-8 pt-8 pb-4 lg:px-12 lg:pt-12 lg:pb-6 max-w-4xl mx-auto animate-fade-in"
       data-testid="settings-page"
     >
       {/* Header */}
@@ -630,9 +630,17 @@ export default function Settings() {
           <RadioGroup
             value={theme}
             onValueChange={(value) => {
+              const main = document.querySelector('main');
+              const previousScroll = main?.scrollTop || 0;
               setTheme(value);
               const themeName = themes.find((t) => t.id === value)?.name;
               toast.success(`Switched to ${themeName}.`);
+              // Restore scroll on the next tick, after React has re-rendered the
+              // theme-derived styles. requestAnimationFrame is the right hook —
+              // setTimeout(..., 0) sometimes fires too early in development builds.
+              requestAnimationFrame(() => {
+                if (main) main.scrollTop = previousScroll;
+              });
             }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
             data-testid="theme-selector"
@@ -880,7 +888,7 @@ export default function Settings() {
       </Dialog>
 
       {/* Danger Zone */}
-      <div className="mt-12">
+      <div className="mt-8">
         <div className="border-t border-border mb-6" />
         <Card className="border-destructive/30">
           <CardHeader>
