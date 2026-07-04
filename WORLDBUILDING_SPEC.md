@@ -14,9 +14,9 @@ doesn't anticipate. Read this before working on canvas-related code.
 
 Publish Itt's positioning is "an editor-in-chief, not an autocomplete."
 That promise has a quiet implication: the editor-in-chief needs somewhere
-to keep notes on the book *outside* the prose. Characters, places,
-structural analyses, summaries — everything that's *about* the book but
-isn't *in* the book.
+to keep notes on the book _outside_ the prose. Characters, places,
+structural analyses, summaries — everything that's _about_ the book but
+isn't _in_ the book.
 
 Today, AI analytical output (character extraction, Lantern Path mapping,
 chapter summaries, QA reads) has no real home. It runs, produces output,
@@ -95,18 +95,21 @@ is uniform across types (this is the data model decision below). The
 type-specific fields are small and intentional.
 
 **Character card:**
+
 - Title (the character's name)
 - Role (one short string — protagonist, antagonist, mentor, foil, etc.)
 - First seen (chapter reference, or freeform text if no chapter link)
 - Body (freeform, the writer writes whatever they want here)
 
 **Place card:**
+
 - Title (the name of the place)
 - Kind (one short string — city, room, planet, region, dream, etc.)
 - First seen (chapter reference, or freeform text)
 - Body (freeform)
 
 **Note card:**
+
 - Title (optional — note cards don't have to have titles)
 - Body (freeform, the actual note)
 
@@ -120,7 +123,7 @@ Connections are **optional-typed, directed**:
 
 - Every connection has a source card and a target card. Direction matters
   — flipping source and target creates a different connection.
-- Every connection *can* have a label (a freeform string — "lives in,"
+- Every connection _can_ have a label (a freeform string — "lives in,"
   "foreshadows," "killed," etc.), but doesn't have to. Writers who care
   about types fill them in. Writers who don't get plain directional arrows.
 - A card **cannot** connect to itself. Self-connections don't carry
@@ -190,11 +193,11 @@ not.
 
 ### CTAs in the Read/Analysis panel
 
-The panel currently has CTAs for *generative* output (rewrites,
+The panel currently has CTAs for _generative_ output (rewrites,
 suggestions): Insert into chapter / Replace selection / Copy / Dismiss.
 
-v1 adds *analytical* posture for AI output that's *about* the work, not
-*in* the work. Analytical output gets different CTAs:
+v1 adds _analytical_ posture for AI output that's _about_ the work, not
+_in_ the work. Analytical output gets different CTAs:
 
 - **Send to canvas** (creates cards from the analysis)
 - **Copy**
@@ -208,7 +211,7 @@ is looking at a rewrite (decide whether to take it) or an analysis
 ### How analytical output becomes cards (type-aware splitting)
 
 Per analytical action, the result is either one card or many. The shape
-of the output matches what the writer needs to *do* with it. A character
+of the output matches what the writer needs to _do_ with it. A character
 list produces many cards (one per character) because the writer will
 position and connect them individually. A chapter summary produces one
 card because it's conceptually one thing.
@@ -234,8 +237,8 @@ Two scenarios, both natural:
 **Empty state:** Writer opens the canvas for the first time, never
 extracted anything, never added anything. They see a pan-able empty
 surface with the toolbar at the bottom. That's it. Optional: one quiet
-line of text faded over center — *"This is where your world lives. Add a
-card, or ask Thad to extract from a chapter."* The text fades the moment
+line of text faded over center — _"This is where your world lives. Add a
+card, or ask Thad to extract from a chapter."_ The text fades the moment
 any card appears.
 
 **Populated state:** Writer has been working in the manuscript, has
@@ -261,7 +264,7 @@ themes.
 
 ### Surface progression (v1 → v1.1 → v1.2)
 
-The canvas's *visual environment* evolves across versions while the data
+The canvas's _visual environment_ evolves across versions while the data
 model and interaction stay constant.
 
 - **v1 (this spec):** Canvas lives as a normal page inside Publish Itt's
@@ -285,6 +288,7 @@ around it.
 **React Flow** (the xyflow library) for v1.
 
 Reasoning, briefly:
+
 - The data model is structured graph-like content (cards as nodes,
   connections as edges). React Flow speaks this language natively.
 - React Flow is the boring, well-trodden choice for a feature that's
@@ -330,6 +334,7 @@ a flexible `data` subfield for type-specific content.
 at the endpoint level per type):
 
 Character `data`:
+
 ```python
 {
   role: str,                # one short string, may be empty
@@ -339,6 +344,7 @@ Character `data`:
 ```
 
 Place `data`:
+
 ```python
 {
   kind: str,                # one short string, may be empty
@@ -348,6 +354,7 @@ Place `data`:
 ```
 
 Note `data`:
+
 ```python
 {
   body: str,                # the note itself, may be empty
@@ -502,6 +509,7 @@ frontend doesn't have to do a follow-up post.
 canvas" experience snappy. The analysis can still be reviewed in the
 panel before sending — the `send_to_canvas` flag is set when the writer
 clicks the button, not at initial analysis time. So the flow is:
+
 1. Writer triggers analysis (`send_to_canvas: false` implicitly). Result
    appears in the panel.
 2. Writer clicks "Send to canvas." Frontend sends a small "create cards
@@ -548,9 +556,9 @@ icon: `Map` (already imported in Layout for the tour link — may want a
 different one to avoid conflict).
 
 Voice note: the page header on the worldbuilding route should reinforce
-what this place *is* without being pedantic. Suggested header copy:
-*"Where your world lives."* Subhead: *"Everything about the book that
-isn't in it."*
+what this place _is_ without being pedantic. Suggested header copy:
+_"Where your world lives."_ Subhead: _"Everything about the book that
+isn't in it."_
 
 ### File plan
 
@@ -648,7 +656,6 @@ find this disorienting. Use:
 Scroll pans; Ctrl+scroll (or pinch) zooms. This matches document-like
 surface expectations and the "ease in, don't overwhelm" principle.
 
-
 - Custom node types registered with React Flow. CardNode wraps the
   type-specific renderers.
 - Custom edge type for ConnectionEdge (so we can render the optional
@@ -658,6 +665,7 @@ surface expectations and the "ease in, don't overwhelm" principle.
   items/connections.
 
 Specific React Flow features we'll use in v1:
+
 - `<ReactFlow />` with controlled nodes and edges
 - `onNodesChange`, `onEdgesChange` for position/state updates
 - `onConnect` for drag-to-connect interactions
@@ -665,7 +673,7 @@ Specific React Flow features we'll use in v1:
   toolbar's view group)
 - `<Background />` (subtle grid or dot pattern)
 
-What we'll *avoid* in v1: minimap (defer to v1.1), keyboard shortcuts
+What we'll _avoid_ in v1: minimap (defer to v1.1), keyboard shortcuts
 beyond Delete (defer), multi-select sophistication (defer).
 
 ---
@@ -676,11 +684,13 @@ These are conscious deferrals. Don't add them unbidden. Surface them as
 candidates for v1.1 if you encounter strong demand.
 
 **Card types deferred:**
+
 - Image cards (require image upload infrastructure that doesn't exist in
   the stack yet)
 - Link cards (require URL preview / OG metadata fetching for a good UX)
 
 **Features deferred:**
+
 - Tags (cross-cutting feature; tag autocomplete, tag filtering, tag-based
   search all become required once we add tags)
 - Note cards inheriting color from connected card type (deferred until
@@ -697,6 +707,7 @@ candidates for v1.1 if you encounter strong demand.
 - Smart merge for re-extraction (always-create-new in v1)
 
 **Surfaces deferred:**
+
 - Surface 3 (chapter list / sidebar trigger for extraction)
 - The Sketchbook page (separate feature entirely, post v1.2)
 
@@ -739,6 +750,7 @@ Three real options were considered:
 - **C:** Hybrid — common envelope with embedded type-specific subdocuments.
 
 A wins for v1 because:
+
 - Adding new card types later means adding an enum value, not a new
   collection.
 - "All items in this project" is one query.
@@ -758,6 +770,7 @@ Considered: untyped/undirected, untyped/directed, typed/directed,
 optional-typed/directed.
 
 Chose optional-typed/directed because:
+
 - Direction often matters (X leads to Y is not Y leads to X).
 - Labels are valuable when present (gives structured world knowledge),
   but mandating them is friction.
@@ -771,6 +784,7 @@ mine common labels and suggest them — but we don't restrict upfront.
 ### Provenance approach (why three values, always-create-new)
 
 Three values (manual / ai / ai_edited) chosen because:
+
 - It captures "where did this card come from" honestly.
 - The `ai_edited` distinction matters because it tells future smart-merge
   features (if we ever build them) not to overwrite writer changes.
@@ -778,6 +792,7 @@ Three values (manual / ai / ai_edited) chosen because:
   overengineering.
 
 Always-create-new for re-extraction chosen because:
+
 - Smart merge is a real feature with real UX (name matching, conflict
   resolution, writer-facing merge UI). It's its own project.
 - v1 should ship without that complexity. The writer being responsible
@@ -787,6 +802,7 @@ Always-create-new for re-extraction chosen because:
 ### Canvas tech (why React Flow over tldraw)
 
 React Flow chosen because:
+
 - The data model is structured (cards + connections). React Flow speaks
   this natively. tldraw is more general-purpose and would require
   bending its primitives.
@@ -806,6 +822,7 @@ Considered: ship full-screen modal in v1; ship in-page in v1 and never
 move; etc.
 
 Chose v1 in-page, v1.1 modal, v1.2 window because:
+
 - v1 in-page is the smallest buildable canvas that delivers value. Don't
   overshoot the first release.
 - The data model and interaction model don't change across the three
@@ -823,6 +840,7 @@ Considered: ship five types (add Image, Link). Ship three types and add
 more later (chosen).
 
 Three types in v1 because:
+
 - Character and Place are the highest-value structured types for
   fiction writers.
 - Note is the catch-all that absorbs everything else.
@@ -849,13 +867,14 @@ Specifically, these are likely to need revisiting:
 - **Toolbar UX details.** "Bottom-center, three groups" is locked. The
   exact button shapes, spacings, icon choices, hover affordances all get
   decided during build.
-- **The empty state copy.** Currently sketched as *"This is where your
-  world lives. Add a card, or ask Thad to extract from a chapter."* That's
+- **The empty state copy.** Currently sketched as _"This is where your
+  world lives. Add a card, or ask Thad to extract from a chapter."_ That's
   a placeholder — voice-tune during build.
 - **The "Send to canvas" interaction.** The single-step-with-flag API
   contract is locked; the exact UI flow (does the panel close? show a
   success state? animate to indicate the cards landed?) gets settled
   during build.
+- **Project switching form inside the canvas** Deferred, candidate location is toolbar right edge.
 
 These are not gaps in the spec. They're explicit "to be settled in
 context" items.
