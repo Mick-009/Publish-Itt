@@ -16,6 +16,7 @@ import MarketIntelligence from "@/pages/MarketIntelligence";
 import Settings from "@/pages/Settings";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import SharePage from "@/pages/SharePage";
+import WorldbuildingWorkspace from "@/pages/WorldbuildingWorkspace";
 
 function App() {
   return (
@@ -55,6 +56,10 @@ function App() {
                   />
                   <Route path="art/:projectId?" element={<ArtStudio />} />
                   <Route path="market" element={<MarketIntelligence />} />
+                  <Route
+                    path="worldbuilding/:projectId?"
+                    element={<WorldbuildingWorkspace />}
+                  />
                   <Route path="settings" element={<Settings />} />
                 </Route>
               </Route>

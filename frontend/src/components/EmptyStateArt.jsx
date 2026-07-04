@@ -145,6 +145,33 @@ export function WorkflowEmptyArt({ size = 80 }) {
   );
 }
 
+// ── Three cards connected by lines — worldbuilding canvas ─────────────────
+export function WorldbuildingArt({ size = 80 }) {
+  return (
+    <svg {...baseProps} width={size} height={size}>
+      {/* Card 1 — top-left */}
+      <rect x="10" y="14" width="24" height="18" rx="2" />
+      <line x1="15" y1="20" x2="28" y2="20" opacity="0.45" />
+      <line x1="15" y1="26" x2="26" y2="26" opacity="0.3" />
+      {/* Card 2 — top-right */}
+      <rect x="46" y="14" width="24" height="18" rx="2" />
+      <line x1="51" y1="20" x2="64" y2="20" opacity="0.45" />
+      <line x1="51" y1="26" x2="62" y2="26" opacity="0.3" />
+      {/* Card 3 — bottom-center */}
+      <rect x="28" y="50" width="24" height="18" rx="2" />
+      <line x1="33" y1="56" x2="46" y2="56" opacity="0.45" />
+      <line x1="33" y1="62" x2="44" y2="62" opacity="0.3" />
+      {/* Connections */}
+      <line x1="22" y1="32" x2="40" y2="50" opacity="0.55" />
+      <line x1="58" y1="32" x2="40" y2="50" opacity="0.55" />
+      {/* Connection nodes */}
+      <circle cx="22" cy="32" r="1.8" fill="currentColor" opacity="0.5" />
+      <circle cx="58" cy="32" r="1.8" fill="currentColor" opacity="0.5" />
+      <circle cx="40" cy="50" r="1.8" fill="currentColor" opacity="0.65" />
+    </svg>
+  );
+}
+
 // ── Chat bubble / Thad ─────────────────────────────────────────────────────
 export function ChatStartArt({ size = 80 }) {
   return (

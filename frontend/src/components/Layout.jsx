@@ -32,6 +32,7 @@ import {
   LogOut,
   User,
   Sparkles,
+  Globe,
 } from "lucide-react";
 import AskThadDialog from "@/components/AskThadDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,6 +44,7 @@ const navItems = [
   { icon: BarChart2, label: "Stats", path: "/stats" },
   { icon: GitBranch, label: "Where you are", path: "/workflow" },
   { icon: Palette, label: "Voice & style", path: "/tone" },
+  { icon: Globe, label: "Worldbuilding", path: "/worldbuilding" },
   { icon: ImageIcon, label: "Cover & art", path: "/art" },
   { icon: TrendingUp, label: "Out in the world", path: "/market" },
   { icon: Settings, label: "Settings", path: "/settings" },
