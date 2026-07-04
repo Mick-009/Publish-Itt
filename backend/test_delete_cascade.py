@@ -61,7 +61,10 @@ async def _cleanup(db, uid: str, pid: str) -> None:
     """Best-effort removal of the test user and all their data after a crash."""
     for col in ("projects", "notes", "versions", "writing_sessions", "style_presets", "shares"):
         await db[col].delete_many({"user_id": uid})
-    for col in ("chapters", "thad_revisions", "thad_style_notes", "art_assets", "book_art_profiles"):
+    for col in (
+        "chapters", "thad_revisions", "thad_style_notes", "art_assets",
+        "book_art_profiles", "worldbuilding_items", "worldbuilding_connections",
+    ):
         await db[col].delete_many({"project_id": pid})
     await db.users.delete_one({"id": uid})
 
@@ -187,28 +190,57 @@ async def run() -> None:
                 "created_at": _now(), "updated_at": _now(),
             })
 
+            # worldbuilding_items (project-scoped only)
+            wb_item_id = _uid()
+            await db.worldbuilding_items.insert_one({
+                "id": wb_item_id, "project_id": pid, "user_id": uid,
+                "type": "character", "title": "Test Character",
+                "position": {"x": 0.0, "y": 0.0}, "provenance": "manual",
+                "source_chapter_id": None, "extraction_id": None, "data": {},
+                "created_at": _now(), "updated_at": _now(),
+            })
+
+            # worldbuilding_connections (project-scoped only)
+            wb_item_id2 = _uid()
+            await db.worldbuilding_items.insert_one({
+                "id": wb_item_id2, "project_id": pid, "user_id": uid,
+                "type": "place", "title": "Test Place",
+                "position": {"x": 100.0, "y": 100.0}, "provenance": "manual",
+                "source_chapter_id": None, "extraction_id": None, "data": {},
+                "created_at": _now(), "updated_at": _now(),
+            })
+            await db.worldbuilding_connections.insert_one({
+                "id": _uid(), "project_id": pid, "user_id": uid,
+                "source_id": wb_item_id, "target_id": wb_item_id2,
+                "label": "lives in", "created_at": _now(), "updated_at": _now(),
+            })
+
             print("Inserted test documents into all cascade collections.")
 
             # ── 4. verify everything exists before delete ────────────────────
             checks_before = {
-                "projects":          await db.projects.count_documents({"user_id": uid}),
-                "chapters":          await db.chapters.count_documents({"project_id": pid}),
-                "notes":             await db.notes.count_documents({"user_id": uid}),
-                "versions":          await db.versions.count_documents({"user_id": uid}),
-                "writing_sessions":  await db.writing_sessions.count_documents({"user_id": uid}),
-                "style_presets":     await db.style_presets.count_documents({"user_id": uid}),
-                "shares":            await db.shares.count_documents({"user_id": uid}),
-                "thad_revisions":    await db.thad_revisions.count_documents({"project_id": pid}),
-                "thad_style_notes":  await db.thad_style_notes.count_documents({"project_id": pid}),
-                "art_assets":        await db.art_assets.count_documents({"project_id": pid}),
-                "book_art_profiles": await db.book_art_profiles.count_documents({"project_id": pid}),
-                "users":             await db.users.count_documents({"id": uid}),
+                "projects":                   await db.projects.count_documents({"user_id": uid}),
+                "chapters":                   await db.chapters.count_documents({"project_id": pid}),
+                "notes":                      await db.notes.count_documents({"user_id": uid}),
+                "versions":                   await db.versions.count_documents({"user_id": uid}),
+                "writing_sessions":           await db.writing_sessions.count_documents({"user_id": uid}),
+                "style_presets":              await db.style_presets.count_documents({"user_id": uid}),
+                "shares":                     await db.shares.count_documents({"user_id": uid}),
+                "thad_revisions":             await db.thad_revisions.count_documents({"project_id": pid}),
+                "thad_style_notes":           await db.thad_style_notes.count_documents({"project_id": pid}),
+                "art_assets":                 await db.art_assets.count_documents({"project_id": pid}),
+                "book_art_profiles":          await db.book_art_profiles.count_documents({"project_id": pid}),
+                "worldbuilding_items":        await db.worldbuilding_items.count_documents({"project_id": pid}),
+                "worldbuilding_connections":  await db.worldbuilding_connections.count_documents({"project_id": pid}),
+                "users":                      await db.users.count_documents({"id": uid}),
             }
             expected_before = {
                 "projects": 1, "chapters": 2, "notes": 1, "versions": 1,
                 "writing_sessions": 1, "style_presets": 1, "shares": 1,
                 "thad_revisions": 1, "thad_style_notes": 1,
-                "art_assets": 1, "book_art_profiles": 1, "users": 1,
+                "art_assets": 1, "book_art_profiles": 1,
+                "worldbuilding_items": 2, "worldbuilding_connections": 1,
+                "users": 1,
             }
             for col, count in checks_before.items():
                 if count != expected_before[col]:
@@ -243,18 +275,20 @@ async def run() -> None:
 
             # ── 7. verify everything is gone ─────────────────────────────────
             checks_after = {
-                "projects":          await db.projects.count_documents({"user_id": uid}),
-                "chapters":          await db.chapters.count_documents({"project_id": pid}),
-                "notes":             await db.notes.count_documents({"user_id": uid}),
-                "versions":          await db.versions.count_documents({"user_id": uid}),
-                "writing_sessions":  await db.writing_sessions.count_documents({"user_id": uid}),
-                "style_presets":     await db.style_presets.count_documents({"user_id": uid}),
-                "shares":            await db.shares.count_documents({"user_id": uid}),
-                "thad_revisions":    await db.thad_revisions.count_documents({"project_id": pid}),
-                "thad_style_notes":  await db.thad_style_notes.count_documents({"project_id": pid}),
-                "art_assets":        await db.art_assets.count_documents({"project_id": pid}),
-                "book_art_profiles": await db.book_art_profiles.count_documents({"project_id": pid}),
-                "users":             await db.users.count_documents({"id": uid}),
+                "projects":                   await db.projects.count_documents({"user_id": uid}),
+                "chapters":                   await db.chapters.count_documents({"project_id": pid}),
+                "notes":                      await db.notes.count_documents({"user_id": uid}),
+                "versions":                   await db.versions.count_documents({"user_id": uid}),
+                "writing_sessions":           await db.writing_sessions.count_documents({"user_id": uid}),
+                "style_presets":              await db.style_presets.count_documents({"user_id": uid}),
+                "shares":                     await db.shares.count_documents({"user_id": uid}),
+                "thad_revisions":             await db.thad_revisions.count_documents({"project_id": pid}),
+                "thad_style_notes":           await db.thad_style_notes.count_documents({"project_id": pid}),
+                "art_assets":                 await db.art_assets.count_documents({"project_id": pid}),
+                "book_art_profiles":          await db.book_art_profiles.count_documents({"project_id": pid}),
+                "worldbuilding_items":        await db.worldbuilding_items.count_documents({"project_id": pid}),
+                "worldbuilding_connections":  await db.worldbuilding_connections.count_documents({"project_id": pid}),
+                "users":                      await db.users.count_documents({"id": uid}),
             }
             orphans = {col: n for col, n in checks_after.items() if n > 0}
             if orphans:

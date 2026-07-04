@@ -31,6 +31,7 @@ import exports as E
 import thad_revisions
 import onboarding
 import shares
+import worldbuilding
 
 # Document parsing imports
 from docx import Document as DocxDocument
@@ -4029,6 +4030,13 @@ shares_router = shares.build_router(
 )
 app.include_router(shares_router)
 
+# Worldbuilding canvas — cards and connections
+worldbuilding_router = worldbuilding.build_router(
+    db=db,
+    get_current_user_dep=Depends(get_current_user),
+)
+app.include_router(worldbuilding_router)
+
 # CORS — reads from CORS_ORIGINS env var; falls back to localhost:3000 for safety
 app.add_middleware(
     CORSMiddleware,
@@ -4055,6 +4063,7 @@ async def create_indexes():
     await db.style_presets.create_index([("user_id", 1)])
     await thad_revisions.ensure_indexes(db)
     await shares.ensure_indexes(db)
+    await worldbuilding.ensure_indexes(db)
     logger.info("MongoDB indexes created/verified.")
 
 

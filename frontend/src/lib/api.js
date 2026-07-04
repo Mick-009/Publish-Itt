@@ -619,6 +619,71 @@ export const publicApi = {
     ),
 };
 
+// Worldbuilding canvas — items (cards) and connections.
+//
+// All endpoints under /api/worldbuilding/* require auth (JWT auto-attached
+// by the shared axios instance). No callers yet — wired up in visit 3+.
+export const worldbuildingApi = {
+  // Items (cards)
+  getItems: (projectId) =>
+    api.get("/worldbuilding/items", { params: { project_id: projectId } }),
+
+  createItem: ({ projectId, type, title = "", position, provenance = "manual", sourceChapterId, extractionId, data = {} }) =>
+    api.post("/worldbuilding/items", {
+      project_id: projectId,
+      type,
+      title,
+      position: position ?? { x: 0, y: 0 },
+      provenance,
+      source_chapter_id: sourceChapterId ?? null,
+      extraction_id: extractionId ?? null,
+      data,
+    }),
+
+  createItemsBatch: (projectId, items) =>
+    api.post("/worldbuilding/items/batch", {
+      project_id: projectId,
+      items: items.map(({ type, title = "", position, provenance = "manual", sourceChapterId, extractionId, data = {} }) => ({
+        type,
+        title,
+        position: position ?? { x: 0, y: 0 },
+        provenance,
+        source_chapter_id: sourceChapterId ?? null,
+        extraction_id: extractionId ?? null,
+        data,
+      })),
+    }),
+
+  updateItem: (itemId, { title, position, data, sourceChapterId } = {}) => {
+    const body = {};
+    if (title !== undefined) body.title = title;
+    if (position !== undefined) body.position = position;
+    if (data !== undefined) body.data = data;
+    if (sourceChapterId !== undefined) body.source_chapter_id = sourceChapterId;
+    return api.patch(`/worldbuilding/items/${itemId}`, body);
+  },
+
+  deleteItem: (itemId) => api.delete(`/worldbuilding/items/${itemId}`),
+
+  // Connections
+  getConnections: (projectId) =>
+    api.get("/worldbuilding/connections", { params: { project_id: projectId } }),
+
+  createConnection: ({ projectId, sourceId, targetId, label }) =>
+    api.post("/worldbuilding/connections", {
+      project_id: projectId,
+      source_id: sourceId,
+      target_id: targetId,
+      label: label ?? null,
+    }),
+
+  updateConnection: (connectionId, { label }) =>
+    api.patch(`/worldbuilding/connections/${connectionId}`, { label }),
+
+  deleteConnection: (connectionId) =>
+    api.delete(`/worldbuilding/connections/${connectionId}`),
+};
+
 // Import Manuscript Action
 export const actionsApi = {
   importManuscript: (file, title = null) => {

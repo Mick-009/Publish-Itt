@@ -320,7 +320,8 @@ User-scoped (every document carries `user_id`):
 
 Project-scoped only (no direct `user_id` — owned via `project_id`):
 
-- `thad_revisions`, `thad_style_notes`, `art_assets`, `book_art_profiles`
+- `thad_revisions`, `thad_style_notes`, `art_assets`, `book_art_profiles`,
+  `worldbuilding_items`, `worldbuilding_connections`
 
 Parked / problematic (see "Known parked issues" below):
 

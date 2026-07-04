@@ -336,6 +336,12 @@ async def delete_account(
         await db.book_art_profiles.delete_many(
             {"project_id": {"$in": project_ids}}
         )
+        await db.worldbuilding_items.delete_many(
+            {"project_id": {"$in": project_ids}}
+        )
+        await db.worldbuilding_connections.delete_many(
+            {"project_id": {"$in": project_ids}}
+        )
 
     # Step 3: cascade through user-scoped collections.
     user_scoped = [
