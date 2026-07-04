@@ -16,6 +16,7 @@ import MarketIntelligence from "@/pages/MarketIntelligence";
 import Settings from "@/pages/Settings";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import SharePage from "@/pages/SharePage";
+import CanvasSpike from "@/pages/CanvasSpike";
 
 function App() {
   return (
@@ -56,6 +57,8 @@ function App() {
                   <Route path="art/:projectId?" element={<ArtStudio />} />
                   <Route path="market" element={<MarketIntelligence />} />
                   <Route path="settings" element={<Settings />} />
+                  {/* TEMPORARY — canvas tech spike, remove after worldbuilding build begins */}
+                  <Route path="canvas-spike" element={<CanvasSpike />} />
                 </Route>
               </Route>
 

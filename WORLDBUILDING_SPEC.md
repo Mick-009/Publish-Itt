@@ -579,11 +579,15 @@ frontend/src/
 ### Library
 
 ```bash
-npm install reactflow
+npm install @xyflow/react
 ```
 
-(Or `@xyflow/react` — same library, newer package name. Pick the current
-canonical install during the spike.)
+(Confirmed during the tech spike: `@xyflow/react` v12+ is the current
+canonical package. The old `reactflow` package is the legacy path. The
+spike installed @xyflow/react@12.11.1 cleanly — no peer dependency
+conflicts. Bundle impact: ~57 KB gzip JS, ~2.5 KB gzip CSS. Note:
+@xyflow/react bundles its own zustand; if the app ever adds zustand as a
+direct dependency, check version compatibility.)
 
 ### Data flow
 
@@ -613,7 +617,37 @@ debounced persistence, revert on failure. Matches the optimistic pattern
 already established in the codebase (e.g. ManuscriptWorkspace's stage
 change).
 
-### React Flow integration notes
+### React Flow integration notes (updated with tech spike findings)
+
+**Container sizing — load-bearing, learned in the spike.** React Flow
+requires a container with an explicit, fixed size — it measures its
+container's offsetWidth/offsetHeight to set the viewport. The app's
+`<main className="flex-1 overflow-auto">` is a hazard: if the canvas can
+grow, the page gets a scrollbar and scroll fights canvas pan.
+
+The fix (proven in the spike): wrap the canvas in
+`<div className="h-full overflow-hidden">`. This pins the canvas to
+`<main>`'s height and suppresses the scroll escape hatch.
+
+**Fragility to know about:** the `h-full` chain requires every ancestor
+from `<html>` down to have explicit height (not just min-height). The
+chain in this app: html → body → #root → `<div className="h-screen">`
+(App.js) → `<main className="flex-1 overflow-auto">` (Layout.jsx) →
+canvas wrapper `h-full`. If the App root's `h-screen` ever changes, the
+canvas collapses to zero height. If the canvas ever renders as
+zero-height, check this chain first.
+
+**Input handling — decided, not default.** React Flow's default has
+plain trackpad scroll zooming the canvas. Writers (unlike designers)
+find this disorienting. Use:
+
+```jsx
+<ReactFlow zoomOnScroll={false} panOnScroll={true} ... />
+```
+
+Scroll pans; Ctrl+scroll (or pinch) zooms. This matches document-like
+surface expectations and the "ease in, don't overwhelm" principle.
+
 
 - Custom node types registered with React Flow. CardNode wraps the
   type-specific renderers.
