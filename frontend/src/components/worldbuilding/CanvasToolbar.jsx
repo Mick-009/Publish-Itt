@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -12,22 +13,72 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Sparkles, ZoomIn, ZoomOut, Maximize2, User, MapPin, FileText } from "lucide-react";
+import {
+  Plus,
+  Sparkles,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  User,
+  MapPin,
+  FileText,
+} from "lucide-react";
 import { toast } from "sonner";
+import { worldbuildingApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 function stubAction() {
   toast("Coming in the next pass.");
 }
 
-export default function CanvasToolbar() {
-  const { zoomIn, zoomOut, fitView, zoomTo } = useReactFlow();
+export default function CanvasToolbar({
+  projectId,
+  onCardCreated,
+  isDragging,
+  getCanvasCenter,
+}) {
+  const { zoomIn, zoomOut, fitView, zoomTo, screenToFlowPosition } =
+    useReactFlow();
   const { zoom } = useViewport();
   const zoomPercent = Math.round((zoom ?? 1) * 100);
 
-  return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 bg-card border border-border rounded-md shadow-md px-1.5 py-1">
+  const createCard = useCallback(
+    async (type) => {
+      if (!projectId) return;
+      const center = getCanvasCenter();
+      const offset = {
+        x: (Math.random() - 0.5) * 40,
+        y: (Math.random() - 0.5) * 40,
+      };
+      const position = screenToFlowPosition({
+        x: center.x + offset.x,
+        y: center.y + offset.y,
+      });
 
-      {/* ── Add group ─────────────────────────────────────────────────────── */}
+      try {
+        const res = await worldbuildingApi.createItem({
+          projectId,
+          type,
+          position,
+        });
+        onCardCreated(res.data);
+      } catch {
+        toast.error("Couldn't add that card. Try again?");
+      }
+    },
+    [projectId, getCanvasCenter, screenToFlowPosition, onCardCreated],
+  );
+
+  return (
+    <div
+      className={cn(
+        "absolute bottom-6 left-1/2 -translate-x-1/2 z-10",
+        "flex items-center gap-0.5 bg-card border border-border rounded-md shadow-md px-1.5 py-1",
+        "transition-opacity duration-150",
+        isDragging ? "opacity-40" : "opacity-100",
+      )}
+    >
+      {/* ── Add group ──────────────────────────────────────────────────────── */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -40,15 +91,15 @@ export default function CanvasToolbar() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="start" className="min-w-[140px]">
-          <DropdownMenuItem onSelect={stubAction}>
+          <DropdownMenuItem onSelect={() => createCard("character")}>
             <User className="mr-2 h-4 w-4" />
             Character
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={stubAction}>
+          <DropdownMenuItem onSelect={() => createCard("place")}>
             <MapPin className="mr-2 h-4 w-4" />
             Place
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={stubAction}>
+          <DropdownMenuItem onSelect={() => createCard("note")}>
             <FileText className="mr-2 h-4 w-4" />
             Note
           </DropdownMenuItem>
@@ -57,7 +108,7 @@ export default function CanvasToolbar() {
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 
-      {/* ── Ask Thad group ────────────────────────────────────────────────── */}
+      {/* ── Ask Thad group ─────────────────────────────────────────────────── */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -84,7 +135,7 @@ export default function CanvasToolbar() {
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 
-      {/* ── View group ────────────────────────────────────────────────────── */}
+      {/* ── View group ─────────────────────────────────────────────────────── */}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
