@@ -96,10 +96,11 @@ export default function CardEditorPanel({ node, onClose, onUpdate, onDelete }) {
     const confirmed = window.confirm("Delete this card? Gone for good — can't undo.");
     if (!confirmed) return;
     try {
-      await worldbuildingApi.deleteItem(item.id);
-      onDelete(item.id);
+      const res = await worldbuildingApi.deleteItem(item.id);
+      const alsoDeleted = res.data.also_deleted_connections ?? 0;
+      // Canvas handles toast (needs connection count) and edge state cleanup
+      onDelete(item.id, alsoDeleted);
       onClose();
-      toast("Card deleted.");
     } catch {
       toast.error("Couldn't delete that card. Try again?");
     }

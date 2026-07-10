@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { Handle, Position } from "@xyflow/react";
 import { Sparkles } from "lucide-react";
 import {
   Tooltip,
@@ -61,6 +62,16 @@ function CardNode({ data, selected }) {
 
   const bodyValue = cardData.body;
 
+  // Handles: target on left, source on right — connections read left-to-right.
+  // Sized at 8px, centered on the node edge (left/right: -4 corrects for RF's
+  // default -3px offset which assumes the default 6px handle size).
+  const handleStyle = {
+    width: 8,
+    height: 8,
+    background: typeColor,
+    border: "2px solid hsl(var(--card))",
+  };
+
   return (
     <div
       className={cn(
@@ -69,6 +80,19 @@ function CardNode({ data, selected }) {
         selected && "ring-2 ring-accent ring-offset-0",
       )}
     >
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ ...handleStyle, left: -4 }}
+        className="transition-transform duration-100 hover:scale-125"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ ...handleStyle, right: -4 }}
+        className="transition-transform duration-100 hover:scale-125"
+      />
+
       {/* Type color strip */}
       <div style={{ height: 3, backgroundColor: typeColor }} />
 
