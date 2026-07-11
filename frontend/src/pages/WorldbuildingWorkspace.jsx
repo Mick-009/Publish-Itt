@@ -76,7 +76,7 @@ export default function WorldbuildingWorkspace() {
 
   return (
     <div className="h-full overflow-hidden" data-testid="worldbuilding-page">
-      <WorldbuildingCanvas projectId={activeProjectId} />
+      <WorldbuildingCanvas projectId={activeProjectId} project={selectedProject ?? projects[0]} />
     </div>
   );
 }

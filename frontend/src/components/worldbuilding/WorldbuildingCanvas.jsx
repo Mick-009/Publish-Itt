@@ -10,11 +10,13 @@ import {
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import LoadingState from "@/components/LoadingState";
-import { worldbuildingApi } from "@/lib/api";
+import { worldbuildingApi, aiApi } from "@/lib/api";
+import { gridLayout } from "@/lib/canvasLayout";
 import CanvasToolbar from "./CanvasToolbar";
 import CardNode from "./CardNode";
 import CardEditorPanel from "./CardEditorPanel";
 import ConnectionEdge from "./ConnectionEdge";
+import ChapterPickerModal from "./ChapterPickerModal";
 import { EdgeActionsContext } from "./EdgeActionsContext";
 
 // Stable references — must live outside the component so React Flow doesn't
@@ -22,7 +24,7 @@ import { EdgeActionsContext } from "./EdgeActionsContext";
 const NODE_TYPES = { card: CardNode };
 const EDGE_TYPES = { connection: ConnectionEdge };
 
-export default function WorldbuildingCanvas({ projectId }) {
+export default function WorldbuildingCanvas({ projectId, project }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,10 @@ export default function WorldbuildingCanvas({ projectId }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [editingEdgeId, setEditingEdgeId] = useState(null);
+
+  const [thadWorking, setThadWorking] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerFlowCenterRef = useRef({ x: 0, y: 0 });
 
   const selectedNodeIdsRef = useRef([]);
   const selectedEdgeIdsRef = useRef([]);
@@ -387,6 +393,90 @@ export default function WorldbuildingCanvas({ projectId }) {
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   }, []);
 
+  // ── Thad extraction helpers ───────────────────────────────────────────────
+
+  // Add a batch of canvas_items from the AI to the canvas, centered at
+  // the given flow coordinate. Marks each node justArrived for the fade-in.
+  const addBatchToCanvas = useCallback(
+    async (canvasItems, flowCenter) => {
+      if (!canvasItems?.length) return;
+      const positioned = gridLayout(
+        canvasItems,
+        flowCenter.x,
+        flowCenter.y,
+      );
+      try {
+        const res = await worldbuildingApi.createItemsBatch(projectId, positioned);
+        const created = res.data?.created ?? [];
+        setNodes((nds) => [
+          ...nds,
+          ...created.map((item) => ({
+            id: item.id,
+            type: "card",
+            position: item.position,
+            data: { item, justArrived: true },
+          })),
+        ]);
+        toast(`${created.length} ${created.length === 1 ? "card" : "cards"} on the canvas.`);
+      } catch {
+        toast.error("Couldn't add those cards. Try again?");
+      }
+    },
+    [projectId, setNodes],
+  );
+
+  // "Summarize a chapter" — opens the chapter picker; confirmation triggers
+  // the actual API call so we don't hold the server busy while the modal is open.
+  const handleThadSummarize = useCallback((flowCenter) => {
+    pickerFlowCenterRef.current = flowCenter;
+    setPickerOpen(true);
+  }, []);
+
+  const handlePickerConfirm = useCallback(
+    async (chapter) => {
+      setPickerOpen(false);
+      setThadWorking(true);
+      const center = pickerFlowCenterRef.current;
+      try {
+        const res = await aiApi.summarize(
+          chapter.content,
+          chapter.title,
+          chapter.id,
+        );
+        await addBatchToCanvas(res.data?.canvas_items, center);
+      } catch {
+        toast.error("Thad couldn't read that chapter. Try again?");
+      } finally {
+        setThadWorking(false);
+      }
+    },
+    [addBatchToCanvas],
+  );
+
+  // "Outline the book" — whole-project, no picker needed.
+  const handleThadOutline = useCallback(
+    async (flowCenter) => {
+      if (!project) {
+        toast.error("No project loaded.");
+        return;
+      }
+      setThadWorking(true);
+      try {
+        const res = await aiApi.generateOutline(
+          project.title,
+          project.summary ?? "",
+          10,
+        );
+        await addBatchToCanvas(res.data?.canvas_items, flowCenter);
+      } catch {
+        toast.error("Thad couldn't outline the book. Try again?");
+      } finally {
+        setThadWorking(false);
+      }
+    },
+    [project, addBatchToCanvas],
+  );
+
   // ── Derived ───────────────────────────────────────────────────────────────
 
   const selectedNode = useMemo(
@@ -458,6 +548,16 @@ export default function WorldbuildingCanvas({ projectId }) {
             onCardCreated={handleCardCreated}
             isDragging={isDragging}
             getCanvasCenter={getCanvasCenter}
+            thadWorking={thadWorking}
+            onSummarize={handleThadSummarize}
+            onOutline={handleThadOutline}
+          />
+
+          <ChapterPickerModal
+            open={pickerOpen}
+            projectId={projectId}
+            onConfirm={handlePickerConfirm}
+            onClose={() => setPickerOpen(false)}
           />
 
           {panelOpen && selectedNode && (

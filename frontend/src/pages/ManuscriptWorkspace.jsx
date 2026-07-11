@@ -46,6 +46,7 @@ import {
   worldbuildingApi,
 } from "@/lib/api";
 import { cn, formatWordCount } from "@/lib/utils";
+import { gridLayout } from "@/lib/canvasLayout";
 import { toast } from "sonner";
 import ImportAnalysisDialog from "@/components/ImportAnalysisDialog";
 import VersionsPanel from "@/components/VersionsPanel";
@@ -840,17 +841,7 @@ export default function ManuscriptWorkspace() {
   const handleSendToCanvas = async () => {
     if (!selectedProject?.id || !aiCanvasItems.length) return;
     setCanvasSentState("sending");
-    // Auto-layout: 3-column grid, cards ~280px wide × 160px tall with 40px gap
-    const COLS = 3;
-    const COL_W = 320;
-    const ROW_H = 200;
-    const itemsWithPositions = aiCanvasItems.map((item, i) => ({
-      ...item,
-      position: {
-        x: (i % COLS) * COL_W,
-        y: Math.floor(i / COLS) * ROW_H,
-      },
-    }));
+    const itemsWithPositions = gridLayout(aiCanvasItems, 0, 0);
     try {
       await worldbuildingApi.createItemsBatch(selectedProject.id, itemsWithPositions);
       setCanvasSentState("sent");

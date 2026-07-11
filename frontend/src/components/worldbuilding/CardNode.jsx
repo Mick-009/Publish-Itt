@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState, useEffect } from "react";
 import { Handle, Position } from "@xyflow/react";
 import { Sparkles } from "lucide-react";
 import {
@@ -49,6 +49,16 @@ function ProvenanceMarker({ provenance }) {
 function CardNode({ data, selected }) {
   const item = data.item;
   const { type, title, provenance } = item;
+
+  // One-shot fade-in for cards that just arrived from a Thad extraction.
+  // justArrived is set in node data at creation time; local state clears it
+  // after the animation so it doesn't replay if the node re-renders.
+  const [arrived, setArrived] = useState(data.justArrived ?? false);
+  useEffect(() => {
+    if (!arrived) return;
+    const t = setTimeout(() => setArrived(false), 350);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const cardData = item.data ?? {};
   const typeColor = TYPE_COLORS[type] ?? TYPE_COLORS.note;
   const typeLabel = TYPE_LABELS[type] ?? type.toUpperCase();
@@ -78,6 +88,7 @@ function CardNode({ data, selected }) {
         "w-60 bg-card border border-border rounded-md overflow-hidden select-none",
         "shadow-[var(--shadow-card)]",
         selected && "ring-2 ring-accent ring-offset-0",
+        arrived && "animate-fade-in",
       )}
     >
       <Handle

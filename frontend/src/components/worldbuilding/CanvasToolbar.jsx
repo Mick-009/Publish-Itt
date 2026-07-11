@@ -16,6 +16,7 @@ import {
 import {
   Plus,
   Sparkles,
+  Loader2,
   ZoomIn,
   ZoomOut,
   Maximize2,
@@ -27,15 +28,14 @@ import { toast } from "sonner";
 import { worldbuildingApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-function stubAction() {
-  toast("Coming in the next pass.");
-}
-
 export default function CanvasToolbar({
   projectId,
   onCardCreated,
   isDragging,
   getCanvasCenter,
+  thadWorking,
+  onSummarize,
+  onOutline,
 }) {
   const { zoomIn, zoomOut, fitView, zoomTo, screenToFlowPosition } =
     useReactFlow();
@@ -68,6 +68,13 @@ export default function CanvasToolbar({
     },
     [projectId, getCanvasCenter, screenToFlowPosition, onCardCreated],
   );
+
+  // Compute the current viewport center in flow coordinates and pass it to the
+  // canvas so extracted cards land where the writer is looking.
+  const getFlowCenter = useCallback(() => {
+    const center = getCanvasCenter();
+    return screenToFlowPosition(center);
+  }, [getCanvasCenter, screenToFlowPosition]);
 
   return (
     <div
@@ -115,19 +122,27 @@ export default function CanvasToolbar({
             variant="ghost"
             size="sm"
             className="gap-1.5 rounded-sm h-8 px-2.5 text-sm font-normal"
+            disabled={thadWorking}
           >
-            <Sparkles className="h-4 w-4 shrink-0" />
-            Ask Thad
+            {thadWorking ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 shrink-0" />
+            )}
+            Thad
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="start" className="min-w-[220px]">
-          <DropdownMenuItem onSelect={stubAction}>
-            Extract characters from a chapter
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={stubAction}>
+        <DropdownMenuContent side="top" align="start" className="min-w-[180px]">
+          <DropdownMenuItem
+            onSelect={() => onSummarize(getFlowCenter())}
+            disabled={thadWorking}
+          >
             Summarize a chapter
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={stubAction}>
+          <DropdownMenuItem
+            onSelect={() => onOutline(getFlowCenter())}
+            disabled={thadWorking}
+          >
             Outline the book
           </DropdownMenuItem>
         </DropdownMenuContent>
