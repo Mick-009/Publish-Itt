@@ -43,6 +43,7 @@ import {
   uploadApi,
   versionsApi,
   statsApi,
+  worldbuildingApi,
 } from "@/lib/api";
 import { cn, formatWordCount } from "@/lib/utils";
 import { toast } from "sonner";
@@ -164,6 +165,10 @@ export default function ManuscriptWorkspace() {
   const [selectedText, setSelectedText] = useState("");
   const [selectedRange, setSelectedRange] = useState(null);
   const [applyingAi, setApplyingAi] = useState(false);
+
+  // canvas send state — populated by summarize + outline when backend returns canvas_items
+  const [aiCanvasItems, setAiCanvasItems] = useState([]);
+  const [canvasSentState, setCanvasSentState] = useState(null); // null | "sending" | "sent"
 
   // ── Dialog state ─────────────────────────────────────────────────────────
   const [newChapterOpen, setNewChapterOpen] = useState(false);
@@ -749,10 +754,17 @@ export default function ManuscriptWorkspace() {
     setAiLoading(true);
     setAiOriginalText("");
     setAiResponseType(null);
+    setAiCanvasItems([]);
+    setCanvasSentState(null);
     try {
-      const res = await aiApi.summarize(editor.getText());
+      const res = await aiApi.summarize(
+        editor.getText(),
+        selectedChapter?.title,
+        selectedChapter?.id,
+      );
       setAiResponse(res.data.response);
       setAiResponseType("summary");
+      setAiCanvasItems(res.data.canvas_items ?? []);
     } catch (error) {
       toast.error("Couldn't put that together. Try again?");
     } finally {
@@ -771,6 +783,8 @@ export default function ManuscriptWorkspace() {
     setOutlineOpen(false);
     setAiOriginalText("");
     setAiResponseType(null);
+    setAiCanvasItems([]);
+    setCanvasSentState(null);
     try {
       const res = await aiApi.generateOutline(
         selectedProject.title,
@@ -779,6 +793,7 @@ export default function ManuscriptWorkspace() {
       );
       setAiResponse(res.data.response);
       setAiResponseType("outline");
+      setAiCanvasItems(res.data.canvas_items ?? []);
     } catch (error) {
       toast.error("Couldn't outline that. Try again?");
     } finally {
@@ -818,6 +833,31 @@ export default function ManuscriptWorkspace() {
   const clearAiResponse = () => {
     setAiResponse("");
     setAiResponseType(null);
+    setAiCanvasItems([]);
+    setCanvasSentState(null);
+  };
+
+  const handleSendToCanvas = async () => {
+    if (!selectedProject?.id || !aiCanvasItems.length) return;
+    setCanvasSentState("sending");
+    // Auto-layout: 3-column grid, cards ~280px wide × 160px tall with 40px gap
+    const COLS = 3;
+    const COL_W = 320;
+    const ROW_H = 200;
+    const itemsWithPositions = aiCanvasItems.map((item, i) => ({
+      ...item,
+      position: {
+        x: (i % COLS) * COL_W,
+        y: Math.floor(i / COLS) * ROW_H,
+      },
+    }));
+    try {
+      await worldbuildingApi.createItemsBatch(selectedProject.id, itemsWithPositions);
+      setCanvasSentState("sent");
+    } catch {
+      setCanvasSentState(null);
+      toast.error("Couldn't send to the canvas. Try again?");
+    }
   };
 
   const createAiSafetySnapshot = async (actionLabel) => {
@@ -1984,81 +2024,156 @@ export default function ManuscriptWorkspace() {
                               </div>
                             )}
 
-                            {/* Insert / Replace actions */}
-                            <div className="space-y-2 pt-2">
-                              {/* Primary — the two "apply" actions, equal weight, stacked */}
-                              <Button
-                                size="sm"
-                                className="w-full rounded-sm justify-center"
-                                onClick={handleInsertIntoEditor}
-                                disabled={applyingAi}
-                                data-testid="insert-into-editor-btn"
-                              >
-                                <Check className="h-4 w-4 mr-2" />
-                                {applyingAi
-                                  ? "Applying."
-                                  : "Insert into the chapter"}
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="w-full rounded-sm justify-center"
-                                onClick={handleReplaceSelection}
-                                disabled={!hasStoredSelection || applyingAi}
-                                data-testid="replace-selection-btn"
-                              >
-                                <Pencil className="h-4 w-4 mr-2" />
-                                {applyingAi
-                                  ? "Applying."
-                                  : "Replace what's selected"}
-                              </Button>
-
-                              {/* Divider — separates "apply" from "utility" */}
-                              <div className="h-px bg-border my-1" />
-
-                              {/* Secondary row — Copy and Dismiss side by side, quiet, ghost weight */}
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
-                                  onClick={handleCopyAiResponse}
-                                  data-testid="copy-ai-response-btn"
-                                >
-                                  <Copy className="h-3.5 w-3.5 mr-1.5" />
-                                  Copy
-                                </Button>
-
-                                {aiResponseType === "rewrite" ? (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
-                                    onClick={handleDenyRewrite}
-                                    data-testid="deny-rewrite-btn"
-                                  >
-                                    <X className="h-3.5 w-3.5 mr-1.5" />
-                                    Dismiss
-                                  </Button>
+                            {/* CTAs — posture-aware */}
+                            {aiCanvasItems.length > 0 &&
+                            (aiResponseType === "summary" ||
+                              aiResponseType === "outline") ? (
+                              <div className="space-y-2 pt-2">
+                                {canvasSentState === "sent" ? (
+                                  <>
+                                    <p className="text-sm text-foreground font-medium">
+                                      Sent to the canvas.
+                                    </p>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="w-full rounded-sm justify-center"
+                                      onClick={() =>
+                                        navigate(
+                                          `/worldbuilding/${selectedProject?.id}`,
+                                        )
+                                      }
+                                      data-testid="view-canvas-btn"
+                                    >
+                                      View canvas
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="w-full rounded-sm text-muted-foreground hover:text-foreground"
+                                      onClick={clearAiResponse}
+                                      data-testid="dismiss-ai-btn"
+                                    >
+                                      <X className="h-3.5 w-3.5 mr-1.5" />
+                                      Dismiss
+                                    </Button>
+                                  </>
                                 ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
-                                    onClick={clearAiResponse}
-                                    data-testid="dismiss-ai-btn"
-                                  >
-                                    <X className="h-3.5 w-3.5 mr-1.5" />
-                                    Dismiss
-                                  </Button>
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      className="w-full rounded-sm justify-center"
+                                      onClick={handleSendToCanvas}
+                                      disabled={canvasSentState === "sending"}
+                                      data-testid="send-to-canvas-btn"
+                                    >
+                                      <Send className="h-4 w-4 mr-2" />
+                                      {canvasSentState === "sending"
+                                        ? "Sending."
+                                        : "Send to canvas"}
+                                    </Button>
+                                    <div className="h-px bg-border my-1" />
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
+                                        onClick={handleCopyAiResponse}
+                                        data-testid="copy-ai-response-btn"
+                                      >
+                                        <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                        Copy
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
+                                        onClick={clearAiResponse}
+                                        data-testid="dismiss-ai-btn"
+                                      >
+                                        <X className="h-3.5 w-3.5 mr-1.5" />
+                                        Dismiss
+                                      </Button>
+                                    </div>
+                                  </>
                                 )}
                               </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Insert leaves what's there. Replace swaps your
-                              selection.
-                            </p>
+                            ) : (
+                              <>
+                                {/* Insert / Replace actions */}
+                                <div className="space-y-2 pt-2">
+                                  <Button
+                                    size="sm"
+                                    className="w-full rounded-sm justify-center"
+                                    onClick={handleInsertIntoEditor}
+                                    disabled={applyingAi}
+                                    data-testid="insert-into-editor-btn"
+                                  >
+                                    <Check className="h-4 w-4 mr-2" />
+                                    {applyingAi
+                                      ? "Applying."
+                                      : "Insert into the chapter"}
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full rounded-sm justify-center"
+                                    onClick={handleReplaceSelection}
+                                    disabled={!hasStoredSelection || applyingAi}
+                                    data-testid="replace-selection-btn"
+                                  >
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    {applyingAi
+                                      ? "Applying."
+                                      : "Replace what's selected"}
+                                  </Button>
+
+                                  <div className="h-px bg-border my-1" />
+
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
+                                      onClick={handleCopyAiResponse}
+                                      data-testid="copy-ai-response-btn"
+                                    >
+                                      <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                      Copy
+                                    </Button>
+
+                                    {aiResponseType === "rewrite" ? (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
+                                        onClick={handleDenyRewrite}
+                                        data-testid="deny-rewrite-btn"
+                                      >
+                                        <X className="h-3.5 w-3.5 mr-1.5" />
+                                        Dismiss
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="flex-1 rounded-sm text-muted-foreground hover:text-foreground"
+                                        onClick={clearAiResponse}
+                                        data-testid="dismiss-ai-btn"
+                                      >
+                                        <X className="h-3.5 w-3.5 mr-1.5" />
+                                        Dismiss
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Insert leaves what's there. Replace swaps
+                                  your selection.
+                                </p>
+                              </>
+                            )}
                           </div>
                         ) : (
                           <p className="text-sm text-muted-foreground text-center py-8">

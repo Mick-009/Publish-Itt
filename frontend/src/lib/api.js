@@ -166,7 +166,12 @@ export const toneProfileApi = {
 // AI APIs
 export const aiApi = {
   rewrite: (content, tone) => api.post("/ai/rewrite", { content, tone }),
-  summarize: (content) => api.post("/ai/summarize", { content }),
+  summarize: (content, chapterTitle, chapterId) =>
+    api.post("/ai/summarize", {
+      content,
+      chapter_title: chapterTitle ?? null,
+      chapter_id: chapterId ?? null,
+    }),
   generateOutline: (projectTitle, projectSummary, targetChapterCount) =>
     api.post("/ai/outline", {
       project_title: projectTitle,

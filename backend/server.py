@@ -456,6 +456,8 @@ class RewriteRequest(BaseModel):
 
 class SummarizeRequest(BaseModel):
     content: str
+    chapter_title: Optional[str] = None
+    chapter_id: Optional[str] = None
 
 
 class AnalyzeToneRequest(BaseModel):
@@ -514,6 +516,7 @@ class AIChatRequest(BaseModel):
 class AIResponse(BaseModel):
     response: str
     module: str
+    canvas_items: Optional[List[dict]] = None
 
 
 # Market Intelligence Request Models
@@ -2558,9 +2561,20 @@ async def rewrite_text(request: RewriteRequest, current_user: UserOut = Depends(
 @api_router.post("/ai/summarize", response_model=AIResponse)
 async def summarize_chapter(request: SummarizeRequest, current_user: UserOut = Depends(get_current_user)):
     prompt = P.build_summarize_prompt(content=request.content)
-
     response = await get_ai_response(MANUSCRIPT_SYSTEM_PROMPT, prompt)
-    return AIResponse(response=response, module="manuscript")
+
+    chapter_label = request.chapter_title or "Chapter"
+    canvas_items = [
+        {
+            "type": "note",
+            "title": f"Summary — {chapter_label}",
+            "data": {"body": response},
+            "provenance": "ai",
+            "source_chapter_id": request.chapter_id,
+            "extraction_id": str(uuid.uuid4()),
+        }
+    ]
+    return AIResponse(response=response, module="manuscript", canvas_items=canvas_items)
 
 
 @api_router.post("/ai/analyze-tone-basic", response_model=AIResponse)
@@ -2582,6 +2596,39 @@ async def analyze_tone_basic(request: AnalyzeToneRequest, current_user: UserOut 
     response = await get_ai_response(MANUSCRIPT_SYSTEM_PROMPT, prompt)
     return AIResponse(response=response, module="tone")
 
+# MOCK-ONLY parser — this parses text the mock generator itself produced
+# one step earlier, so the format is guaranteed. When real AI replaces the
+# mock, the outline endpoint must return structured sections directly
+# (JSON out via the canvas_items contract). Do NOT adapt this function to
+# parse real model output — delete it instead.
+def _parse_outline_canvas_items(outline_text: str, extraction_id: str) -> list:
+    """Split an outline into one note card per chapter block.
+
+    Splits on blank lines; first line of each block becomes the card title,
+    the rest becomes the body. Strips common markdown sigils from titles.
+    """
+    import re
+    blocks = re.split(r'\n{2,}', outline_text.strip())
+    items = []
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+        lines = block.splitlines()
+        title = re.sub(r'^[#*\-\s]+', '', lines[0]).strip()
+        body = '\n'.join(line.lstrip('- ') for line in lines[1:]).strip()
+        if not title:
+            continue
+        items.append({
+            "type": "note",
+            "title": title,
+            "data": {"body": body},
+            "provenance": "ai",
+            "source_chapter_id": None,
+            "extraction_id": extraction_id,
+        })
+    return items
+
 
 @api_router.post("/ai/outline", response_model=AIResponse)
 async def generate_outline(request: OutlineRequest, current_user: UserOut = Depends(get_current_user)):
@@ -2592,7 +2639,9 @@ async def generate_outline(request: OutlineRequest, current_user: UserOut = Depe
     )
 
     response = await get_ai_response(MANUSCRIPT_SYSTEM_PROMPT, prompt)
-    return AIResponse(response=response, module="manuscript")
+    extraction_id = str(uuid.uuid4())
+    canvas_items = _parse_outline_canvas_items(response, extraction_id)
+    return AIResponse(response=response, module="manuscript", canvas_items=canvas_items)
 
 
 @api_router.post("/ai/workflow-analysis", response_model=AIResponse)
