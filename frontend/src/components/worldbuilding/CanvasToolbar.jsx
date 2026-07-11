@@ -9,6 +9,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -30,6 +37,8 @@ import { cn } from "@/lib/utils";
 
 export default function CanvasToolbar({
   projectId,
+  projects,
+  onProjectChange,
   onCardCreated,
   isDragging,
   getCanvasCenter,
@@ -214,6 +223,35 @@ export default function CanvasToolbar({
           Fit view
         </TooltipContent>
       </Tooltip>
+
+      {projects?.length > 1 && (
+        <>
+          <Separator orientation="vertical" className="mx-1 h-5" />
+
+          {/* ── Project switcher ───────────────────────────────────────────── */}
+          <Select value={projectId ?? ""} onValueChange={onProjectChange}>
+            <SelectTrigger
+              className={cn(
+                "h-8 rounded-sm border-0 bg-transparent shadow-none px-2",
+                "text-xs text-muted-foreground hover:text-foreground",
+                "focus:ring-0 focus:ring-offset-0",
+                "w-[9rem] max-w-[9rem]",
+              )}
+            >
+              <SelectValue placeholder="Switch world" />
+            </SelectTrigger>
+            <SelectContent side="top" align="end">
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id} className="text-sm">
+                  <span className="block truncate max-w-[16ch]">
+                    {p.title || "Untitled"}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </>
+      )}
     </div>
   );
 }

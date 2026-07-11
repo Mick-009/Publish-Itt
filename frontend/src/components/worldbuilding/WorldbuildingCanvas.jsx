@@ -24,7 +24,7 @@ import { EdgeActionsContext } from "./EdgeActionsContext";
 const NODE_TYPES = { card: CardNode };
 const EDGE_TYPES = { connection: ConnectionEdge };
 
-export default function WorldbuildingCanvas({ projectId, project }) {
+export default function WorldbuildingCanvas({ projectId, project, projects, onProjectChange }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [loading, setLoading] = useState(true);
@@ -545,6 +545,8 @@ export default function WorldbuildingCanvas({ projectId, project }) {
 
           <CanvasToolbar
             projectId={projectId}
+            projects={projects}
+            onProjectChange={onProjectChange}
             onCardCreated={handleCardCreated}
             isDragging={isDragging}
             getCanvasCenter={getCanvasCenter}
