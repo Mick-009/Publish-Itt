@@ -3327,6 +3327,111 @@ async def analyze_imported_manuscript(request: ImportAnalysisRequest, current_us
     }
 
 
+# MOCK-ONLY: builds synthetic canvas_items for the five analytical import actions.
+# Real AI must return structured canvas_items directly (same contract).
+# When the real model replaces the mock, delete this function — do not adapt it.
+def _build_import_canvas_items(
+    action: str,
+    response_text: str,
+    extraction_id: str,
+    chapter_id: Optional[str] = None,
+) -> list:
+    base = {
+        "provenance": "ai",
+        "source_chapter_id": chapter_id,
+        "extraction_id": extraction_id,
+    }
+
+    if action == "extract_characters":
+        return [
+            {
+                **base, "type": "character", "title": "Mira Voss",
+                "data": {
+                    "role": "Protagonist",
+                    "first_seen": "Chapter 1",
+                    "body": "A cartographer's apprentice mapping the unmapped coast. Methodical, prone to second-guessing herself.",
+                },
+            },
+            {
+                **base, "type": "character", "title": "Dov",
+                "data": {
+                    "role": "Mentor",
+                    "first_seen": "Chapter 1",
+                    "body": "Mira's supervisor. Keeps his past close. Has made this crossing before.",
+                },
+            },
+            {
+                **base, "type": "character", "title": "Lise",
+                "data": {
+                    "role": "Rival",
+                    "first_seen": "Chapter 2",
+                    "body": "Another cartographer. Technically skilled, politically ambitious. Not quite a villain.",
+                },
+            },
+        ]
+
+    if action == "extract_glossary":
+        return [
+            {
+                **base, "type": "note", "title": "The Unmapped Coast",
+                "data": {"body": "A stretch of shoreline deliberately omitted from official maps. Locals call it the Blank."},
+            },
+            {
+                **base, "type": "note", "title": "Dead reckoning",
+                "data": {"body": "Navigation by calculation rather than observation — estimating position from speed, heading, and elapsed time."},
+            },
+            {
+                **base, "type": "note", "title": "Chart warden",
+                "data": {"body": "A guild officer responsible for certifying maps. Has authority to suppress a chart that challenges official records."},
+            },
+        ]
+
+    if action == "extract_summaries":
+        return [
+            {
+                **base, "type": "note", "title": "Summary — Chapter 1",
+                "data": {"body": "Mira receives the commission to map the Unmapped Coast. She suspects the assignment is a test, or a punishment."},
+            },
+            {
+                **base, "type": "note", "title": "Summary — Chapter 2",
+                "data": {"body": "Lise arrives at the same destination by a different route. The two are forced to collaborate."},
+            },
+        ]
+
+    if action == "lantern_path":
+        stages = [
+            ("Spark", "Mira's commission arrives. She's been passed over twice and reads this as either a third chance or a final one."),
+            ("Exploration", "The coast doesn't match any prior survey. Mira begins mapping what she finds, quietly aware that it contradicts her supervisor's earlier work."),
+            ("Lantern Moment", "She finds evidence that Dov falsified a chart twenty years ago. The moment she understands what he did — and why — changes how she reads everything before it."),
+            ("Application", "She decides not to report him. Instead she resurveys his original route and files a corrected chart under her own name, making the decision his to explain."),
+            ("Resolution", "The guild accepts the corrected chart without comment. Dov resigns the following week. Mira gets the next commission."),
+        ]
+        return [
+            {**base, "type": "note", "title": stage, "data": {"body": desc}}
+            for stage, desc in stages
+        ]
+
+    if action == "full_qa":
+        return [
+            {
+                **base, "type": "note", "title": "QA read",
+                "data": {
+                    "body": (
+                        "Tone: Consistent. The prose stays in close third throughout; no slippage.\n\n"
+                        "Character: Mira's motivation is clear from page one. Dov is underwritten in chapter two — "
+                        "his silence reads as evasive rather than reserved.\n\n"
+                        "Pacing: Chapter three runs long. The survey sequence is accurate but the repetition dulls the tension.\n\n"
+                        "Continuity: One gap — the storm in chapter one is referenced as 'last week' in chapter three "
+                        "but the timeline suggests three days.\n\n"
+                        "Readiness: Solid draft. Character and pacing to fix before the next pass."
+                    )
+                },
+            }
+        ]
+
+    return []
+
+
 @api_router.post("/ai/import/action", response_model=AIResponse)
 async def execute_import_action(request: ImportActionRequest, current_user: UserOut = Depends(get_current_user)):
     """Execute a specific action on imported manuscript content"""
@@ -3339,7 +3444,13 @@ async def execute_import_action(request: ImportActionRequest, current_user: User
     prompt = action_prompts[request.action].format(content=request.content[:20000])
 
     response = await get_ai_response(IMPORT_ANALYSIS_SYSTEM_PROMPT, prompt)
-    return AIResponse(response=response, module="import_analysis")
+
+    extraction_id = str(uuid.uuid4())
+    canvas_items = _build_import_canvas_items(
+        request.action, response, extraction_id, request.chapter_id
+    ) or None
+
+    return AIResponse(response=response, module="import_analysis", canvas_items=canvas_items)
 
 
 # ============== IMPLEMENT IMPORT ACTION ENDPOINT ==============

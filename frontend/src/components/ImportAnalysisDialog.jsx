@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,9 @@ import {
   chapterApi,
   versionsApi,
   notesApi,
+  worldbuildingApi,
 } from "@/lib/api";
+import { gridLayout } from "@/lib/canvasLayout";
 import { toast } from "sonner";
 import LoadingState from "@/components/LoadingState";
 import {
@@ -134,6 +137,8 @@ export default function ImportAnalysisDialog({
   chapterId,
   onActionComplete,
 }) {
+  const navigate = useNavigate();
+
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [executingAction, setExecutingAction] = useState(null);
@@ -142,6 +147,7 @@ export default function ImportAnalysisDialog({
   const [fixingEverything, setFixingEverything] = useState(false);
   const [fixProgress, setFixProgress] = useState(0);
   const [fixResults, setFixResults] = useState([]);
+  const [canvasSentState, setCanvasSentState] = useState(null); // null | "sending" | "sent"
 
   // Auto-analyze when dialog opens with content
   useEffect(() => {
@@ -157,8 +163,14 @@ export default function ImportAnalysisDialog({
       setActionResult(null);
       setFixResults([]);
       setFixProgress(0);
+      setCanvasSentState(null);
     }
   }, [open]);
+
+  // Reset canvas send state whenever the result changes (new action run)
+  useEffect(() => {
+    setCanvasSentState(null);
+  }, [actionResult]);
 
   const handleAnalyze = async () => {
     if (!content) return;
@@ -208,7 +220,11 @@ export default function ImportAnalysisDialog({
         projectId,
         chapterId,
       );
-      setActionResult({ action: actionId, response: res.data.response });
+      setActionResult({
+        action: actionId,
+        response: res.data.response,
+        canvasItems: res.data.canvas_items ?? [],
+      });
     } catch (error) {
       toast.error("That didn't go through. Try again?");
       console.error(error);
@@ -518,6 +534,19 @@ export default function ImportAnalysisDialog({
     setActionResult(null);
   };
 
+  const handleSendToCanvas = async () => {
+    const items = actionResult?.canvasItems;
+    if (!projectId || !items?.length) return;
+    setCanvasSentState("sending");
+    try {
+      await worldbuildingApi.createItemsBatch(projectId, gridLayout(items, 0, 0));
+      setCanvasSentState("sent");
+    } catch {
+      setCanvasSentState(null);
+      toast.error("Couldn't send that to the canvas. Try again?");
+    }
+  };
+
   const handleClose = () => {
     setAnalysis(null);
     setActionResult(null);
@@ -750,6 +779,41 @@ export default function ImportAnalysisDialog({
                   <Separator />
 
                   <div className="sticky bottom-0 bg-background pt-2 pb-1">
+                    {/* Canvas send — additive, only for analytical actions that return canvas_items */}
+                    {actionResult?.canvasItems?.length > 0 && (
+                      <div className="mb-3">
+                        {canvasSentState === "sent" ? (
+                          <p className="text-sm text-muted-foreground">
+                            Sent to the canvas.{" "}
+                            {projectId && (
+                              <button
+                                className="underline underline-offset-2 hover:text-foreground transition-colors"
+                                onClick={() => navigate(`/worldbuilding/${projectId}`)}
+                              >
+                                View canvas
+                              </button>
+                            )}
+                          </p>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full rounded-sm"
+                            onClick={handleSendToCanvas}
+                            disabled={canvasSentState === "sending"}
+                            data-testid="send-to-canvas-btn"
+                          >
+                            {canvasSentState === "sending" ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-4 w-4 mr-2" />
+                            )}
+                            Send to canvas
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
                     <p className="text-sm text-muted-foreground mb-3">
                       Apply these, or set them aside?
                     </p>
