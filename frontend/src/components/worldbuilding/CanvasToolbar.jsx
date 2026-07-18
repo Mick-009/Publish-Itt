@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { worldbuildingApi } from "@/lib/api";
+import { findClearOrigin, wouldOverlapExisting } from "@/lib/canvasLayout";
 import { cn } from "@/lib/utils";
 
 export default function CanvasToolbar({
@@ -42,6 +43,7 @@ export default function CanvasToolbar({
   onCardCreated,
   isDragging,
   getCanvasCenter,
+  getExistingNodes,
   thadWorking,
   onSummarize,
   onOutline,
@@ -59,10 +61,19 @@ export default function CanvasToolbar({
         x: (Math.random() - 0.5) * 40,
         y: (Math.random() - 0.5) * 40,
       };
-      const position = screenToFlowPosition({
+      const viewportPos = screenToFlowPosition({
         x: center.x + offset.x,
         y: center.y + offset.y,
       });
+
+      // Fall back to below-existing if the viewport center is occupied.
+      // wouldOverlapExisting takes a card center; viewportPos is the top-left.
+      const existingNodes = getExistingNodes();
+      const cardCenter = { x: viewportPos.x + 160, y: viewportPos.y + 100 };
+      const position =
+        existingNodes.length > 0 && wouldOverlapExisting(cardCenter, existingNodes)
+          ? findClearOrigin(existingNodes)
+          : viewportPos;
 
       try {
         const res = await worldbuildingApi.createItem({
@@ -75,7 +86,7 @@ export default function CanvasToolbar({
         toast.error("Couldn't add that card. Try again?");
       }
     },
-    [projectId, getCanvasCenter, screenToFlowPosition, onCardCreated],
+    [projectId, getCanvasCenter, getExistingNodes, screenToFlowPosition, onCardCreated],
   );
 
   // Compute the current viewport center in flow coordinates and pass it to the

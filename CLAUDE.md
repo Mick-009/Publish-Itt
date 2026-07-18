@@ -273,6 +273,11 @@ uvicorn server:app --reload --port 8001
 FastAPI on `http://localhost:8001`. `--reload` auto-restarts on backend
 file changes.
 
+**Standing rule:** after any backend edit, wait for the terminal to print
+`Application startup complete` before testing. A stale server silently
+serves the old response model — new fields (e.g. `canvas_items`) won't
+appear until Uvicorn has fully reloaded. This has burned us more than once.
+
 **MongoDB:** assumed running locally on default port. No special start
 command — connection details in backend `.env`.
 

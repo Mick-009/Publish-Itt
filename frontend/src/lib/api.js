@@ -648,13 +648,14 @@ export const worldbuildingApi = {
   createItemsBatch: (projectId, items) =>
     api.post("/worldbuilding/items/batch", {
       project_id: projectId,
-      items: items.map(({ type, title = "", position, provenance = "manual", sourceChapterId, extractionId, data = {} }) => ({
+      // Accept both camelCase (manually-constructed items) and snake_case (backend canvas_items).
+      items: items.map(({ type, title = "", position, provenance = "manual", sourceChapterId, source_chapter_id, extractionId, extraction_id, data = {} }) => ({
         type,
         title,
         position: position ?? { x: 0, y: 0 },
         provenance,
-        source_chapter_id: sourceChapterId ?? null,
-        extraction_id: extractionId ?? null,
+        source_chapter_id: sourceChapterId ?? source_chapter_id ?? null,
+        extraction_id: extractionId ?? extraction_id ?? null,
         data,
       })),
     }),

@@ -11,7 +11,8 @@ import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import LoadingState from "@/components/LoadingState";
 import { worldbuildingApi, aiApi } from "@/lib/api";
-import { gridLayout } from "@/lib/canvasLayout";
+import { gridLayout, gridLayoutFromTopLeft, findClearOrigin, wouldOverlapExisting } from "@/lib/canvasLayout";
+import { cn } from "@/lib/utils";
 import CanvasToolbar from "./CanvasToolbar";
 import CardNode from "./CardNode";
 import CardEditorPanel from "./CardEditorPanel";
@@ -42,7 +43,14 @@ export default function WorldbuildingCanvas({ projectId, project, projects, onPr
   const selectedEdgeIdsRef = useRef([]);
   const wrapperRef = useRef(null);
 
-  // Keep a ref to current edges for stable label-save callback (avoids stale closure)
+  // Keep refs to current nodes and edges for stable callbacks (avoids stale closures).
+  // nodesRef lets addBatchToCanvas read the live node list without adding `nodes` to
+  // its dep array (which would rebuild the callback on every card move).
+  const nodesRef = useRef(nodes);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
   const edgesRef = useRef(edges);
   useEffect(() => {
     edgesRef.current = edges;
@@ -275,7 +283,7 @@ export default function WorldbuildingCanvas({ projectId, project, projects, onPr
       await worldbuildingApi.updateItem(node.id, { position: node.position });
     } catch {
       // Don't snap back — a jumping card is worse than an unsynced position.
-      toast.error("Couldn't save that position.");
+      toast.error("Couldn't save that position. Try again?");
     }
   }, []);
 
@@ -385,7 +393,7 @@ export default function WorldbuildingCanvas({ projectId, project, projects, onPr
     [panelOpen, selectedNodeId, setNodes, setEdges],
   );
 
-  // ── Canvas center (for toolbar card placement) ────────────────────────────
+  // ── Canvas center + existing nodes (for toolbar card placement) ───────────
 
   const getCanvasCenter = useCallback(() => {
     if (!wrapperRef.current) return { x: 400, y: 300 };
@@ -393,18 +401,45 @@ export default function WorldbuildingCanvas({ projectId, project, projects, onPr
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   }, []);
 
+  const getExistingNodes = useCallback(() => nodesRef.current, []);
+
   // ── Thad extraction helpers ───────────────────────────────────────────────
 
-  // Add a batch of canvas_items from the AI to the canvas, centered at
-  // the given flow coordinate. Marks each node justArrived for the fade-in.
+  // Add a batch of canvas_items from the AI to the canvas.
+  // chapterId — if supplied, triggers the re-extraction warning when the chapter
+  //             has been read before. Omit (or pass null) for project-wide actions.
+  // flowCenter — the viewport center in flow coordinates; used as the grid origin
+  //             unless it would overlap existing cards, in which case we fall back
+  //             to findClearOrigin (below the lowest card, left-aligned).
   const addBatchToCanvas = useCallback(
-    async (canvasItems, flowCenter) => {
+    async (canvasItems, flowCenter, chapterId = null) => {
       if (!canvasItems?.length) return;
-      const positioned = gridLayout(
-        canvasItems,
-        flowCenter.x,
-        flowCenter.y,
-      );
+
+      const existingNodes = nodesRef.current;
+
+      // Re-extraction warning — chapter-scoped actions only
+      if (chapterId) {
+        const hasPrior = existingNodes.some(
+          (n) => n.data?.item?.source_chapter_id === chapterId,
+        );
+        if (hasPrior) {
+          const ok = window.confirm(
+            "Thad has read this chapter before — cards from it are already on the canvas. This adds more; it won't touch what's there. Send anyway?",
+          );
+          if (!ok) return;
+        }
+      }
+
+      // Layout: viewport center (gridLayout, center-based) when clear;
+      // below existing cards (gridLayoutFromTopLeft, top-left anchor) when occupied.
+      let positioned;
+      if (existingNodes.length > 0 && wouldOverlapExisting(flowCenter, existingNodes)) {
+        const origin = findClearOrigin(existingNodes);
+        positioned = gridLayoutFromTopLeft(canvasItems, origin.x, origin.y);
+      } else {
+        positioned = gridLayout(canvasItems, flowCenter.x, flowCenter.y);
+      }
+
       try {
         const res = await worldbuildingApi.createItemsBatch(projectId, positioned);
         const created = res.data?.created ?? [];
@@ -443,7 +478,7 @@ export default function WorldbuildingCanvas({ projectId, project, projects, onPr
           chapter.title,
           chapter.id,
         );
-        await addBatchToCanvas(res.data?.canvas_items, center);
+        await addBatchToCanvas(res.data?.canvas_items, center, chapter.id);
       } catch {
         toast.error("Thad couldn't read that chapter. Try again?");
       } finally {
@@ -534,14 +569,17 @@ export default function WorldbuildingCanvas({ projectId, project, projects, onPr
             />
           </ReactFlow>
 
-          {nodes.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <p className="text-sm text-muted-foreground select-none">
-                This is where your world lives. Add a card, or ask Thad to read
-                a chapter.
-              </p>
-            </div>
-          )}
+          <div
+            className={cn(
+              "absolute inset-0 flex items-center justify-center pointer-events-none",
+              "transition-opacity duration-300",
+              nodes.length === 0 ? "opacity-100" : "opacity-0",
+            )}
+          >
+            <p className="text-sm text-muted-foreground select-none">
+              This is where your world lives. Add a card, or let Thad read a chapter.
+            </p>
+          </div>
 
           <CanvasToolbar
             projectId={projectId}
@@ -550,6 +588,7 @@ export default function WorldbuildingCanvas({ projectId, project, projects, onPr
             onCardCreated={handleCardCreated}
             isDragging={isDragging}
             getCanvasCenter={getCanvasCenter}
+            getExistingNodes={getExistingNodes}
             thadWorking={thadWorking}
             onSummarize={handleThadSummarize}
             onOutline={handleThadOutline}

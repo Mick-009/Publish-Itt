@@ -65,11 +65,13 @@ const THEME_COLORS = {
 };
 
 function FieldWithClear({ label, value, onChange, placeholder }) {
+  const inputId = `profile-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label htmlFor={inputId}>{label}</Label>
       <div className="relative">
         <Input
+          id={inputId}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}

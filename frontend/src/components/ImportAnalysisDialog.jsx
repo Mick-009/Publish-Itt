@@ -19,7 +19,7 @@ import {
   notesApi,
   worldbuildingApi,
 } from "@/lib/api";
-import { gridLayout } from "@/lib/canvasLayout";
+import { gridLayoutFromTopLeft, findClearOrigin } from "@/lib/canvasLayout";
 import { toast } from "sonner";
 import LoadingState from "@/components/LoadingState";
 import {
@@ -539,7 +539,26 @@ export default function ImportAnalysisDialog({
     if (!projectId || !items?.length) return;
     setCanvasSentState("sending");
     try {
-      await worldbuildingApi.createItemsBatch(projectId, gridLayout(items, 0, 0));
+      const existingRes = await worldbuildingApi.getItems(projectId);
+      const existing = existingRes.data ?? [];
+
+      // Re-extraction warning — all import analytical actions are chapter-scoped
+      const batchChapterId = items[0]?.source_chapter_id;
+      if (batchChapterId) {
+        const hasPrior = existing.some((item) => item.source_chapter_id === batchChapterId);
+        if (hasPrior) {
+          const ok = window.confirm(
+            "Thad has read this chapter before — cards from it are already on the canvas. This adds more; it won't touch what's there. Send anyway?",
+          );
+          if (!ok) {
+            setCanvasSentState(null);
+            return;
+          }
+        }
+      }
+
+      const origin = findClearOrigin(existing);
+      await worldbuildingApi.createItemsBatch(projectId, gridLayoutFromTopLeft(items, origin.x, origin.y));
       setCanvasSentState("sent");
     } catch {
       setCanvasSentState(null);

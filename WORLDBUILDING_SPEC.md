@@ -676,6 +676,26 @@ Specific React Flow features we'll use in v1:
 What we'll _avoid_ in v1: minimap (defer to v1.1), keyboard shortcuts
 beyond Delete (defer), multi-select sophistication (defer).
 
+**Additional integration notes from the build:**
+
+- **Themed arrowheads require custom SVG markers.** React Flow's built-in
+  `MarkerType` cannot accept CSS custom properties (e.g. `hsl(var(--accent))`
+  as the arrowhead fill). To get theme-aware arrows, define a custom `<defs>`
+  `<marker>` inside a React Flow `<svg>` element mounted inside the
+  `<ReactFlow>` tree. `currentColor` works; direct CSS vars do not.
+  (Visit 5 finding.)
+
+- **PATCH sends the full merged data object.** The backend's item PATCH
+  replaces the `data` dict wholesale — it does not deep-merge. Editors must
+  send the complete merged data object (all fields, including unchanged ones),
+  not just the field they're updating. Partial sends will blank unset fields.
+  (Visit 4 finding.)
+
+- **NODE_TYPES and EDGE_TYPES must be module-level constants.** Defining
+  these objects inside the component causes React Flow to recreate renderers
+  on every render, collapsing all nodes and edges to zero height. Keep them
+  outside the component as stable references. (Visit 3 finding.)
+
 ---
 
 ## Out of scope for v1
@@ -858,23 +878,42 @@ happens; don't work around it.
 
 Specifically, these are likely to need revisiting:
 
-- **Auto-layout positions for AI-extracted cards.** "Soft grid" is the
-  current intent, but the actual layout algorithm needs design work.
-  Probably during the visual polish phase of the build.
-- **The exact React Flow APIs for connection rendering.** We're committing
-  to "lines with optional labels and arrow heads." The exact rendering
-  shape gets settled when we see it in the browser.
-- **Toolbar UX details.** "Bottom-center, three groups" is locked. The
-  exact button shapes, spacings, icon choices, hover affordances all get
-  decided during build.
-- **The empty state copy.** Currently sketched as _"This is where your
-  world lives. Add a card, or ask Thad to extract from a chapter."_ That's
-  a placeholder — voice-tune during build.
-- **The "Send to canvas" interaction.** The single-step-with-flag API
-  contract is locked; the exact UI flow (does the panel close? show a
-  success state? animate to indicate the cards landed?) gets settled
-  during build.
-- **Project switching form inside the canvas** Deferred, candidate location is toolbar right edge.
+- **Auto-layout positions for AI-extracted cards.** ✓ Settled (Visit 8).
+  `gridLayout` centers a 3-column grid at a given origin. `findClearOrigin`
+  places new batches below the lowest existing card, left-aligned. Surface 2
+  (canvas) uses viewport center unless it would overlap existing cards, then
+  falls back to `findClearOrigin`. Both helpers live in `lib/canvasLayout.js`.
+
+- **The exact React Flow APIs for connection rendering.** ✓ Settled (Visit 5).
+  Custom `ConnectionEdge` component with inline label editing. Custom SVG
+  `<marker>` in defs for themed arrowheads (see integration note above).
+
+- **Toolbar UX details.** ✓ Settled during build. Four groups: Add (card
+  types), Ask Thad (extractions), View controls (zoom/fit/%), Project
+  switcher (compact Select, right edge, only visible with 2+ projects).
+  Dims to 40% opacity during drag.
+
+- **The empty state copy.** ✓ Settled (Visit 8). Final:
+  _"This is where your world lives. Add a card, or let Thad read a chapter."_
+  Fades out with `transition-opacity duration-300` when the first card appears.
+
+- **The "Send to canvas" interaction.** ✓ Settled during build. Three surfaces:
+  manuscript panel (Surface 1), canvas Thad menu (Surface 2), import dialog
+  (Surface 3 — imported from the import-analysis visit). Each surface shows
+  a "Send to canvas" button, transitions to "Sent to the canvas. View canvas"
+  confirmation after success. Double-send guarded per result.
+
+- **Project switching from inside the canvas.** ✓ Shipped (mini-visit after
+  Visit 7). Compact shadcn `Select` on the toolbar's right edge. Only renders
+  when `projects.length > 1`. On change, navigates to `/worldbuilding/{id}`.
+
+**Remaining open items (build-time decisions that surfaced new deferred work):**
+
+- **"Fix everything I can" bundle's canvas wiring.** The bundle runs `full_qa`
+  internally, but its result flows through `fixResults` (not `actionResult`),
+  so the `actionResult.canvasItems` branch doesn't fire for it. A future visit
+  should add a canvas send path off `fixResults`. Documented location:
+  `ImportAnalysisDialog.jsx`, `handleFixEverything`.
 
 These are not gaps in the spec. They're explicit "to be settled in
 context" items.

@@ -46,7 +46,7 @@ import {
   worldbuildingApi,
 } from "@/lib/api";
 import { cn, formatWordCount } from "@/lib/utils";
-import { gridLayout } from "@/lib/canvasLayout";
+import { gridLayoutFromTopLeft, findClearOrigin } from "@/lib/canvasLayout";
 import { toast } from "sonner";
 import ImportAnalysisDialog from "@/components/ImportAnalysisDialog";
 import VersionsPanel from "@/components/VersionsPanel";
@@ -841,8 +841,27 @@ export default function ManuscriptWorkspace() {
   const handleSendToCanvas = async () => {
     if (!selectedProject?.id || !aiCanvasItems.length) return;
     setCanvasSentState("sending");
-    const itemsWithPositions = gridLayout(aiCanvasItems, 0, 0);
     try {
+      const existingRes = await worldbuildingApi.getItems(selectedProject.id);
+      const existing = existingRes.data ?? [];
+
+      // Re-extraction warning — chapter-scoped batches only (outline has null source_chapter_id)
+      const batchChapterId = aiCanvasItems[0]?.source_chapter_id;
+      if (batchChapterId) {
+        const hasPrior = existing.some((item) => item.source_chapter_id === batchChapterId);
+        if (hasPrior) {
+          const ok = window.confirm(
+            "Thad has read this chapter before — cards from it are already on the canvas. This adds more; it won't touch what's there. Send anyway?",
+          );
+          if (!ok) {
+            setCanvasSentState(null);
+            return;
+          }
+        }
+      }
+
+      const origin = findClearOrigin(existing);
+      const itemsWithPositions = gridLayoutFromTopLeft(aiCanvasItems, origin.x, origin.y);
       await worldbuildingApi.createItemsBatch(selectedProject.id, itemsWithPositions);
       setCanvasSentState("sent");
     } catch {
