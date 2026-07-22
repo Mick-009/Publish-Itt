@@ -8,9 +8,9 @@ If something breaks, feels wrong, or just seems off — I want to hear it.
 
 ---
 
-**Your invite code:** `[INVITE_CODE_HERE]`
+**Your invite code:** `Stephen King`
 
-**Feedback:** [FEEDBACK_LINK_OR_EMAIL] — a sentence is enough. "This step confused me" is useful. "The whole thing is broken" less so (though I'll take it).
+**Feedback:** publishiit@gmail.com — a sentence is enough. "This step confused me" is useful. "The whole thing is broken" less so (though I'll take it).
 
 **A few known gaps:** Password reset isn't built yet — if you forget yours, just email me and I'll sort it. The AI placeholders will be replaced in a later build; that's intentional for now.
 
@@ -18,4 +18,4 @@ If something breaks, feels wrong, or just seems off — I want to hear it.
 
 Thank you for taking the time. This is early, and your feedback will actually shape it.
 
-— [YOUR NAME]
+— Champion M. Agbogidi, Jr.

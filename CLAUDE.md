@@ -270,6 +270,9 @@ source venv/Scripts/activate   # Git Bash
 uvicorn server:app --reload --port 8001
 ```
 
+Dev setup (lint, type-check, tests): `pip install -r requirements-dev.txt`
+Production / Render: installs `requirements.txt` only — dev tools are not included.
+
 FastAPI on `http://localhost:8001`. `--reload` auto-restarts on backend
 file changes.
 
