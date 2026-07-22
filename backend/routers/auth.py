@@ -29,6 +29,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     display_name: Optional[str] = None
+    invite_code: Optional[str] = None
 
 
 class UserLogin(BaseModel):
@@ -145,6 +146,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserOut:
 @auth_router.post("/register", response_model=TokenResponse, status_code=201)
 async def register(body: UserRegister):
     db = get_db()
+
+    # Invite gate — enforced only when INVITE_CODE env var is set.
+    required_code = os.environ.get("INVITE_CODE")
+    if required_code:
+        if not body.invite_code:
+            raise HTTPException(status_code=422, detail="Invite code required.")
+        if body.invite_code != required_code:
+            raise HTTPException(status_code=422, detail="That invite code didn't work.")
 
     existing = await db.users.find_one({"email": body.email.lower()})
     if existing:

@@ -25,7 +25,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState("login");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", displayName: "", confirmPassword: "" });
+  const [form, setForm] = useState({ email: "", password: "", displayName: "", confirmPassword: "", inviteCode: "" });
   const [errors, setErrors] = useState({});
 
   const set = (field) => (e) => {
@@ -56,7 +56,7 @@ export default function AuthPage() {
         await login(form.email, form.password);
         toast.success("Welcome back.");
       } else {
-        await register(form.email, form.password, form.displayName);
+        await register(form.email, form.password, form.displayName, form.inviteCode);
         toast.success("You're in.");
       }
       navigate("/");
@@ -68,7 +68,7 @@ export default function AuthPage() {
   const switchMode = () => {
     setMode((m) => (m === "login" ? "register" : "login"));
     setErrors({});
-    setForm({ email: "", password: "", displayName: "", confirmPassword: "" });
+    setForm({ email: "", password: "", displayName: "", confirmPassword: "", inviteCode: "" });
   };
 
   return (
@@ -218,6 +218,22 @@ export default function AuthPage() {
                   autoComplete="new-password"
                 />
                 {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
+              </div>
+            )}
+
+            {mode === "register" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="inviteCode">Invite code</Label>
+                <Input
+                  id="inviteCode"
+                  placeholder="••••••••"
+                  value={form.inviteCode}
+                  onChange={set("inviteCode")}
+                  className={cn("rounded-sm", errors.inviteCode && "border-destructive")}
+                  disabled={loading}
+                  autoComplete="off"
+                />
+                {errors.inviteCode && <p className="text-xs text-destructive">{errors.inviteCode}</p>}
               </div>
             )}
 

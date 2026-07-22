@@ -278,6 +278,37 @@ export default function Layout() {
             <UserMenu collapsed={collapsed} />
           </div>
 
+          {/* Feedback — only renders when REACT_APP_FEEDBACK_URL is set */}
+          {process.env.REACT_APP_FEEDBACK_URL && (
+            <div className={cn("border-t border-border py-2", collapsed ? "px-1.5" : "px-2")}>
+              {collapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <a
+                      href={process.env.REACT_APP_FEEDBACK_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center h-9 w-full rounded-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">Something off? Tell me.</TooltipContent>
+                </Tooltip>
+              ) : (
+                <a
+                  href={process.env.REACT_APP_FEEDBACK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-sm"
+                >
+                  <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                  Something off? Tell me.
+                </a>
+              )}
+            </div>
+          )}
+
           {/* Collapse toggle */}
           <Separator />
           <Button

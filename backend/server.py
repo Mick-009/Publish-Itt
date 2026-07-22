@@ -4197,6 +4197,11 @@ worldbuilding_router = worldbuilding.build_router(
 )
 app.include_router(worldbuilding_router)
 
+@app.get("/api/health")
+async def health():
+    return {"ok": True}
+
+
 # CORS — reads from CORS_ORIGINS env var; falls back to localhost:3000 for safety
 app.add_middleware(
     CORSMiddleware,

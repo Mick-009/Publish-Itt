@@ -43,11 +43,12 @@ export function AuthProvider({ children }) {
     verify();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const register = useCallback(async (email, password, displayName) => {
+  const register = useCallback(async (email, password, displayName, inviteCode) => {
     const res = await axios.post(`${API}/auth/register`, {
       email,
       password,
       display_name: displayName,
+      invite_code: inviteCode || undefined,
     });
     setToken(res.data.access_token);
     setUser(res.data.user);
